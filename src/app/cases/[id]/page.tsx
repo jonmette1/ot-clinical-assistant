@@ -494,34 +494,7 @@ const handleSaveSelectedPathway = async (index: number) => {
     </p>
   </div>
 
- <div className="flex items-center gap-3">
-  <Link
-    href={`/cases/${caseData.id}/edit`}
-    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm"
-  >
-    Edit Case
-  </Link>
-  <button
-    type="button"
-    onClick={handleDeleteCase}
-    disabled={isDeleting}
-    className="bg-red-600 hover:bg-red-700 disabled:bg-red-900 px-4 py-2 rounded-lg text-sm"
-  >
-    {isDeleting ? "Deleting..." : "Delete Case"}
-  </button>
-  <button
-  type="button"
-  onClick={handleCopySummary}
-  className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm"
->
-  Copy Summary </button>
-  <button
-  type="button"
-  onClick={handleDownloadSummary}
-  className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm"
->
-  Download Summary
-</button>
+ <div className="hidden">
 
 {copyMessage && (
   <p className="text-sm text-gray-400 mt-3">{copyMessage}</p>
@@ -626,7 +599,7 @@ const handleSaveSelectedPathway = async (index: number) => {
 <p className="text-xs text-gray-500 mb-2">Overview of selected plan. See pathway below for full details.</p>
     <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-300">
       <div>
-  <p className="text-xs text-gray-400 mb-1">Safety Level</p>
+<p className="text-xs text-gray-400 mb-1">Risk Level</p>
   <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
     {generated.summary.safetyLevel || "—"}
   </span>
