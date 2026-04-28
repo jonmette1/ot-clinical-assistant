@@ -131,6 +131,10 @@ const [generations, setGenerations] = useState<GenerationRow[]>([]);
 const [latestGeneratedPlan, setLatestGeneratedPlan] = useState<GeneratedPlan | null>(null);
 const [selectedGeneration, setSelectedGeneration] = useState<GenerationRow | null>(null);
 const [copyMessage, setCopyMessage] = useState("");
+const [showDetails, setShowDetails] = useState(false);
+const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
+const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
+const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
 const [selectedPathwayIndex, setSelectedPathwayIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -637,50 +641,169 @@ const handleSaveSelectedPathway = async (index: number) => {
   </div>
 )}
 
+{generated?.pathways && generated.pathways.length > 0 && (
+<div className="grid gap-6 lg:grid-cols-3">
+{generated.pathways.map((pathway, index) => (
+             <div
+  key={`${pathway.type}-${index}`}
+onClick={async () => {
+  setSelectedPathwayIndex(index);
+
+  try {
+  await handleSaveSelectedPathway(index); 
+  } catch (e) {
+    console.error("Auto-save failed:", e);
+  }
+}}
+>
+<div className="flex items-center justify-between mb-2 gap-3">
+  <p className="text-xs uppercase tracking-wide text-blue-400 break-all leading-tight">
+    {String(pathway.type).replaceAll("_", " ")}
+  </p>
+  <span className="shrink-0 text-[10px] text-gray-500 italic">
+    click to select
+  </span>
+</div>
+
+ <h3 className="text-base font-semibold mb-3 break-words leading-snug">
+  {pathway.title}
+</h3>
+
+{selectedPathwayIndex === index && (
+  <div className="mb-4 space-y-2">
+    <div className="flex items-center gap-3">
+      <span className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+        Selected Plan
+      </span>
+    </div>
+
+    <p className="text-xs text-gray-400">
+      This plan is now active and used for caregiver guidance and summary output.
+    </p>
+
+  </div>
+)}
+
+                <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300 mb-4">
+                  {pathway.interventions.map((item, itemIndex) => (
+                    <li key={itemIndex}>{item}</li>
+                  ))}
+                </ul>
+
+                <p className="text-sm mb-2">
+                  <strong>Timeline:</strong> {pathway.timeline}
+                </p>
+                <p className="text-sm mb-2">
+                  <strong>Upside:</strong> {pathway.upside}
+                </p>
+                <p className="text-sm text-gray-400">
+                  <strong>Tradeoff:</strong> {pathway.tradeoff}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+ {selectedPathway && (
+  <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900 p-6">
+   <h3 className="text-xl font-semibold mb-3">
+  Caregiver Instructions (Based on Selected Plan)
+</h3>
+
+    <p className="text-sm text-gray-400 mb-4">
+      Based on: {selectedPathway.title}
+    </p>
+
+    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+      {selectedPathway.interventions?.map((item: string, i: number) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  </div>
+)}
+{caregiverGuidance.length > 0 && (
+  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+    <h3 className="text-xl font-semibold mb-3">Caregiver Role (Support Tasks)</h3>
+    <p className="text-xs text-gray-500 mb-2">Caregiver supports the plan — not all interventions are their responsibility.</p>
+    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+      {caregiverGuidance.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<div className="pt-4 border-t border-gray-800">
+  <h2 className="text-lg font-semibold text-gray-200">Supporting Details</h2>
+  <p className="text-sm text-gray-500">Expand sections below for clinical reasoning details.</p>
+</div>
+
 {generated?.functionalProblemAreas &&
   generated.functionalProblemAreas.length > 0 && (
     <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-      <h3 className="text-xl font-semibold mb-3">
-        Functional Problem Areas
-      </h3>
-      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+     <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowDetails(!showDetails)}>
+  <h3 className="text-xl font-semibold mb-3">Functional Problem Areas</h3>
+  <span className="text-xs text-gray-400">
+    {showDetails ? "Hide" : "Show"}
+  </span>
+</div> 
+      {showDetails && (
+  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
         {generated.functionalProblemAreas.map((item, index) => (
           <li key={index}>{item}</li>
         ))}
-      </ul>
+      </ul>)}
     </div>
   )}
 
 {latestGeneratedPlan?.taskBreakdown && latestGeneratedPlan.taskBreakdown.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowTaskBreakdown(!showTaskBreakdown)}>
+  <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
+  <span className="text-xs text-gray-400">
+    {showTaskBreakdown ? "Hide" : "Show"}
+  </span>
+</div>
+    {showTaskBreakdown && (
+  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
 {latestGeneratedPlan.taskBreakdown.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
-    </ul>
+    </ul>)}
   </div>
 )}
 
 {latestGeneratedPlan?.clinicalConsiderations && latestGeneratedPlan.clinicalConsiderations.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowClinicalConsiderations(!showClinicalConsiderations)}>
+  <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
+  <span className="text-xs text-gray-400">
+    {showClinicalConsiderations ? "Hide" : "Show"}
+  </span>
+</div>
+    {showClinicalConsiderations && (
+  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
       {latestGeneratedPlan.clinicalConsiderations.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
-    </ul>
+    </ul>)}
   </div>
 )}
 
 {latestGeneratedPlan?.firstSessionPriorities && latestGeneratedPlan.firstSessionPriorities.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowFirstSessionPriorities(!showFirstSessionPriorities)}>
+  <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
+  <span className="text-xs text-gray-400">
+    {showFirstSessionPriorities ? "Hide" : "Show"}
+  </span>
+</div>
+    {showFirstSessionPriorities && (
+  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
       {latestGeneratedPlan.firstSessionPriorities.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
-    </ul>
+    </ul>)}
   </div>
 )}
 
@@ -707,91 +830,8 @@ const handleSaveSelectedPathway = async (index: number) => {
     </div>
   )}
 
-{caregiverGuidance.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">Caregiver Role (Support Tasks)</h3>
-    <p className="text-xs text-gray-500 mb-2">Caregiver supports the plan — not all interventions are their responsibility.</p>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {caregiverGuidance.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
-  </div>
-)}
-  
-        {generated?.pathways && generated.pathways.length > 0 && (
-<div className="grid gap-6 lg:grid-cols-3">
-{generated.pathways.map((pathway, index) => (
-             <div
-  key={`${pathway.type}-${index}`}
-onClick={async () => {
-  setSelectedPathwayIndex(index);
 
-  try {
-  await handleSaveSelectedPathway(index); 
-  } catch (e) {
-    console.error("Auto-save failed:", e);
-  }
-}}
->
-<div className="flex items-center justify-between mb-2 gap-3">
-  <p className="text-xs uppercase tracking-wide text-blue-400 break-all leading-tight">
-    {String(pathway.type).replaceAll("_", " ")}
-  </p>
-  <span className="shrink-0 text-[10px] text-gray-500 italic">
-    click to select
-  </span>
-</div>
-<h3 className="text-lg font-semibold mb-3 break-words leading-snug">{pathway.title}</h3>
- 
-
-{selectedPathwayIndex === index && (
-  <div className="mb-4 flex items-center gap-3">
-    <span className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-      Selected Plan
-    </span>
-
-  </div>
-)}
-
-                <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300 mb-4">
-                  {pathway.interventions.map((item, itemIndex) => (
-                    <li key={itemIndex}>{item}</li>
-                  ))}
-                </ul>
-
-                <p className="text-sm mb-2">
-                  <strong>Timeline:</strong> {pathway.timeline}
-                </p>
-                <p className="text-sm mb-2">
-                  <strong>Upside:</strong> {pathway.upside}
-                </p>
-                <p className="text-sm text-gray-400">
-                  <strong>Tradeoff:</strong> {pathway.tradeoff}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {selectedPathway && (
-  <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">
-      Caregiver Guidance (Selected Plan)
-    </h3>
-
-    <p className="text-sm text-gray-400 mb-4">
-      Based on: {selectedPathway.title}
-    </p>
-
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {selectedPathway.interventions?.map((item: string, i: number) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
-  </div>
-)}
-
+       
        
        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
   <h3 className="text-xl font-semibold mb-3">Version History</h3>
@@ -957,6 +997,32 @@ className={`rounded-xl border p-5 cursor-pointer transition transform hover:scal
   </div>
 )}  
       </div>
+   <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 border border-gray-800 px-4 py-3 rounded-xl shadow-lg">
+
+  <Link
+    href={`/cases/${caseData.id}/edit`}
+    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm text-white"
+  >
+    Edit
+  </Link>
+
+  <button
+    type="button"
+    onClick={handleCopySummary}
+    className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white"
+  >
+    Copy
+  </button>
+
+  <button
+    type="button"
+    onClick={handleDownloadSummary}
+    className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white"
+  >
+    Download
+  </button>
+
+</div>
     </main>
   );
 }
