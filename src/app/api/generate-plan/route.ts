@@ -16,6 +16,64 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
+    const clinicalFocus =
+      body?.clinical_focus ||
+      body?.case_classification?.clinical_focus ||
+      "adl_home_safety";
+
+      const pathwayFocusRules =
+  clinicalFocus === "transfers_mobility"
+    ? `
+PATHWAY FOCUS MODE: TRANSFERS & MOBILITY
+
+All 3 pathways must focus primarily on transfer and mobility performance.
+
+Pathway 1: Immediate transfer safety
+- Focus on safest current transfer method
+- Address sit-to-stand, surface height, hand placement, device use, and fall risk
+
+Pathway 2: Transfer mechanics training
+- Focus on sequencing, weight shift, controlled standing/sitting, caregiver cueing if relevant
+
+Pathway 3: Mobility carryover between zones
+- Focus on moving between bed, chair, bathroom, and entry areas with realistic pacing and setup
+
+Do not center pathways on bathing or dressing setup unless framed as a transfer barrier.
+`
+    : clinicalFocus === "caregiver_training"
+    ? `
+PATHWAY FOCUS MODE: CAREGIVER TRAINING
+
+All 3 pathways must focus primarily on caregiver execution, safety boundaries, and carryover.
+
+Pathway 1: Immediate caregiver setup and safety boundaries
+- Focus on what caregiver should set up, watch, avoid, and stop
+
+Pathway 2: Caregiver cueing and supervision
+- Focus on simple cueing, timing, positioning, confidence, and reducing unsafe physical help
+
+Pathway 3: Sustainable carryover routine
+- Focus on reducing burden, consistency, patient participation, and when to escalate to OT
+
+Do not center pathways on therapist-only treatment activities.
+`
+    : `
+PATHWAY FOCUS MODE: ADL / HOME SAFETY
+
+All 3 pathways must focus primarily on ADL completion and home safety.
+
+Pathway 1: Immediate ADL safety and setup
+- Focus on bathing, dressing, toileting, bathroom setup, equipment placement, and fall prevention
+
+Pathway 2: ADL routine training
+- Focus on task sequencing, energy conservation, safe positioning, and realistic daily routine
+
+Pathway 3: Home safety optimization
+- Focus on environmental modification, equipment refinement, and reducing ADL risk over time
+
+Do not center pathways on transfer mechanics unless directly supporting ADL completion.
+`;
+
     const client = new OpenAI({ apiKey });
 
 const prompt = `
@@ -29,6 +87,43 @@ Your role is to generate structured OT clinical reasoning that is:
 - immediately usable in a clinical visit
 
 Avoid generic advice. All recommendations must be tied directly to the case data.
+
+PRIMARY CLINICAL FOCUS:
+${clinicalFocus}
+
+Clinical focus rules:
+- Use the selected clinical focus to decide which problems deserve the most depth.
+- Do not expand every possible OT domain equally.
+- Prioritize depth over breadth.
+- Keep recommendations specific to the selected focus while still using all relevant case data.
+
+Clinical focus options:
+
+MANDATORY PATHWAY FOCUS DIFFERENTIATION:
+
+The selected PRIMARY CLINICAL FOCUS must materially change the pathways.
+
+If clinical_focus = "adl_home_safety":
+- Pathway titles must emphasize ADL setup, bathroom/home safety, task simplification, and safe bathing/dressing routines.
+- At least 2 pathways must directly address bathing, dressing, toileting setup, or home safety.
+- Transfer work may appear only as support for ADL completion.
+
+If clinical_focus = "transfers_mobility":
+- Pathway titles must emphasize transfer mechanics, sit-to-stand, surface setup, mobility between zones, and fall prevention during movement.
+- At least 2 pathways must directly address bed, toilet, shower, chair, or entry transfers.
+- Do not make bathing setup the main pathway unless it is framed as a transfer problem.
+
+If clinical_focus = "caregiver_training":
+- Pathway titles must emphasize caregiver cueing, safe setup, supervision boundaries, burden reduction, and carryover.
+- At least 2 pathways must directly address what the caregiver should set up, cue, monitor, avoid, or stop.
+- Do not write therapist-only pathways as the main strategy.
+
+Failure condition:
+If the three pathways would be nearly identical across different clinical_focus values, the output is wrong.
+
+- adl_home_safety = prioritize ADL performance, bathroom safety, dressing/bathing setup, fall prevention, and home modification.
+- transfers_mobility = prioritize bed, toilet, shower, chair, entry, and sit-to-stand transfers; link surface height, balance, endurance, device use, and caregiver feasibility.
+- caregiver_training = prioritize safe caregiver role, cueing, setup, supervision, burden reduction, stop-points, and realistic carryover.
 
 ---
 
@@ -59,6 +154,42 @@ Clinical Priority:
 
 All recommendations must follow:
 deficit → environment → intervention
+
+---
+TRANSFER FOCUS OVERRIDE:
+
+If PRIMARY CLINICAL FOCUS is "transfers_mobility":
+
+- Reframe all ADL limitations as consequences of transfer impairment
+- Prioritize sit-to-stand mechanics, surface height, armrests, and stability
+- Emphasize:
+  - movement sequencing
+  - weight shift
+  - hand placement
+  - device integration
+  - environmental setup
+
+- Task breakdown must begin with:
+  - sit-to-stand OR bed mobility (not bathing steps)
+
+- Functional problem areas must prioritize:
+  - transfer mechanics
+  - surface setup
+  - balance and force production
+
+- Pathways must:
+  - include at least one transfer training strategy
+  - include at least one environmental modification strategy
+  - include at least one caregiver-safe assist or setup strategy
+
+- Caregiver guidance must:
+  - avoid unsafe lifting unless explicitly supported by caregiver capacity
+  - include clear stop conditions (when to not assist)
+
+Do NOT:
+- lead with bathing unless bathroom is highest-ranked AND transfer-dependent
+- separate mobility from transfer reasoning
+- provide generic strengthening without linking to transfer function
 
 ---
 
@@ -288,24 +419,8 @@ Return valid JSON only.
 Do not use markdown.
 Do not wrap the JSON in code fences.
 
-Use this exact structure:
-{
-  "patientSnapshot": "string",
-  "taskBreakdown": ["string"],
-  "functionalProblemAreas": ["string"],
-  "pathways": [
-    {
-      "type": "string",
-      "title": "string",
-      "interventions": ["string"],
-      "timeline": "string",
-      "upside": "string",
-      "tradeoff": "string"
-    }
-  ],
-  "clinicalConsiderations": ["string"],
-  "firstSessionPriorities": ["string"]
-}
+Use the exact final JSON structure listed later under:
+"Return JSON in the following format".
 
 ---
 
@@ -364,9 +479,30 @@ FUNCTIONAL PROBLEM AREAS:
 ---
 
 PATHWAYS:
+${pathwayFocusRules}
 
 Purpose:
 Provide realistic, sequential intervention strategies.
+
+MANDATORY PATHWAY CONTENT DIFFERENTIATION:
+
+The selected PRIMARY CLINICAL FOCUS must change the actual interventions, not just the title.
+
+If PRIMARY CLINICAL FOCUS is "adl_home_safety":
+- Each pathway intervention must center on ADL task setup, bathing/dressing/toileting routines, equipment placement, safety sequencing, or environmental modification.
+- Do not make transfer mechanics the main intervention unless directly tied to ADL completion.
+
+If PRIMARY CLINICAL FOCUS is "transfers_mobility":
+- Each pathway intervention must center on transfer mechanics, sit-to-stand sequencing, surface height, hand placement, balance, device use, bed/chair/toilet/shower transfer practice, or mobility between zones.
+- Do not write bathing or dressing setup as the main intervention.
+
+If PRIMARY CLINICAL FOCUS is "caregiver_training":
+- Each pathway intervention must center on caregiver setup, cueing, supervision level, safety boundaries, stop conditions, communication, carryover, or reducing caregiver burden.
+- Do not write therapist-only interventions unless paired with what the caregiver must learn or support.
+
+Hard rule:
+- At least 3 of the 4 interventions in EACH pathway must directly reflect the selected clinical focus.
+- If only the pathway title changes but the interventions remain similar, the output is invalid.
 
 Structure:
 - Pathway 1 = immediate safety + compensation
@@ -386,12 +522,18 @@ Priority alignment:
 - Pathway 1 must address highest-ranked zone
 - Do NOT let bathroom dominate if not highest priority
 
-Strategy differentiation must include:
-- environmental modification
-- transfer mechanics training
-- strengthening / endurance
-- caregiver training or cueing
-- equipment or setup optimization
+Strategy differentiation must follow the selected PRIMARY CLINICAL FOCUS.
+
+For adl_home_safety:
+- prioritize ADL task setup, bathroom safety, bathing/dressing/toileting routines, equipment placement, and home safety sequencing.
+
+For transfers_mobility:
+- prioritize transfer mechanics, sit-to-stand sequencing, surface height, hand placement, device use, balance, and movement between functional zones.
+
+For caregiver_training:
+- prioritize caregiver cueing, setup, supervision boundaries, burden reduction, stop conditions, carryover, and when not to assist.
+
+Do not force every pathway to include every strategy category.
 
 Tradeoffs:
 - Must be realistic (not all upside)
@@ -532,20 +674,42 @@ Always map barriers and interventions to the correct zone.
 Return JSON in the following format:
 
 {
-  "patientSnapshot": {},
-  "taskBreakdown": [],
-  "functionalProblemAreas": [],
-  "pathways": [],
-  "selectedPathwaySummary": "",
-  "summary": {},
-  "clinicalConsiderations": [],
-  "firstSessionPriorities": [],
-  "caregiverGuidance": []
+  "patientSnapshot": "string",
+  "taskBreakdown": ["string"],
+  "functionalProblemAreas": ["string"],
+  "pathways": [
+    {
+      "type": "string",
+      "title": "string",
+      "interventions": ["string"],
+      "timeline": "string",
+      "upside": "string",
+      "tradeoff": "string"
+    }
+  ],
+  "selectedPathwaySummary": "string",
+  "summary": {
+    "topRisks": ["string"],
+    "keyLimitations": ["string"],
+    "planSummary": "string",
+    "caregiverExpectations": ["string"],
+    "safetyLevel": "low | medium | high"
+  },
+  "clinicalConsiderations": ["string"],
+  "firstSessionPriorities": ["string"],
+  "caregiverGuidance": ["string"]
 }
 
 Caregiver Guidance Rules:
-- Only include caregiverGuidance when caregiver involvement is clinically relevant based on the case data
-- If caregiver involvement is not relevant, return an empty array: "caregiverGuidance": []
+- caregiverGuidance is REQUIRED when caregiverSupport exists in the case data.
+- If caregiverSupport exists, return exactly 3 caregiverGuidance items.
+- Each caregiverGuidance item must be written for a non-clinical caregiver.
+- Each item must describe what the caregiver should do, watch for, avoid, or stop.
+- Do NOT return an empty caregiverGuidance array when caregiverSupport exists.
+- Only return "caregiverGuidance": [] if caregiverSupport is completely absent from the case data.
+
+Caregiver guidance must NOT duplicate pathway interventions.
+Caregiver guidance must translate the selected pathway into family/caregiver support actions.
 - Write specifically for a non-clinical caregiver, not a therapist
 - Do NOT copy, paraphrase, summarize, or restate pathway interventions
 - Focus only on caregiver actions, observation points, safety boundaries, or when to stop the task
@@ -584,6 +748,7 @@ const response = await client.responses.create({
 console.log("OpenAI API time:", Math.round(performance.now() - openAiStart), "ms");
 
    const outputText = response.output_text || "";
+   console.log("RAW AI RESPONSE:", outputText);
 
 const cleaned = outputText
   .replace(/```json/g, "")

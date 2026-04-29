@@ -52,6 +52,7 @@ const [caregiverConfidence, setCaregiverConfidence] = useState("");
 const [caregiverPriorities, setCaregiverPriorities] = useState("");
 const [caregiverIsPrimarySupport, setCaregiverIsPrimarySupport] = useState(false);
   const [caseType, setCaseType] = useState("geriatric");
+  const [clinicalFocus, setClinicalFocus] = useState("adl_home_safety");
   const [subcategory, setSubcategory] = useState("fall_prevention");
 const [bathroomType, setBathroomType] = useState("tub_shower_combo");
 const [stairsPresent, setStairsPresent] = useState("no");
@@ -387,55 +388,114 @@ async function generateLocalPlan() {
   const clinicalPrioritySummary = buildClinicalPrioritySummary();
 
 const casePayload = {
-  clientName,
-  clientPhone,
-  clientEmail,
-  clientAddress,
-  caregiverName,
-  caregiverRelationship,
-  caregiverPhone,
-  caregiverSupport: {
-  caregiver_name: caregiverName,
-  relationship: caregiverRelationship,
-  phone: caregiverPhone,
-  availability: caregiverAvailability,
-  physical_capacity: caregiverPhysicalCapacity,
-  training_level: caregiverTrainingLevel,
-  confidence: caregiverConfidence,
-  priorities: caregiverPriorities,
-  is_primary_support: caregiverIsPrimarySupport,
-},
-  caseType,
-  subcategory,
-  ageRange,
-  primaryDiagnosis,
-  targetActivity,
-  assistanceLevel,
-  adlAssistLevels,
-  keyBarriers,
-  primaryGoal,
-  bathroomType,
-  stairsPresent,
-  spaceConstraints,
-  safetyHazards,
-  equipmentPresent,
-  bathroomAssessment: {
-    bathroom_type: bathroomType,
-    space_constraints: spaceConstraints,
-    toilet_setup: toiletSetup,
-    transfer_surface: transferSurface,
-    grab_bars_status: grabBarsStatus,
-    handheld_shower_status: handheldShowerStatus,
-    bath_seating: bathSeating,
-    safety_hazards: safetyHazards,
-    equipment_present: equipmentPresent,
-    other_safety_hazards: otherSafetyHazards,
-    other_equipment_present: otherEquipmentPresent,
+  case_classification: {
+    case_type: caseType,
+    subcategory: subcategory,
+    clinical_focus: clinicalFocus,
   },
-  otherTargetActivity,
-  otherKeyBarriers,
-  otherSafetyHazards,
-  otherEquipmentPresent,
+
+  patient_profile: {
+    age_range: ageRange,
+    primary_diagnosis: primaryDiagnosis,
+  },
+
+  functional_status: {
+    current_assistance_level: assistanceLevel,
+    adl_assist_levels: adlAssistLevels,
+    key_barriers: keyBarriers,
+    other_key_barriers: otherKeyBarriers,
+
+    clinical_priority_summary: clinicalPrioritySummary,
+
+    general_mobility_summary: {
+      primary_mobility_device: mobilityDevice,
+      indoor_mobility_level: indoorMobilityLevel,
+      endurance: mobilityEndurance,
+      recent_falls: recentFalls,
+    },
+
+    transfer_surface_summary: {
+      primary_seating: primarySeating,
+      seat_height: seatHeight,
+      armrests_present: armrestsPresent,
+      surface_firmness: surfaceFirmness,
+      sit_to_stand_difficulty: sitToStandDifficulty,
+      assistive_device_used: transferDevice,
+    },
+  },
+
+  environment: {
+    bathroom_assessment: {
+      bathroom_type: bathroomType,
+      space_constraints: spaceConstraints,
+      toilet_setup: toiletSetup,
+      transfer_surface: transferSurface,
+      grab_bars_status: grabBarsStatus,
+      handheld_shower_status: handheldShowerStatus,
+      bath_seating: bathSeating,
+      safety_hazards: safetyHazards,
+      equipment_present: equipmentPresent,
+      other_safety_hazards: otherSafetyHazards,
+      other_equipment_present: otherEquipmentPresent,
+    },
+
+    transfer_surfaces: {
+      primary_seating: primarySeating,
+      seat_height: seatHeight,
+      armrests_present: armrestsPresent,
+      surface_firmness: surfaceFirmness,
+      sit_to_stand_difficulty: sitToStandDifficulty,
+      assistive_device_used: transferDevice,
+    },
+
+    general_mobility: {
+      primary_mobility_device: mobilityDevice,
+      indoor_mobility_level: indoorMobilityLevel,
+      endurance: mobilityEndurance,
+      recent_falls: recentFalls,
+    },
+
+    bedroom_bed_setup: {
+      bed_type: bedType,
+      bed_height: bedHeight,
+      bed_rails: bedRails,
+      bed_clearance: bedClearance,
+      bedside_hazards: bedHazards,
+    },
+
+    outside_entrance: {
+      driveway_surface: drivewaySurface,
+      parking_type: parkingType,
+      entry_access: entryAccess,
+      steps_present: stepsPresent,
+      number_of_steps: numberOfSteps,
+      step_height: stepHeight,
+      step_depth: stepDepth,
+      railings_present: railingsPresent,
+      door_type: doorType,
+      door_width: doorWidth,
+      mailbox_location: mailboxLocation,
+      exterior_hazards: exteriorHazards,
+      other_exterior_hazards: otherExteriorHazards,
+    },
+  },
+
+  caregiverSupport: {
+    caregiver_name: caregiverName,
+    relationship: caregiverRelationship,
+    phone: caregiverPhone,
+    availability: caregiverAvailability,
+    physical_capacity: caregiverPhysicalCapacity,
+    training_level: caregiverTrainingLevel,
+    confidence: caregiverConfidence,
+    priorities: caregiverPriorities,
+    is_primary_support: caregiverIsPrimarySupport,
+  },
+
+  goals_preferences: {
+    primary_goal: primaryGoal,
+    other_target_activity: otherTargetActivity,
+  },
 };
 
 
@@ -444,7 +504,7 @@ const aiResponse = await fetch("/api/generate-plan", {
   headers: {
     "Content-Type": "application/json",
   },
-  body: JSON.stringify(casePayload),
+body: JSON.stringify(casePayload),
 });
 
   const aiData = await aiResponse.json();
@@ -457,9 +517,12 @@ const aiResponse = await fetch("/api/generate-plan", {
     return;
   }
 
-  const plan = aiData.plan;
+const plan = aiData.plan;
 
-  setGeneratedPlan(plan);
+console.log("FULL AI PLAN:", plan);
+console.log("CAREGIVER GUIDANCE FIELD:", plan?.caregiverGuidance);
+
+setGeneratedPlan(plan);
 
 const insertStart = performance.now();
 
@@ -576,10 +639,11 @@ caregiver_info: {
   is_primary_support: caregiverIsPrimarySupport,
 },
 
-      case_classification: {
-        case_type: caseType,
-        subcategory: subcategory,
-      },
+case_classification: {
+  case_type: caseType,
+  subcategory: subcategory,
+  clinical_focus: clinicalFocus,
+},
       generated_output: plan,
     },
     ])
@@ -760,8 +824,23 @@ setSaveMessage("Case generated with AI and saved successfully.");
         <option value="geriatric">Geriatric</option>
         <option value="neurological">Neurological</option>
         <option value="physical_rehabilitation">Physical Rehab</option>
-        <option value="pediatric">Pediatric</option>
-      </select>
+
+<option value="pediatric">Pediatric</option>
+</select>
+
+<label className="block text-sm font-medium mb-2 mt-4 text-gray-300">
+  Clinical Focus
+</label>
+
+<select
+  value={clinicalFocus}
+  onChange={(e) => setClinicalFocus(e.target.value)}
+  className="w-full mb-2 rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+>
+  <option value="adl_home_safety">ADL / Home Safety</option>
+  <option value="transfers_mobility">Transfers & Mobility</option>
+  <option value="caregiver_training">Caregiver Training</option>
+</select>
 
       <select
         value={subcategory}

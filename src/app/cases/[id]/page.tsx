@@ -15,6 +15,14 @@ type GeneratedPlan = {
     upside?: string;
     tradeoff?: string;
   }[];
+  summary?: {
+  topRisks?: string[];
+  keyLimitations?: string[];
+  planSummary?: string;
+  caregiverExpectations?: string[];
+  safetyLevel?: "low" | "medium" | "high";
+};
+caregiverGuidance?: string[];
   clinicalConsiderations?: string[];
   firstSessionPriorities?: string[];
   sessionPlan?: string[];
@@ -55,23 +63,7 @@ type GenerationRow = {
   id: string;
   created_at: string;
   prompt_version: string | null;
-  output_payload: {
-    patientSnapshot?: string;
-    taskBreakdown?: string[];
-    functionalProblemAreas?: string[];
-    clinicalPriorities?: string[];
-    caregiverFocus?: string[];
-    pathways?: {
-      type: string;
-      title: string;
-      interventions: string[];
-      timeline: string;
-      upside: string;
-      tradeoff: string;
-    }[];
-    clinicalConsiderations?: string[];
-    firstSessionPriorities?: string[];
-  } | null;
+  output_payload: GeneratedOutput | null;
 };
 
 type CaseDetail = {
@@ -101,10 +93,11 @@ type CaseDetail = {
     relationship?: string;
     phone?: string;
   } | null;
-  case_classification: {
-    case_type?: string;
-    subcategory?: string;
-  } | null;
+case_classification: {
+  case_type?: string;
+  subcategory?: string;
+  clinical_focus?: string;
+} | null;
     environment: {
     bathroom_type?: string;
     stairs_present?: string;
@@ -136,6 +129,8 @@ const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
 const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
 const [selectedPathwayIndex, setSelectedPathwayIndex] = useState<number | null>(null);
+const [isRegeneratingFocus, setIsRegeneratingFocus] = useState(false);
+const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCase() {
@@ -233,7 +228,9 @@ async function handleDeleteGeneration(generationId: string) {
 async function handleCopySummary() {
   if (!caseData) return;
 
-  const generated = caseData.generated_output as GeneratedOutput | null;
+const generated =
+  (latestGeneratedPlan as GeneratedOutput | null) ||
+  (caseData.generated_output as GeneratedOutput | null);
 
   const selectedPathway =
     typeof selectedPathwayIndex === "number"
@@ -402,11 +399,21 @@ const selectedPathway =
     ? generated?.pathways?.[selectedPathwayIndex]
     : null;
 
-const caregiverGuidance =
-  generated?.caregiverGuidance?.length
-    ? generated.caregiverGuidance
-    : selectedPathway?.interventions ?? [];
-    const selectedPlanForExport = {
+const activeGeneratedOutput = latestGeneratedPlan as GeneratedOutput | null;
+
+const caregiverGuidance: string[] =
+  activeGeneratedOutput?.caregiverGuidance ??
+  generated?.caregiverGuidance ??
+  [];
+
+const clinicalFocusLabel =
+  caseData.case_classification?.clinical_focus === "transfers_mobility"
+    ? "Transfers & Mobility"
+    : caseData.case_classification?.clinical_focus === "caregiver_training"
+    ? "Caregiver Training"
+    : "ADL / Home Safety";
+
+const selectedPlanForExport = {
   title: caseData.title || "Untitled Case",
   patientSnapshot: generated?.patientSnapshot || "",
   selectedPathwayTitle: selectedPathway?.title || "",
@@ -484,19 +491,149 @@ const handleSaveSelectedPathway = async (index: number) => {
   }
 };
 
-  return (
+const handleClinicalFocusChange = async (focus: string) => {
+  if (!caseData?.id || isRegeneratingFocus) return;
+
+  try {
+    setIsRegeneratingFocus(true);
+setRegeneratingFocus(focus);
+
+    const updatedCasePayload = {
+      ...caseData,
+      case_classification: {
+        ...(caseData.case_classification || {}),
+        clinical_focus: focus,
+      },
+    };
+
+    const aiResponse = await fetch("/api/generate-plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedCasePayload),
+    });
+
+    const aiData = await aiResponse.json();
+
+    console.log("Clinical focus AI response:", aiData);
+
+    if (!aiData.success || !aiData.plan) {
+      alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
+      return;
+    }
+
+    const plan = aiData.plan;
+
+    const { data: insertedGenerations, error: generationError } = await supabase
+      .from("generations")
+      .insert([
+        {
+          case_id: caseData.id,
+          prompt_version: `v1-ai-${focus}`,
+          input_payload: updatedCasePayload,
+          output_payload: plan,
+        },
+      ])
+      .select("id, created_at, prompt_version, output_payload");
+
+    if (generationError) throw generationError;
+
+    const newGeneration = insertedGenerations?.[0];
+
+    console.log("New focus generation:", newGeneration);
+
+    const { error: caseUpdateError } = await supabase
+      .from("cases")
+      .update({
+        case_classification: updatedCasePayload.case_classification,
+        generated_output: plan,
+        current_generation_id: newGeneration?.id || caseData.current_generation_id,
+      })
+      .eq("id", caseData.id);
+
+    if (caseUpdateError) throw caseUpdateError;
+
+    setCaseData((prev: any) => ({
+      ...prev,
+      case_classification: updatedCasePayload.case_classification,
+      generated_output: plan,
+      current_generation_id: newGeneration?.id || prev.current_generation_id,
+    }));
+
+    setLatestGeneratedPlan(plan);
+    setSelectedPathwayIndex(null);
+    setSelectedGeneration(null);
+
+    if (newGeneration) {
+      setCurrentGenerationId(newGeneration.id);
+      setGenerations((prev) => [newGeneration as GenerationRow, ...prev]);
+    }
+  } catch (error) {
+    console.error("Failed to regenerate clinical focus:", error);
+    alert("Failed to regenerate plan for this clinical focus.");
+  } finally {
+  setIsRegeneratingFocus(false);
+  setRegeneratingFocus(null);
+  }
+};
+
+return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
           <div className="flex items-start justify-between gap-4 mb-4">
+  
   <div>
-    <h1 className="text-3xl font-bold mb-2">
-      {caseData.title || "Untitled Case"}
-    </h1>
-    <p className="text-sm text-gray-400">
-      Created: {new Date(caseData.created_at).toLocaleString()}
-    </p>
+  <h1 className="text-3xl font-bold mb-2">
+    {caseData.title || "Untitled Case"}
+  </h1>
+
+  <p className="text-sm text-gray-400">
+    Created: {new Date(caseData.created_at).toLocaleString()}
+  </p>
+
+  <p className="text-sm text-gray-400 mt-1">
+    Clinical Focus:{" "}
+    <span className="text-white font-medium">
+      {caseData.case_classification?.clinical_focus === "transfers_mobility"
+        ? "Transfers & Mobility"
+        : caseData.case_classification?.clinical_focus === "caregiver_training"
+        ? "Caregiver Training"
+        : "ADL / Home Safety"}
+    </span>
+  </p>
+
+  <div className="mt-4 grid grid-cols-3 gap-2">
+    {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
+<button
+  key={focus}
+  type="button"
+disabled={
+  isRegeneratingFocus ||
+  caseData.case_classification?.clinical_focus === focus
+}
+  onClick={() => {
+    console.log("Clicked focus:", focus);
+    handleClinicalFocusChange(focus);
+  }}
+  className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+    caseData.case_classification?.clinical_focus === focus
+      ? "bg-blue-600 text-white"
+      : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+  }`}
+>
+{regeneratingFocus === focus
+  ? "Generating..."
+  : focus === "adl_home_safety"
+  ? "ADL"
+  : focus === "transfers_mobility"
+  ? "Transfers"
+  : "Caregiver"}
+</button>
+    ))}
   </div>
+</div>
 
  <div className="hidden">
 
@@ -704,34 +841,48 @@ onClick={async () => {
           </div>
         )}
 
- {selectedPathway && (
+{(selectedPathway || caregiverGuidance.length > 0) && (
   <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900 p-6">
-   <h3 className="text-xl font-semibold mb-3">
-  Caregiver Instructions (Based on Selected Plan)
-</h3>
+    <h3 className="text-xl font-semibold mb-3">
+      Caregiver Instructions (Based on Selected Plan)
+    </h3>
 
     <p className="text-sm text-gray-400 mb-4">
-      Based on: {selectedPathway.title}
+      Based on: {selectedPathway?.title || "Current selected plan"}
     </p>
 
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {selectedPathway.interventions?.map((item: string, i: number) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
+    {caregiverGuidance.length > 0 ? (
+      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+        {caregiverGuidance.map((item: string, i: number) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-sm text-red-300">
+        Caregiver guidance was not generated for this plan.
+      </p>
+    )}
   </div>
 )}
-{caregiverGuidance.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">Caregiver Role (Support Tasks)</h3>
-    <p className="text-xs text-gray-500 mb-2">Caregiver supports the plan — not all interventions are their responsibility.</p>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {caregiverGuidance.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
-  </div>
-)}
+
+{generated?.summary?.caregiverExpectations &&
+  generated.summary.caregiverExpectations.length > 0 && (
+    <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+      <h3 className="text-xl font-semibold mb-3">
+        Caregiver Role (Support Only — OT Leads Plan)
+      </h3>
+
+      <p className="text-xs text-gray-500 mb-2">
+        Clarifies what the caregiver can reasonably support without taking over clinical decision-making.
+      </p>
+
+      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+        {generated.summary.caregiverExpectations.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  )}
 
 <div className="pt-4 border-t border-gray-800">
   <h2 className="text-lg font-semibold text-gray-200">Supporting Details</h2>
@@ -863,6 +1014,16 @@ onClick={async () => {
               <span>
                 {generation.prompt_version || "Unknown prompt version"}
               </span>
+
+              <span className="text-xs text-gray-500">
+                {generation.prompt_version?.includes("transfers_mobility")
+                  ? "Transfers"
+                  : generation.prompt_version?.includes("caregiver_training")
+                  ? "Caregiver"
+                  : generation.prompt_version?.includes("adl_home_safety")
+                  ? "ADL"
+                  : ""}
+              </span>
             </p>
 
             <p className="text-gray-400">
@@ -903,6 +1064,9 @@ onClick={async () => {
     >
       {isRestoringVersion ? "Restoring..." : "Restore this version as current"}
     </button>
+    <p className="text-xs text-gray-500 mt-2">
+  Restoring this version will replace the entire current plan, including pathways, summary, and caregiver instructions.
+</p>
 
     <button
       type="button"
@@ -913,6 +1077,28 @@ onClick={async () => {
     </button>
   </div>
 </div>
+
+{selectedGeneration.output_payload.summary && (
+  <div className="mb-6">
+    <h4 className="text-lg font-semibold mb-2">Plan Overview</h4>
+
+    <p className="text-sm text-gray-300 mb-2">
+      {selectedGeneration.output_payload.summary.planSummary || "—"}
+    </p>
+
+    <p className="text-xs text-gray-400 mb-2">
+      Risk Level: {selectedGeneration.output_payload.summary.safetyLevel || "—"}
+    </p>
+
+    <ul className="list-disc pl-5 text-sm text-gray-300">
+      {(selectedGeneration.output_payload.summary.topRisks || []).map(
+        (item: string, i: number) => (
+          <li key={i}>{item}</li>
+        )
+      )}
+    </ul>
+  </div>
+)}
 
     {selectedGeneration.output_payload.patientSnapshot && (
       <div className="mb-6">
@@ -962,7 +1148,22 @@ className={`rounded-xl border p-5 cursor-pointer transition transform hover:scal
           ))}
         </div>
       )}
+{selectedGeneration.output_payload.caregiverGuidance &&
+  selectedGeneration.output_payload.caregiverGuidance.length > 0 && (
+    <div className="mb-6">
+      <h4 className="text-lg font-semibold mb-2">
+        Caregiver Instructions
+      </h4>
 
+      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+        {selectedGeneration.output_payload.caregiverGuidance.map(
+          (item: string, i: number) => (
+            <li key={i}>{item}</li>
+          )
+        )}
+      </ul>
+    </div>
+  )}
     {selectedGeneration.output_payload.clinicalConsiderations &&
       selectedGeneration.output_payload.clinicalConsiderations.length > 0 && (
         <div className="mb-6">
