@@ -41,10 +41,11 @@ caregiver_info: {
   priorities?: string;
   is_primary_support?: boolean;
 } | null;
-  case_classification: {
-    case_type?: string;
-    subcategory?: string;
-  } | null;
+case_classification: {
+  case_type?: string;
+  subcategory?: string;
+  clinical_focus?: string;
+} | null;
   generated_output?: GeneratedPlan | null;
 environment: {
   bathroom_type?: string;
@@ -155,6 +156,7 @@ export default function EditCasePage({
   const [caregiverIsPrimarySupport, setCaregiverIsPrimarySupport] = useState(false);
   const [caseType, setCaseType] = useState("geriatric");
   const [subcategory, setSubcategory] = useState("fall_prevention");
+  const [clinicalFocus, setClinicalFocus] = useState("adl_home_safety");
   const [ageRange, setAgeRange] = useState("70-79");
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState("");
   const [assistanceLevel, setAssistanceLevel] = useState("3");
@@ -432,6 +434,12 @@ function updateAdlAssistLevel(
 const clinicalPrioritySummary = buildClinicalPrioritySummary();
 
 const casePayload = {
+  clinical_focus: clinicalFocus,
+case_classification: {
+  case_type: caseType,
+  subcategory: subcategory,
+  clinical_focus: clinicalFocus,
+},
   clientName,
   clientPhone,
   clientEmail,
@@ -548,28 +556,7 @@ caregiverSupport: {
     return;
   }
 
-const updatedPlan = {
-  ...aiData.plan,
-  sessionPlan:
-    generatedPlan?.sessionPlan ||
-    aiData.plan.sessionPlan || [
-      "Visit 1: Assess transfers, initiate safety training, introduce equipment",
-      "Visit 2: Progress task breakdown, caregiver training, reinforce techniques",
-      "Visit 3: Advance independence, reduce assist level, reassess safety",
-    ],
-  patientSnapshot:
-    generatedPlan?.patientSnapshot || aiData.plan.patientSnapshot,
-  functionalProblemAreas:
-    generatedPlan?.functionalProblemAreas || aiData.plan.functionalProblemAreas,
-  taskBreakdown:
-    generatedPlan?.taskBreakdown || aiData.plan.taskBreakdown,
-  clinicalConsiderations:
-    generatedPlan?.clinicalConsiderations || aiData.plan.clinicalConsiderations,
-   firstSessionPriorities:
-    generatedPlan?.firstSessionPriorities || aiData.plan.firstSessionPriorities,
-  pathways:
-    generatedPlan?.pathways || aiData.plan.pathways,
-};
+const updatedPlan = aiData.plan;
 
   const { error } = await supabase
     .from("cases")
@@ -667,6 +654,7 @@ goals_preferences: {
       case_classification: {
         case_type: caseType,
         subcategory: subcategory,
+        clinical_focus: clinicalFocus,
       },
       generated_output: updatedPlan,
     })
@@ -678,7 +666,7 @@ if (error) {
 await supabase.from("generations").insert([
   {
     case_id: caseId,
-    prompt_version: "v2-functional",
+    prompt_version: `v2-functional-${clinicalFocus}`,
     input_payload: casePayload,
     output_payload: updatedPlan,
   },
@@ -795,10 +783,11 @@ async function updateCaseOnly() {
         priorities: caregiverPriorities,
         is_primary_support: caregiverIsPrimarySupport,
       },
-      case_classification: {
-        case_type: caseType,
-        subcategory: subcategory,
-      },
+        case_classification: {
+          case_type: caseType,
+          subcategory: subcategory,
+          clinical_focus: clinicalFocus,
+        },
       generated_output: generatedPlan, // 👈 key line (no AI)
     })
     .eq("id", caseId);
@@ -862,6 +851,9 @@ if (loadedPlan) {
         setCaregiverIsPrimarySupport(caseData.caregiver_info?.is_primary_support || false);
         setCaseType(caseData.case_classification?.case_type || "geriatric");
         setSubcategory(caseData.case_classification?.subcategory || "fall_prevention");
+        setClinicalFocus(
+  caseData.case_classification?.clinical_focus || "adl_home_safety"
+);
         setAgeRange(caseData.patient_profile?.age_range || "70-79");
         setPrimaryDiagnosis(caseData.patient_profile?.primary_diagnosis || "");
 setAssistanceLevel(
@@ -1149,7 +1141,7 @@ setGeneralMobility({
   className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2 min-h-[80px]"
 />
 
-<label className="flex items-center gap-2 text-sm">
+<label className="md:col-span-2 flex items-center gap-2 text-sm">
   <input
     type="checkbox"
     checked={caregiverIsPrimarySupport}
@@ -1158,40 +1150,65 @@ setGeneralMobility({
   Primary caregiver
 </label>
 
-                <select
-                  value={caseType}
-                  onChange={(e) => setCaseType(e.target.value)}
-                  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-                >
-                  <option value="geriatric">Geriatric</option>
-                  <option value="neurological">Neurological</option>
-                  <option value="physical_rehabilitation">Physical Rehab</option>
-                  <option value="pediatric">Pediatric</option>
-                </select>
+          <div className="grid gap-4 md:grid-cols-2">
 
-                <select
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-                >
-                  <option value="fall_prevention">Fall Prevention</option>
-                  <option value="home_modification">Home Modification</option>
-                  <option value="memory_support">Memory Support</option>
-                  <option value="bathing_safety">Bathing Safety</option>
-                  <option value="dressing_independence">Dressing Independence</option>
-                </select>
+ <div>
+  <label className="block text-sm font-medium mb-2">Case Type</label>
+  <select
+    value={caseType}
+    onChange={(e) => setCaseType(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="geriatric">Geriatric</option>
+    <option value="neurological">Neurological</option>
+    <option value="physical_rehabilitation">Physical Rehab</option>
+    <option value="pediatric">Pediatric</option>
+  </select>
+</div>
 
-                <select
-                  value={ageRange}
-                  onChange={(e) => setAgeRange(e.target.value)}
-                  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
-                >
-                  <option>50-59</option>
-                  <option>60-69</option>
-                  <option>70-79</option>
-                  <option>80+</option>
-                </select>
+<div>
+  <label className="block text-sm font-medium mb-2">Clinical Focus</label>
+  <select
+    value={clinicalFocus}
+    onChange={(e) => setClinicalFocus(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="adl_home_safety">ADL / Home Safety</option>
+    <option value="transfers_mobility">Transfers & Mobility</option>
+    <option value="caregiver_training">Caregiver Training</option>
+  </select>
+</div>
 
+<div>
+  <label className="block text-sm font-medium mb-2">Subcategory</label>
+  <select
+    value={subcategory}
+    onChange={(e) => setSubcategory(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="fall_prevention">Fall Prevention</option>
+    <option value="home_modification">Home Modification</option>
+    <option value="memory_support">Memory Support</option>
+    <option value="bathing_safety">Bathing Safety</option>
+    <option value="dressing_independence">Dressing Independence</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Age Range</label>
+  <select
+    value={ageRange}
+    onChange={(e) => setAgeRange(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
+  >
+    <option>50-59</option>
+    <option>60-69</option>
+    <option>70-79</option>
+    <option>80+</option>
+  </select>
+</div>
+
+</div>     
                 <input
                   type="text"
                   placeholder="Primary Diagnosis"
@@ -1491,7 +1508,7 @@ setGeneralMobility({
                  <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4">
   <h3 className="text-lg font-semibold mb-4">Transfer Surfaces</h3>
 
-  <div className="grid gap-4 md:grid-cols-2">
+ <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
     <div>
       <label className="block text-sm font-medium mb-2">Primary Seating</label>
       <select

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type GeneratedPlan = {
+  focusApplied?: string;
   patientSnapshot?: string;
   pathways?: {
     type?: string;
@@ -40,6 +41,7 @@ type Pathway = {
 };
 
 type GeneratedOutput = {
+  focusApplied?: string;
   patientSnapshot?: string;
   taskBreakdown?: string[];
   functionalProblemAreas?: string[];
@@ -75,10 +77,15 @@ type CaseDetail = {
     primary_diagnosis?: string;
     age_range?: string;
   } | null;
-  functional_status: {
-    current_assistance_level?: string;
-    key_barriers?: string[];
-  } | null;
+functional_status: {
+  current_assistance_level?: string;
+  adl_assist_levels?: {
+    bed_transfer?: string;
+    toilet_transfer?: string;
+    shower_transfer?: string;
+  };
+  key_barriers?: string[];
+} | null;
   goals_preferences: {
     primary_goal?: string;
   } | null;
@@ -113,6 +120,7 @@ export default function CaseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const [showAllVersions, setShowAllVersions] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
   const [isRestoringVersion, setIsRestoringVersion] = useState(false);
@@ -392,6 +400,23 @@ if (loading) {
 
  const generated = caseData.generated_output as GeneratedOutput | null;
 
+const levels = caseData.functional_status?.adl_assist_levels;
+
+const transferScores = levels
+  ? [
+      { label: "Bed", value: Number(levels.bed_transfer || 7) },
+      { label: "Toilet", value: Number(levels.toilet_transfer || 7) },
+      { label: "Shower", value: Number(levels.shower_transfer || 7) },
+    ]
+  : [];
+
+const worstTransfer =
+  transferScores.length > 0
+    ? transferScores.reduce((worst, current) =>
+        current.value < worst.value ? current : worst
+      )
+    : null;
+
  console.log("Generated summary:", generated?.summary);
 
 const selectedPathway =
@@ -412,6 +437,13 @@ const clinicalFocusLabel =
     : caseData.case_classification?.clinical_focus === "caregiver_training"
     ? "Caregiver Training"
     : "ADL / Home Safety";
+
+    const getFocusLabel = (promptVersion?: string | null) => {
+  if (promptVersion?.includes("transfers_mobility")) return "Transfers";
+  if (promptVersion?.includes("caregiver_training")) return "Caregiver";
+  if (promptVersion?.includes("adl_home_safety")) return "ADL";
+  return "Unknown";
+};
 
 const selectedPlanForExport = {
   title: caseData.title || "Untitled Case",
@@ -588,6 +620,18 @@ return (
   <h1 className="text-3xl font-bold mb-2">
     {caseData.title || "Untitled Case"}
   </h1>
+
+<div className="mb-2 flex items-center gap-2">
+  {generated?.focusApplied && (
+    <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+      Focus: {generated.focusApplied}
+    </span>
+  )}
+
+  <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+   Severity: {worstTransfer ? `${worstTransfer.value} (${worstTransfer.label})` : "—"}
+  </span>
+</div>
 
   <p className="text-sm text-gray-400">
     Created: {new Date(caseData.created_at).toLocaleString()}
@@ -980,21 +1024,32 @@ onClick={async () => {
       </ul>
     </div>
   )}
-
-
-       
        
        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
   <h3 className="text-xl font-semibold mb-3">Version History</h3>
+  <button
+  type="button"
+  onClick={() => setShowAllVersions(prev => !prev)}
+  className="text-xs text-blue-400 hover:underline mb-3"
+>
+  {showAllVersions ? "Show fewer versions" : "Show all versions"}
+</button>
+  <p className="text-xs text-gray-500 mb-4">
+  Showing the 5 most recent saved versions.
+</p>
 
  {generations.length === 0 ? (
   <p className="text-sm text-gray-400">No prior generations found.</p>
 ) : (
   <ul className="space-y-3 text-sm text-gray-300">
-    {generations.map((generation, index) => (
+  {(showAllVersions ? generations : generations.slice(0, 5)).map((generation, index) => (
       <li
         key={generation.id}
-        className="border border-gray-800 rounded-lg px-4 py-3 hover:border-blue-500 transition"
+        className={`rounded-lg px-4 py-3 transition ${
+  currentGenerationId === generation.id
+    ? "border border-green-600 bg-green-900/20"
+    : "border border-gray-800 hover:border-blue-500"
+}`}
       >
         <div className="flex items-start justify-between gap-4">
           <button
@@ -1055,6 +1110,65 @@ onClick={async () => {
  <div className="flex items-center justify-between mb-4">
   <h3 className="text-xl font-semibold">Selected Older Plan</h3>
 
+  <div className="mb-6 rounded-lg border border-gray-700 p-4">
+  <h4 className="text-sm font-semibold mb-3">Comparison</h4>
+
+  <div className="grid grid-cols-2 gap-4 text-xs">
+    
+    {/* Focus */}
+    <div>
+      <p className="text-gray-400 mb-1">Current Focus</p>
+      <p className="text-white">
+        {clinicalFocusLabel}
+      </p>
+    </div>
+
+    <div>
+      <p className="text-gray-400 mb-1">Selected Focus</p>
+      <p className="text-white">
+        {getFocusLabel(selectedGeneration.prompt_version)}
+      </p>
+    </div>
+
+    {/* Plan Summary */}
+    <div>
+      <p className="text-gray-400 mb-1">Current Summary</p>
+      <p className="text-gray-300">
+        {generated?.summary?.planSummary || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="text-gray-400 mb-1">Selected Summary</p>
+      <p className="text-gray-300">
+        {selectedGeneration.output_payload.summary?.planSummary || "—"}
+      </p>
+    </div>
+
+    {/* Pathway Titles */}
+    <div>
+      <p className="text-gray-400 mb-1">Current Pathways</p>
+      <ul className="list-disc pl-4 text-gray-300">
+        {(generated?.pathways || []).map((p: any, i: number) => (
+          <li key={i}>{p.title}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <p className="text-gray-400 mb-1">Selected Pathways</p>
+      <ul className="list-disc pl-4 text-gray-300">
+        {(selectedGeneration.output_payload.pathways || []).map(
+          (p: any, i: number) => (
+            <li key={i}>{p.title}</li>
+          )
+        )}
+      </ul>
+    </div>
+
+  </div>
+</div>
+
   <div className="flex items-center gap-3">
     <button
       type="button"
@@ -1073,7 +1187,7 @@ onClick={async () => {
       onClick={() => setSelectedGeneration(null)}
       className="text-sm text-blue-400 underline"
     >
-      Clear selected version
+      Close preview
     </button>
   </div>
 </div>

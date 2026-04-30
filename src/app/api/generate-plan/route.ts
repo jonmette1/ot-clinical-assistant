@@ -39,6 +39,10 @@ Pathway 3: Mobility carryover between zones
 - Focus on moving between bed, chair, bathroom, and entry areas with realistic pacing and setup
 
 Do not center pathways on bathing or dressing setup unless framed as a transfer barrier.
+
+Pathway title requirements:
+- Must include a transfer term: transfer, sit-to-stand, surface, mobility
+- If missing, rewrite the title
 `
     : clinicalFocus === "caregiver_training"
     ? `
@@ -56,6 +60,10 @@ Pathway 3: Sustainable carryover routine
 - Focus on reducing burden, consistency, patient participation, and when to escalate to OT
 
 Do not center pathways on therapist-only treatment activities.
+
+Pathway title requirements:
+- Must include one of: caregiver, supervision, cueing
+- If missing, rewrite the title
 `
     : `
 PATHWAY FOCUS MODE: ADL / HOME SAFETY
@@ -72,6 +80,10 @@ Pathway 3: Home safety optimization
 - Focus on environmental modification, equipment refinement, and reducing ADL risk over time
 
 Do not center pathways on transfer mechanics unless directly supporting ADL completion.
+
+Pathway title requirements:
+- Must include an ADL noun: bathing, dressing, toileting, grooming
+- If missing, rewrite the title
 `;
 
     const client = new OpenAI({ apiKey });
@@ -125,9 +137,127 @@ If the three pathways would be nearly identical across different clinical_focus 
 - transfers_mobility = prioritize bed, toilet, shower, chair, entry, and sit-to-stand transfers; link surface height, balance, endurance, device use, and caregiver feasibility.
 - caregiver_training = prioritize safe caregiver role, cueing, setup, supervision, burden reduction, stop-points, and realistic carryover.
 
+=== CAREGIVER TRAINING MODE (STRICT OVERRIDE) ===
+
+If clinical_focus = caregiver_training:
+
+1. All pathways must be written from the caregiver perspective:
+   - what the caregiver does
+   - what the caregiver watches for
+   - when the caregiver intervenes
+
+2. Prioritize:
+   - cueing strategies (verbal, tactile, sequencing)
+   - supervision levels (standby, contact guard, hands-on)
+   - caregiver positioning and body mechanics
+   - safety thresholds (when to stop, when to assist fully)
+
+3. Explicitly incorporate caregiver constraints:
+   - physical capacity
+   - confidence
+   - availability
+
+4. If task difficulty exceeds caregiver capacity:
+   - downgrade task expectations
+   - increase environmental modification
+   - increase safety structure
+
+5. DO NOT center pathways on specific transfer types (e.g., toilet, shower, bed)
+   unless they are the highest-risk failure point.
+
+6. Default to generalized caregiver language:
+   - "during task performance"
+   - "during mobility tasks"
+   Prefer task-neutral phrasing unless a specific environment is the dominant risk driver.
+
+7. Only reference specific transfers if:
+   - they are the primary safety risk AND
+   - caregiver behavior must change in that context
+
+8. Avoid generic phrasing like:
+   - "train transfers"
+   - "practice routine"
+   unless paired with caregiver-specific execution
+
+9. Each pathway must clearly answer:
+   "What is the caregiver actually doing during this task?"
+
+Failure to follow these rules = invalid output.
 ---
 
+=== ADL / HOME SAFETY MODE (STRICT OVERRIDE) ===
+
+If clinical_focus = adl_home_safety:
+
+1. All pathways must prioritize successful completion of ADLs:
+   - bathing
+   - dressing
+   - toileting
+   - grooming
+
+2. Emphasize:
+   - task setup (environment, equipment, layout)
+   - simplification of steps
+   - sequencing and routine building
+   - energy conservation during ADLs
+   - safety within task performance
+
+3. Transfer mechanics must NOT be the primary focus:
+   - transfers may only appear as supporting steps to complete ADLs
+   - do not create pathways centered on sit-to-stand or movement mechanics alone
+
+4. Prioritize environmental modifications:
+   - bathroom setup
+   - equipment placement
+   - accessibility within the home
+
+5. Frame pathways around functional outcomes:
+   - "complete bathing safely"
+   - "complete dressing with reduced assistance"
+   - "manage toileting routine with safety and consistency"
+
+6. Avoid over-generalized safety language:
+   - safety must be tied to a specific ADL task
+
+7. Each pathway must clearly answer:
+   "How does this help the patient complete the ADL?"
+
+Failure to follow these rules = invalid output.
+
+Do not mix primary focus modes within a pathway.
+If a pathway contains elements from another mode, rewrite it to match the selected focus.
+
 CLINICAL SEVERITY INTERPRETATION:
+
+=== SEVERITY → INTERVENTION INTENSITY (MANDATORY) ===
+
+Use ADL assist levels (bed_transfer, toilet_transfer, shower_transfer) to determine intervention intensity.
+
+Map the WORST (lowest independence) relevant level to intensity:
+
+Levels 1–2 (Total / Max Assist):
+- Emphasize safety + setup + caregiver dependence
+- Prioritize environmental modification and equipment
+- Break tasks into minimal steps
+- Avoid independence-focused progression
+- Include clear stop-points and escalation
+
+Levels 3–4 (Mod / Min Assist):
+- Emphasize guided participation
+- Combine setup + cueing + partial physical assist
+- Progress within-session, not across sessions
+- Include specific cues and graded assistance
+
+Levels 5–7 (Supervision → Independent):
+- Emphasize efficiency, endurance, and risk reduction
+- Minimal equipment unless it improves safety/efficiency
+- Focus on routine optimization and carryover
+
+Rules:
+- Pathways must reflect the SAME intensity level across titles, steps, and caregiver guidance
+- Do NOT mix high-intensity (dependent) and low-intensity (independent) strategies in the same pathway
+- If multiple transfers differ, prioritize the WORST level for safety planning
+- Explicitly state assistance level implications (e.g., “requires contact guard for…”)
 
 Treat ADL assist levels as primary severity signals:
 - bed_transfer
@@ -673,7 +803,10 @@ Always map barriers and interventions to the correct zone.
 
 Return JSON in the following format:
 
+Return JSON in the following format:
+
 {
+  "focusApplied": "${clinicalFocus}",
   "patientSnapshot": "string",
   "taskBreakdown": ["string"],
   "functionalProblemAreas": ["string"],
