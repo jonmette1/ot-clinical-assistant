@@ -24,6 +24,9 @@ type GeneratedPlan = {
   safetyLevel?: "low" | "medium" | "high";
 };
 caregiverGuidance?: string[];
+clinicalDetailModules?: {
+  caregiverInstructions?: string[];
+};
   clinicalConsiderations?: string[];
   firstSessionPriorities?: string[];
   sessionPlan?: string[];
@@ -50,8 +53,14 @@ type GeneratedOutput = {
   pathways?: Pathway[];
   clinicalConsiderations?: string[];
   firstSessionPriorities?: string[];
-  selectedPathwayIndex?: number;
   caregiverGuidance?: string[];
+clinicalDetailModules?: {
+  caregiverInstructions?: string[];
+  caregiverScript?: CaregiverScript;
+  transferDetails?: TransferMobilityDetails;
+    adlPrivacy?: AdlPrivacySupport;
+};
+    sessionPlan?: string[];
   summary?: {
   topRisks?: string[];
   keyLimitations?: string[];
@@ -59,6 +68,31 @@ type GeneratedOutput = {
   caregiverExpectations?: string[];
   safetyLevel?: "low" | "medium" | "high";
 };
+};
+
+type CaregiverScript = {
+  conversationGoal?: string;
+  beforeTaskScript?: string;
+  duringTaskScript?: string;
+  ifPatientStruggles?: string;
+  ifPatientResists?: string;
+  reassuranceLanguage?: string;
+  whenToBeFirm?: string;
+};
+
+type TransferMobilityDetails = {
+  setupAdjustments?: string[];
+  transferCues?: string[];
+  surfaceVariations?: string[];
+  stopRules?: string[];
+};
+
+type AdlPrivacySupport = {
+  privacySetup?: string[];
+  respectfulCueing?: string[];
+  whenToStepIn?: string[];
+  whenToStepBack?: string[];
+  dignityWarnings?: string[];
 };
 
 type GenerationRow = {
@@ -136,9 +170,16 @@ const [showDetails, setShowDetails] = useState(false);
 const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
 const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
-const [selectedPathwayIndex, setSelectedPathwayIndex] = useState<number | null>(null);
 const [isRegeneratingFocus, setIsRegeneratingFocus] = useState(false);
 const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
+const [caregiverScript, setCaregiverScript] = useState<CaregiverScript | null>(null);
+const [isGeneratingCaregiverScript, setIsGeneratingCaregiverScript] = useState(false);
+const [caregiverScriptError, setCaregiverScriptError] = useState("");
+const [transferDetails, setTransferDetails] = useState<TransferMobilityDetails | null>(null);
+const [isGeneratingTransferDetails, setIsGeneratingTransferDetails] = useState(false);
+
+const [adlPrivacy, setAdlPrivacy] = useState<AdlPrivacySupport | null>(null);
+const [isGeneratingAdlPrivacy, setIsGeneratingAdlPrivacy] = useState(false);
 
   useEffect(() => {
     async function loadCase() {
@@ -154,22 +195,42 @@ if (error) {
 } else {
   const typedCase = data as CaseDetail;
   setCaseData(typedCase);
+  const savedScript =
+  typedCase.generated_output?.clinicalDetailModules?.caregiverScript;
+
+if (savedScript) {
+  setCaregiverScript(savedScript);
+} else {
+  setCaregiverScript(null);
+}
+
+  const savedTransferDetails =
+    typedCase.generated_output?.clinicalDetailModules?.transferDetails;
+
+  if (savedTransferDetails) {
+    setTransferDetails(savedTransferDetails);
+  } else {
+    setTransferDetails(null);
+  }
+
+const savedAdlPrivacy =
+  typedCase.generated_output?.clinicalDetailModules?.adlPrivacy;
+
+if (savedAdlPrivacy) {
+  setAdlPrivacy(savedAdlPrivacy);
+} else {
+  setAdlPrivacy(null);
+}
+
   setCurrentGenerationId(typedCase.current_generation_id);
   console.log("Loaded current_generation_id:", typedCase.current_generation_id);
-  
-  const savedSelectedPathwayIndex =
-  typedCase.generated_output?.selectedPathwayIndex;
-
-if (typeof savedSelectedPathwayIndex === "number") {
-  setSelectedPathwayIndex(savedSelectedPathwayIndex);
-}
 }
 
       const { data: generationData, error: generationError } = await supabase
   .from("generations")
 .select("id, created_at, prompt_version, output_payload")
   .eq("case_id", resolvedParams.id)
-  .order("created_at", { ascending: false });
+  .order("created_at", { ascending: true })
 
 if (!generationError) {
 const gens = (generationData as GenerationRow[]) || [];
@@ -236,58 +297,56 @@ async function handleDeleteGeneration(generationId: string) {
 async function handleCopySummary() {
   if (!caseData) return;
 
-const generated =
-  (latestGeneratedPlan as GeneratedOutput | null) ||
-  (caseData.generated_output as GeneratedOutput | null);
+  const generated = caseData.generated_output as GeneratedOutput | null;
 
-  const selectedPathway =
-    typeof selectedPathwayIndex === "number"
-      ? generated?.pathways?.[selectedPathwayIndex]
-      : null;
-
-  const caregiver =
-    generated?.caregiverGuidance?.length
-      ? generated.caregiverGuidance
-      : selectedPathway?.interventions ?? [];
-
-const summary = `
+  const summary = `
 ==============================
 CASE: ${caseData.title || "Untitled Case"}
 ==============================
 
-PLAN
------
-${generated?.summary?.planSummary || "—"}
+CURRENT LIVE PLAN
+-----------------
+Patient Snapshot:
+${generated?.patientSnapshot || "—"}
 
-SAFETY LEVEL
------
+PLAN OVERVIEW
+-------------
+Risk Level:
 ${generated?.summary?.safetyLevel || "—"}
 
-TOP RISKS
------
-${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n")}
+Plan:
+${generated?.summary?.planSummary || "—"}
 
-CAREGIVER EXPECTATIONS
------
+Top Risks:
+${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+
+Caregiver Expectations:
 ${(generated?.summary?.caregiverExpectations ?? [])
   .map((i) => `• ${i}`)
-  .join("\n")}
+  .join("\n") || "—"}
 
-SELECTED PATHWAY
------
-Type: ${selectedPathway?.type || "—"}
-Title: ${selectedPathway?.title || "—"}
-Timeline: ${selectedPathway?.timeline || "—"}
-Upside: ${selectedPathway?.upside || "—"}
-Tradeoff: ${selectedPathway?.tradeoff || "—"}
+Treatment Approaches:
+${(generated?.pathways ?? [])
+  .map(
+    (pathway, index) => `
+Approach ${index + 1}
+${String(pathway.type || "—").replaceAll("_", " ")}
 
-INTERVENTIONS
------
-${(selectedPathway?.interventions ?? []).map((i) => `• ${i}`).join("\n")}
+${pathway.title || "Untitled Approach"}
 
-CAREGIVER ROLE (Support Only — OT leads plan implementation)
------
-${caregiver.map((i) => `• ${i}`).join("\n")}
+Interventions:
+${(pathway.interventions ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+
+Timeline: ${pathway.timeline || "—"}
+Upside: ${pathway.upside || "—"}
+Tradeoff: ${pathway.tradeoff || "—"}
+`.trim()
+  )
+  .join("\n\n") || "—"}
+
+CAREGIVER INSTRUCTIONS
+----------------------
+${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 `.trim();
 
   await navigator.clipboard.writeText(summary);
@@ -295,59 +354,60 @@ ${caregiver.map((i) => `• ${i}`).join("\n")}
 
   setTimeout(() => setCopyMessage(""), 2000);
 }
+
 function handleDownloadSummary() {
   if (!caseData) return;
 
   const generated = caseData.generated_output as GeneratedOutput | null;
 
-  const selectedPathway =
-    typeof selectedPathwayIndex === "number"
-      ? generated?.pathways?.[selectedPathwayIndex]
-      : null;
-
-  const caregiver =
-    generated?.caregiverGuidance?.length
-      ? generated.caregiverGuidance
-      : selectedPathway?.interventions ?? [];
-
-const summary = `
+  const summary = `
 ==============================
 CASE: ${caseData.title || "Untitled Case"}
 ==============================
 
-PLAN
------
-${generated?.summary?.planSummary || "—"}
+CURRENT LIVE PLAN
+-----------------
+Patient Snapshot:
+${generated?.patientSnapshot || "—"}
 
-SAFETY LEVEL
------
+PLAN OVERVIEW
+-------------
+Risk Level:
 ${generated?.summary?.safetyLevel || "—"}
 
-TOP RISKS
------
-${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n")}
+Plan:
+${generated?.summary?.planSummary || "—"}
 
-CAREGIVER EXPECTATIONS
------
+Top Risks:
+${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+
+Caregiver Expectations:
 ${(generated?.summary?.caregiverExpectations ?? [])
   .map((i) => `• ${i}`)
-  .join("\n")}
+  .join("\n") || "—"}
 
-SELECTED PATHWAY
------
-Type: ${selectedPathway?.type || "—"}
-Title: ${selectedPathway?.title || "—"}
-Timeline: ${selectedPathway?.timeline || "—"}
-Upside: ${selectedPathway?.upside || "—"}
-Tradeoff: ${selectedPathway?.tradeoff || "—"}
+Treatment Approaches:
+${(generated?.pathways ?? [])
+  .map(
+    (pathway, index) => `
+Approach ${index + 1}
+${String(pathway.type || "—").replaceAll("_", " ")}
 
-INTERVENTIONS
------
-${(selectedPathway?.interventions ?? []).map((i) => `• ${i}`).join("\n")}
+${pathway.title || "Untitled Approach"}
 
-CAREGIVER GUIDANCE
------
-${caregiver.map((i) => `• ${i}`).join("\n")}
+Interventions:
+${(pathway.interventions ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+
+Timeline: ${pathway.timeline || "—"}
+Upside: ${pathway.upside || "—"}
+Tradeoff: ${pathway.tradeoff || "—"}
+`.trim()
+  )
+  .join("\n\n") || "—"}
+
+CAREGIVER INSTRUCTIONS
+----------------------
+${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 `.trim();
 
   const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
@@ -368,6 +428,175 @@ ${caregiver.map((i) => `• ${i}`).join("\n")}
   URL.revokeObjectURL(url);
 }
 
+async function handleGenerateCaregiverScript() {
+  if (!caseData) return;
+
+  setIsGeneratingCaregiverScript(true);
+  setCaregiverScriptError("");
+
+  try {
+    const response = await fetch("/api/generate-detail-module", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "caregiver_script",
+        caseData,
+        generatedPlan: caseData.generated_output,
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Caregiver script result:", result);
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to generate caregiver script.");
+    }
+
+    setCaregiverScript(result.data);
+  } catch (err: any) {
+    setCaregiverScriptError(err.message || "Something went wrong.");
+  } finally {
+    setIsGeneratingCaregiverScript(false);
+  }
+}
+
+async function handleGenerateTransferDetails() {
+  if (!caseData) return;
+
+  setIsGeneratingTransferDetails(true);
+
+  try {
+    const response = await fetch("/api/generate-detail-module", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "transfer_mobility_details",
+        caseData,
+        generatedPlan: caseData.generated_output,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to generate transfer details.");
+    }
+
+    setTransferDetails(result.data);
+
+    try {
+      const updatedOutput = {
+        ...(caseData.generated_output || {}),
+        clinicalDetailModules: {
+          ...(caseData.generated_output?.clinicalDetailModules || {}),
+          transferDetails: result.data,
+        },
+      };
+
+      const { error } = await supabase
+        .from("cases")
+        .update({
+          generated_output: updatedOutput,
+        })
+        .eq("id", caseData.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setCaseData({
+        ...caseData,
+        generated_output: updatedOutput,
+      });
+    } catch (e) {
+      console.error("Failed to persist transfer details", e);
+    }
+  } catch (err) {
+    console.error("Transfer detail generation failed:", err);
+  } finally {
+    setIsGeneratingTransferDetails(false);
+  }
+}
+
+
+async function handleGenerateAdlPrivacy() {
+
+  if (!caseData) return;
+
+  setIsGeneratingAdlPrivacy(true);
+
+  try {
+    const response = await fetch("/api/generate-detail-module", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "adl_privacy_support",
+        caseData,
+        generatedPlan: caseData.generated_output,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to generate ADL privacy support.");
+    }
+
+    setAdlPrivacy(result.data);
+
+    // Persist to case
+try {
+  const updatedOutput = {
+    ...(caseData.generated_output || {}),
+    clinicalDetailModules: {
+      ...(caseData.generated_output?.clinicalDetailModules || {}),
+      adlPrivacy: result.data,
+    },
+  };
+
+  const { error } = await supabase
+    .from("cases")
+    .update({
+      generated_output: updatedOutput,
+    })
+    .eq("id", caseData.id);
+
+  if (error) {
+    throw error;
+  }
+
+  setCaseData({
+    ...caseData,
+    generated_output: updatedOutput,
+  });
+} catch (e) {
+  console.error("Failed to persist ADL privacy", e);
+}
+  } catch (err) {
+    console.error("ADL privacy generation failed:", err);
+  } finally {
+    setIsGeneratingAdlPrivacy(false);
+  }
+}
+
+const orderedGenerations = [...generations].sort(
+  (a, b) =>
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+);
+
+const visibleGenerations = showAllVersions
+  ? orderedGenerations
+  : orderedGenerations.slice(0, 5);
+
+const getVersionNumber = (generationId: string) =>
+  orderedGenerations.findIndex((g) => g.id === generationId) + 1;
+
 if (loading) {
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
@@ -384,6 +613,22 @@ if (loading) {
         <div className="max-w-5xl mx-auto">
           <p className="text-red-400">Error loading case: {errorMessage}</p>
         </div>
+        {/* Detail Modules (SAFE TEST) */}
+<div className="mt-6 space-y-6">
+  <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
+    <h3 className="text-lg font-semibold">Transfer & Mobility Details</h3>
+    <p className="text-sm text-gray-400 mt-1">
+      (placeholder – wiring next)
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
+    <h3 className="text-lg font-semibold">ADL Privacy & Dignity Support</h3>
+    <p className="text-sm text-gray-400 mt-1">
+      (placeholder – wiring next)
+    </p>
+  </div>
+</div>
       </main>
     );
   }
@@ -419,17 +664,14 @@ const worstTransfer =
 
  console.log("Generated summary:", generated?.summary);
 
-const selectedPathway =
-  typeof selectedPathwayIndex === "number"
-    ? generated?.pathways?.[selectedPathwayIndex]
-    : null;
+const selectedPathway = generated?.pathways?.[0] ?? null;
 
 const activeGeneratedOutput = latestGeneratedPlan as GeneratedOutput | null;
 
 const caregiverGuidance: string[] =
-  activeGeneratedOutput?.caregiverGuidance ??
-  generated?.caregiverGuidance ??
-  [];
+  generated?.caregiverGuidance?.length
+    ? generated.caregiverGuidance
+    : selectedPathway?.interventions ?? [];
 
 const clinicalFocusLabel =
   caseData.case_classification?.clinical_focus === "transfers_mobility"
@@ -479,6 +721,15 @@ const selectedPlanForExport = {
       current_generation_id: selectedGeneration.id,
     });
 
+    const savedScript =
+  selectedGeneration.output_payload?.clinicalDetailModules?.caregiverScript;
+
+if (savedScript) {
+  setCaregiverScript(savedScript);
+} else {
+  setCaregiverScript(null);
+}
+
     setCurrentGenerationId(selectedGeneration.id);
     setSelectedGeneration(null);
   } catch (error) {
@@ -509,8 +760,6 @@ const handleSaveSelectedPathway = async (index: number) => {
       console.error("Failed to save selected pathway:", error.message);
       return;
     }
-
-    setSelectedPathwayIndex(index);
 
     setCaseData((prev: any) => ({
       ...prev,
@@ -581,6 +830,7 @@ setRegeneratingFocus(focus);
         case_classification: updatedCasePayload.case_classification,
         generated_output: plan,
         current_generation_id: newGeneration?.id || caseData.current_generation_id,
+        
       })
       .eq("id", caseData.id);
 
@@ -594,7 +844,6 @@ setRegeneratingFocus(focus);
     }));
 
     setLatestGeneratedPlan(plan);
-    setSelectedPathwayIndex(null);
     setSelectedGeneration(null);
 
     if (newGeneration) {
@@ -763,7 +1012,7 @@ disabled={
           </div>
         </div>
 
-{latestGeneratedPlan?.patientSnapshot && (
+{generated?.patientSnapshot && (
   <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between mb-4">
       <h2 className="text-2xl font-semibold">Current Live Plan</h2>
@@ -773,7 +1022,7 @@ disabled={
     </div>
 
     <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
-    <p className="text-gray-300">{latestGeneratedPlan.patientSnapshot}</p>
+  <p className="text-gray-300">{generated.patientSnapshot}</p>
   </div>
 )}
 
@@ -811,6 +1060,9 @@ disabled={
       {(generated.summary.caregiverExpectations ?? []).length > 0 && (
         <div>
 <p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
+
+
+
 <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
   {(generated.summary.caregiverExpectations ?? []).map((item, index) => (
     <li key={index}>{item}</li>
@@ -819,114 +1071,249 @@ disabled={
         </div>
       )}
     </div>
+    {generated?.pathways && generated.pathways.length > 0 && (
+ <div className="mt-6">
+    <p className="text-xs text-gray-400 mb-2">Treatment Approaches</p>
+
+    <div className="space-y-4">
+      {generated.pathways.map((pathway, index) => (
+        <div
+          key={`${pathway.type}-${index}`}
+          className="rounded-lg border border-gray-800 p-4 bg-gray-950"
+        >
+          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
+            {String(pathway.type).replaceAll("_", " ")}
+          </p>
+
+          <h4 className="text-sm font-semibold mb-2">
+            {pathway.title}
+          </h4>
+
+          <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
+            {pathway.interventions.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+
+          <p className="text-xs text-gray-400">
+            <strong>Timeline:</strong> {pathway.timeline}
+          </p>
+          <p className="text-xs text-gray-400">
+            <strong>Upside:</strong> {pathway.upside}
+          </p>
+          <p className="text-xs text-gray-500">
+            <strong>Tradeoff:</strong> {pathway.tradeoff}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
   </div>
 )}
 
-{generated?.pathways && generated.pathways.length > 0 && (
-<div className="grid gap-6 lg:grid-cols-3">
-{generated.pathways.map((pathway, index) => (
-             <div
-  key={`${pathway.type}-${index}`}
-onClick={async () => {
-  setSelectedPathwayIndex(index);
+<div className="mt-6 rounded-xl border border-purple-800 bg-gray-950 p-6">
+  <div className="flex items-start justify-between gap-4 mb-4">
+    <div>
+      <h3 className="text-lg font-semibold">
+        Family / Caregiver Script
+      </h3>
+      <p className="text-sm text-gray-400 mt-1">
+        Generate plain-language instructions a clinician can share with the patient, caregiver, family, or friend.
+      </p>
+    </div>
 
-  try {
-  await handleSaveSelectedPathway(index); 
-  } catch (e) {
-    console.error("Auto-save failed:", e);
-  }
-}}
->
-<div className="flex items-center justify-between mb-2 gap-3">
-  <p className="text-xs uppercase tracking-wide text-blue-400 break-all leading-tight">
-    {String(pathway.type).replaceAll("_", " ")}
-  </p>
-  <span className="shrink-0 text-[10px] text-gray-500 italic">
-    click to select
-  </span>
+    <button
+      type="button"
+      onClick={handleGenerateCaregiverScript}
+      disabled={isGeneratingCaregiverScript}
+      className="shrink-0 rounded-lg bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-50"
+    >
+      {isGeneratingCaregiverScript ? "Generating..." : "Generate Script"}
+    </button>
+  </div>
+
+  {caregiverScriptError && (
+    <p className="text-sm text-red-400 mb-4">
+      {caregiverScriptError}
+    </p>
+  )}
+
+  {caregiverScript ? (
+    <div className="space-y-4 text-sm text-gray-300">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          Conversation Goal
+        </p>
+        <p>{caregiverScript.conversationGoal || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          Before Task Script
+        </p>
+        <p>{caregiverScript.beforeTaskScript || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          During Task Script
+        </p>
+        <p>{caregiverScript.duringTaskScript || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          If Patient Struggles
+        </p>
+        <p>{caregiverScript.ifPatientStruggles || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          If Patient Resists
+        </p>
+        <p>{caregiverScript.ifPatientResists || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          Reassurance Language
+        </p>
+        <p>{caregiverScript.reassuranceLanguage || "—"}</p>
+      </div>
+
+      <div>
+        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+          When to Be Firm
+        </p>
+        <p>{caregiverScript.whenToBeFirm || "—"}</p>
+      </div>
+    </div>
+  ) : (
+    <p className="text-sm text-gray-500">
+      No script generated yet.
+    </p>
+  )}
 </div>
 
- <h3 className="text-base font-semibold mb-3 break-words leading-snug">
-  {pathway.title}
-</h3>
+<div className="mt-6 grid gap-6">
+  <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
+    <div className="flex items-start justify-between gap-4 mb-4">
+      <div>
+        <h3 className="text-lg font-semibold">Transfer & Mobility Details</h3>
+        <p className="text-sm text-gray-400 mt-1">
+          Generate practical setup, cueing, surface variation, and stop-rule details.
+        </p>
+      </div>
 
-{selectedPathwayIndex === index && (
-  <div className="mb-4 space-y-2">
-    <div className="flex items-center gap-3">
-      <span className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-        Selected Plan
-      </span>
+      <button
+        type="button"
+        onClick={handleGenerateTransferDetails}
+        disabled={isGeneratingTransferDetails}
+        className="shrink-0 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+      >
+        {isGeneratingTransferDetails ? "Generating..." : "Generate"}
+      </button>
     </div>
 
-    <p className="text-xs text-gray-400">
-      This plan is now active and used for caregiver guidance and summary output.
-    </p>
+    {transferDetails ? (
+      <div className="space-y-4 text-sm text-gray-300">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Setup Adjustments</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(transferDetails.setupAdjustments ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
 
-  </div>
-)}
+        <div>
+          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Transfer Cues</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(transferDetails.transferCues ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
 
-                <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300 mb-4">
-                  {pathway.interventions.map((item, itemIndex) => (
-                    <li key={itemIndex}>{item}</li>
-                  ))}
-                </ul>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Surface Variations</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(transferDetails.surfaceVariations ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
 
-                <p className="text-sm mb-2">
-                  <strong>Timeline:</strong> {pathway.timeline}
-                </p>
-                <p className="text-sm mb-2">
-                  <strong>Upside:</strong> {pathway.upside}
-                </p>
-                <p className="text-sm text-gray-400">
-                  <strong>Tradeoff:</strong> {pathway.tradeoff}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-{(selectedPathway || caregiverGuidance.length > 0) && (
-  <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">
-      Caregiver Instructions (Based on Selected Plan)
-    </h3>
-
-    <p className="text-sm text-gray-400 mb-4">
-      Based on: {selectedPathway?.title || "Current selected plan"}
-    </p>
-
-    {caregiverGuidance.length > 0 ? (
-      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-        {caregiverGuidance.map((item: string, i: number) => (
-          <li key={i}>{item}</li>
-        ))}
-      </ul>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Stop Rules</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(transferDetails.stopRules ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+      </div>
     ) : (
-      <p className="text-sm text-red-300">
-        Caregiver guidance was not generated for this plan.
-      </p>
+      <p className="text-sm text-gray-500">No transfer details generated yet.</p>
     )}
   </div>
-)}
 
-{generated?.summary?.caregiverExpectations &&
-  generated.summary.caregiverExpectations.length > 0 && (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-      <h3 className="text-xl font-semibold mb-3">
-        Caregiver Role (Support Only — OT Leads Plan)
-      </h3>
+  <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
+    <div className="flex items-start justify-between gap-4 mb-4">
+      <div>
+        <h3 className="text-lg font-semibold">ADL Privacy & Dignity Support</h3>
+        <p className="text-sm text-gray-400 mt-1">
+          Generate plain-language guidance for private ADLs like bathing, toileting, and dressing.
+        </p>
+      </div>
 
-      <p className="text-xs text-gray-500 mb-2">
-        Clarifies what the caregiver can reasonably support without taking over clinical decision-making.
-      </p>
-
-      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-        {generated.summary.caregiverExpectations.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
+      <button
+        type="button"
+        onClick={handleGenerateAdlPrivacy}
+        disabled={isGeneratingAdlPrivacy}
+        className="shrink-0 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+      >
+        {isGeneratingAdlPrivacy ? "Generating..." : "Generate"}
+      </button>
     </div>
-  )}
+
+    {adlPrivacy ? (
+      <div className="space-y-4 text-sm text-gray-300">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Privacy Setup</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(adlPrivacy.privacySetup ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Respectful Cueing</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(adlPrivacy.respectfulCueing ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step In</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(adlPrivacy.whenToStepIn ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step Back</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(adlPrivacy.whenToStepBack ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Dignity Warnings</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {(adlPrivacy.dignityWarnings ?? []).map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No ADL privacy support generated yet.</p>
+    )}
+  </div>
+</div>
+
 
 <div className="pt-4 border-t border-gray-800">
   <h2 className="text-lg font-semibold text-gray-200">Supporting Details</h2>
@@ -951,7 +1338,7 @@ onClick={async () => {
     </div>
   )}
 
-{latestGeneratedPlan?.taskBreakdown && latestGeneratedPlan.taskBreakdown.length > 0 && (
+{generated?.taskBreakdown && generated.taskBreakdown.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowTaskBreakdown(!showTaskBreakdown)}>
   <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
@@ -961,14 +1348,14 @@ onClick={async () => {
 </div>
     {showTaskBreakdown && (
   <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-{latestGeneratedPlan.taskBreakdown.map((item: string, index: number) => (
+{generated.taskBreakdown.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
     </ul>)}
   </div>
 )}
 
-{latestGeneratedPlan?.clinicalConsiderations && latestGeneratedPlan.clinicalConsiderations.length > 0 && (
+{generated?.clinicalConsiderations && generated.clinicalConsiderations.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowClinicalConsiderations(!showClinicalConsiderations)}>
   <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
@@ -978,14 +1365,14 @@ onClick={async () => {
 </div>
     {showClinicalConsiderations && (
   <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {latestGeneratedPlan.clinicalConsiderations.map((item: string, index: number) => (
+      {generated.clinicalConsiderations.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
     </ul>)}
   </div>
 )}
 
-{latestGeneratedPlan?.firstSessionPriorities && latestGeneratedPlan.firstSessionPriorities.length > 0 && (
+{generated?.firstSessionPriorities && generated.firstSessionPriorities.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowFirstSessionPriorities(!showFirstSessionPriorities)}>
   <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
@@ -995,18 +1382,18 @@ onClick={async () => {
 </div>
     {showFirstSessionPriorities && (
   <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {latestGeneratedPlan.firstSessionPriorities.map((item: string, index: number) => (
+     {generated.firstSessionPriorities.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
     </ul>)}
   </div>
 )}
 
-{latestGeneratedPlan?.sessionPlan && latestGeneratedPlan.sessionPlan.length > 0 && (
+{generated?.sessionPlan && generated.sessionPlan.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
     <h3 className="text-xl font-semibold mb-3">Session Plan (Visit 1–3)</h3>
     <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {latestGeneratedPlan.sessionPlan.map((item: string, index: number) => (
+      {generated.sessionPlan.map((item: string, index: number) => (
         <li key={index}>{item}</li>
       ))}
     </ul>
@@ -1042,12 +1429,14 @@ onClick={async () => {
   <p className="text-sm text-gray-400">No prior generations found.</p>
 ) : (
   <ul className="space-y-3 text-sm text-gray-300">
-  {(showAllVersions ? generations : generations.slice(0, 5)).map((generation, index) => (
+  {visibleGenerations.map((generation) => (
       <li
         key={generation.id}
-        className={`rounded-lg px-4 py-3 transition ${
+className={`rounded-lg px-4 py-3 transition ${
   currentGenerationId === generation.id
     ? "border border-green-600 bg-green-900/20"
+    : selectedGeneration?.id === generation.id
+    ? "border border-blue-500 bg-blue-950/30"
     : "border border-gray-800 hover:border-blue-500"
 }`}
       >
@@ -1058,11 +1447,17 @@ onClick={async () => {
             className="text-left flex-1"
           >
             <p className="flex items-center gap-2">
-              <strong>Version {generations.length - index}:</strong>
+              <strong>Version {getVersionNumber(generation.id)}:</strong>
 
               {currentGenerationId === generation.id && (
                 <span className="rounded-full border border-green-700 bg-green-900/30 px-2 py-0.5 text-xs text-green-300">
                   Current
+                </span>
+              )}
+
+              {selectedGeneration?.id === generation.id && (
+                <span className="rounded-full border border-blue-700 bg-blue-900/30 px-2 py-0.5 text-xs text-blue-300">
+                  Viewing
                 </span>
               )}
 
@@ -1108,7 +1503,10 @@ onClick={async () => {
 {selectedGeneration?.output_payload && (
   <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
  <div className="flex items-center justify-between mb-4">
-  <h3 className="text-xl font-semibold">Selected Older Plan</h3>
+ <h3 className="text-xl font-semibold">
+  Viewing Version{" "}
+  {getVersionNumber(selectedGeneration.id)}
+</h3>
 
   <div className="mb-6 rounded-lg border border-gray-700 p-4">
   <h4 className="text-sm font-semibold mb-3">Comparison</h4>
@@ -1147,7 +1545,7 @@ onClick={async () => {
 
     {/* Pathway Titles */}
     <div>
-      <p className="text-gray-400 mb-1">Current Pathways</p>
+      <p className="text-gray-400 mb-1">Current Treatment Approach</p>
       <ul className="list-disc pl-4 text-gray-300">
         {(generated?.pathways || []).map((p: any, i: number) => (
           <li key={i}>{p.title}</li>
@@ -1156,7 +1554,7 @@ onClick={async () => {
     </div>
 
     <div>
-      <p className="text-gray-400 mb-1">Selected Pathways</p>
+      <p className="text-gray-400 mb-1">Selected Treatment Approaches</p>
       <ul className="list-disc pl-4 text-gray-300">
         {(selectedGeneration.output_payload.pathways || []).map(
           (p: any, i: number) => (
@@ -1230,9 +1628,9 @@ onClick={async () => {
 
 <div
   key={`${pathway.type}-${index}`}
-  onClick={() => setSelectedPathwayIndex(index)}
+  onClick={() => {}}
 className={`rounded-xl border p-5 cursor-pointer transition transform hover:scale-[1.01] ${
-    selectedPathwayIndex === index
+    false
       ? "border-blue-500 bg-blue-950/30"
       : "border-gray-800 bg-gray-900 hover:border-blue-500"
   }`}
