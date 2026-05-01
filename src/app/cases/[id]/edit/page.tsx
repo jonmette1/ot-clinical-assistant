@@ -125,6 +125,13 @@ type Pathway = {
 type GeneratedPlan = {
   patientSnapshot: string;
   pathways?: Pathway[];
+  summary?: {
+    topRisks?: string[];
+    keyLimitations?: string[];
+    planSummary?: string;
+    caregiverExpectations?: string[];
+    safetyLevel?: "low" | "medium" | "high";
+  };
   clinicalConsiderations: string[];
   firstSessionPriorities: string[];
   taskBreakdown?: string[];
@@ -429,8 +436,8 @@ function updateAdlAssistLevel(
 }
 
  async function regenerateAndUpdateCase() {
-  setIsSaving(true);
-  setSaveMessage("");
+setIsSaving(true);
+setSaveMessage("Generating updated treatment plan...");
 const clinicalPrioritySummary = buildClinicalPrioritySummary();
 
 const casePayload = {
@@ -557,6 +564,7 @@ caregiverSupport: {
   }
 
 const updatedPlan = aiData.plan;
+setSaveMessage("Saving updated treatment plan...");
 
   const { error } = await supabase
     .from("cases")
@@ -672,12 +680,7 @@ await supabase.from("generations").insert([
   },
 ]);
 
-await supabase
-  .from("cases")
-  .update({
-    generated_output: updatedPlan,
-  })
-  .eq("id", caseId);
+
 
 setSaveMessage("Case updated with AI-regenerated plan successfully.");
 
@@ -1024,7 +1027,7 @@ setGeneralMobility({
         {!loading && !errorMessage && (
           <form className="space-y-6">
             <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-6">
-              <h2 className="text-xl font-semibold mb-4">Case Basics</h2>
+              <h2 className="text-xl font-semibold mb-4">Client / Case Basics</h2>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <input
@@ -1058,6 +1061,10 @@ setGeneralMobility({
                   onChange={(e) => setClientAddress(e.target.value)}
                   className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
                 />
+
+                <div className="md:col-span-2 pt-4 border-t border-gray-800">
+                  <h3 className="text-lg font-semibold">Caregiver Information</h3>
+                </div>
 
                 <input
                   type="text"
@@ -1166,6 +1173,10 @@ setGeneralMobility({
   </select>
 </div>
 
+<div className="md:col-span-2 pt-4 border-t border-gray-800">
+  <h3 className="text-lg font-semibold">Case Classification</h3>
+</div>
+
 <div>
   <label className="block text-sm font-medium mb-2">Clinical Focus</label>
   <select
@@ -1196,16 +1207,20 @@ setGeneralMobility({
 
 <div>
   <label className="block text-sm font-medium mb-2">Age Range</label>
-  <select
-    value={ageRange}
-    onChange={(e) => setAgeRange(e.target.value)}
-    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
-  >
-    <option>50-59</option>
-    <option>60-69</option>
-    <option>70-79</option>
-    <option>80+</option>
-  </select>
+<select
+  value={ageRange}
+  onChange={(e) => setAgeRange(e.target.value)}
+  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
+>
+  <option value="Under 18">Under 18</option>
+  <option value="18-39">18–39</option>
+  <option value="40-49">40–49</option>
+  <option value="50-59">50–59</option>
+  <option value="60-69">60–69</option>
+  <option value="70-79">70–79</option>
+  <option value="80-89">80–89</option>
+  <option value="90+">90+</option>
+</select>
 </div>
 
 </div>     
@@ -1830,7 +1845,12 @@ setGeneralMobility({
 
 {generatedPlan && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6 space-y-4">
-    <h2 className="text-2xl font-semibold">Generated Plan</h2>
+   <div>
+  <h2 className="text-2xl font-semibold">Treatment Plan</h2>
+ <p className="text-sm text-gray-400 mt-1">
+  Edit the structured treatment plan below or regenerate after updating case inputs.
+</p>
+</div>
 
     <div>
       <label className="block text-sm font-medium mb-2">Patient Snapshot</label>
@@ -1846,6 +1866,96 @@ setGeneralMobility({
         className="w-full rounded-lg bg-gray-950 border border-gray-700 px-4 py-3 text-sm text-gray-200"
       />
     </div>
+
+{generatedPlan.summary && (
+  <div className="rounded-xl border border-yellow-700 bg-gray-950 p-5 space-y-5">
+    <h3 className="text-xl font-semibold">Plan Overview</h3>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">Risk Level</label>
+      <select
+        value={generatedPlan.summary.safetyLevel || "medium"}
+        onChange={(e) =>
+          setGeneratedPlan({
+            ...generatedPlan,
+            summary: {
+              ...generatedPlan.summary,
+              safetyLevel: e.target.value as "low" | "medium" | "high",
+            },
+          })
+        }
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">Plan Summary</label>
+      <textarea
+        value={generatedPlan.summary.planSummary || ""}
+        onChange={(e) =>
+          setGeneratedPlan({
+            ...generatedPlan,
+            summary: {
+              ...generatedPlan.summary,
+              planSummary: e.target.value,
+            },
+          })
+        }
+        rows={5}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 text-sm text-gray-200"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">Top Risks</label>
+      <textarea
+        value={(generatedPlan.summary.topRisks || []).join("\n")}
+        onChange={(e) =>
+          setGeneratedPlan({
+            ...generatedPlan,
+            summary: {
+              ...generatedPlan.summary,
+              topRisks: e.target.value
+                .split("\n")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            },
+          })
+        }
+        rows={4}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 text-sm text-gray-200"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        Caregiver Expectations
+      </label>
+      <textarea
+        value={(generatedPlan.summary.caregiverExpectations || []).join("\n")}
+        onChange={(e) =>
+          setGeneratedPlan({
+            ...generatedPlan,
+            summary: {
+              ...generatedPlan.summary,
+              caregiverExpectations: e.target.value
+                .split("\n")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            },
+          })
+        }
+        rows={4}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 text-sm text-gray-200"
+      />
+    </div>
+  </div>
+)}
+
     {generatedPlan.functionalProblemAreas &&
   generatedPlan.functionalProblemAreas.length > 0 && (
     <div>
@@ -1959,9 +2069,9 @@ setGeneralMobility({
 
 {generatedPlan.pathways && generatedPlan.pathways.length > 0 && (
   <div className="space-y-4">
-    <label className="block text-sm font-medium">Pathways</label>
+    <label className="block text-sm font-medium">Treatment Approaches</label>
 
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4">
 {generatedPlan.pathways.map((pathway, index) => (
   <div
     key={index}

@@ -830,8 +830,36 @@ Return JSON in the following format:
   },
   "clinicalConsiderations": ["string"],
   "firstSessionPriorities": ["string"],
-  "caregiverGuidance": ["string"]
+  "caregiverGuidance": ["string"],
+  "clinicalDetailModules": {
+    "caregiverInstructions": ["string"]
+  }
 }
+
+Clinical Detail Module Rules:
+
+clinicalDetailModules.caregiverInstructions is REQUIRED when caregiverSupport exists.
+
+Return exactly 5 caregiverInstructions when caregiverSupport exists.
+
+Each caregiverInstruction must be:
+- written for a non-clinical caregiver
+- specific to this case
+- tied to the selected clinical focus
+- based on caregiver capacity, confidence, availability, and training level
+- behavior-based, not educational fluff
+
+Include:
+1. What the caregiver should set up before the task
+2. What the caregiver should say or cue during the task
+3. What the caregiver should watch for
+4. What the caregiver should avoid doing
+5. When the caregiver should stop the task or call the OT
+
+Do NOT duplicate caregiverGuidance.
+Do NOT copy pathway interventions.
+Do NOT use vague phrases like "assist as needed" or "ensure safety."
+Use plain language that a family member could follow during the visit.
 
 Caregiver Guidance Rules:
 - caregiverGuidance is REQUIRED when caregiverSupport exists in the case data.
