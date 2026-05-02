@@ -1078,6 +1078,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
   <div className="space-y-6">
     <h2 className="text-lg font-semibold mb-2">Home Assessment</h2>
 
+    {/* OUTSIDE / ENTRANCE */}
     <div className="border border-gray-700 rounded-xl p-6">
       <h3 className="text-lg font-semibold mb-4">Outside / Entrance</h3>
 
@@ -1253,6 +1254,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
       </div>
     </div>
 
+    {/* BATHROOM */}
     <div className="border border-gray-700 rounded-xl p-6">
       <h3 className="text-lg font-semibold mb-4">Bathroom</h3>
 
@@ -1404,214 +1406,222 @@ setSaveMessage("Case generated with AI and saved successfully.");
             onChange={(e) => setOtherEquipmentPresent(e.target.value)}
             className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
           />
-          <div className="border border-gray-700 rounded-xl p-6 mt-6">
-  <h3 className="text-lg font-semibold mb-4">Bedroom / Bed Setup</h3>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    <div>
-      <label className="block text-sm font-medium mb-2">Bed Type</label>
-      <select
-        value={bedType}
-        onChange={(e) => setBedType(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="standard">Standard Bed</option>
-        <option value="adjustable">Adjustable Bed</option>
-        <option value="hospital">Hospital Bed</option>
-        <option value="unknown">Unknown</option>
-      </select>
+        </div>
+      </div>
     </div>
 
-    <div>
-      <label className="block text-sm font-medium mb-2">Bed Height</label>
-      <input
-        type="text"
-        value={bedHeight}
-        onChange={(e) => setBedHeight(e.target.value)}
-        placeholder="e.g. low, standard, high"
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      />
+    {/* BEDROOM / BED SETUP */}
+    <div className="border border-gray-700 rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">Bedroom / Bed Setup</h3>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium mb-2">Bed Type</label>
+          <select
+            value={bedType}
+            onChange={(e) => setBedType(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="standard">Standard Bed</option>
+            <option value="adjustable">Adjustable Bed</option>
+            <option value="hospital">Hospital Bed</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Bed Height</label>
+          <input
+            type="text"
+            value={bedHeight}
+            onChange={(e) => setBedHeight(e.target.value)}
+            placeholder="e.g. low, standard, high"
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Bed Rails Present</label>
+          <select
+            value={bedRails}
+            onChange={(e) => setBedRails(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="none">None</option>
+            <option value="one_side">One side</option>
+            <option value="both_sides">Both sides</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Clearance Around Bed</label>
+          <select
+            value={bedClearance}
+            onChange={(e) => setBedClearance(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="adequate">Adequate</option>
+            <option value="limited">Limited</option>
+            <option value="very_limited">Very Limited</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-2">
+            Nighttime / Bedside Hazards
+          </label>
+          <input
+            type="text"
+            value={bedHazards}
+            onChange={(e) => setBedHazards(e.target.value)}
+            placeholder="e.g. clutter, poor lighting, narrow path to bathroom"
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          />
+        </div>
+      </div>
     </div>
 
-    <div>
-      <label className="block text-sm font-medium mb-2">Bed Rails Present</label>
-      <select
-        value={bedRails}
-        onChange={(e) => setBedRails(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="none">None</option>
-        <option value="one_side">One side</option>
-        <option value="both_sides">Both sides</option>
-        <option value="unknown">Unknown</option>
-      </select>
+    {/* TRANSFER SURFACES */}
+    <div className="border border-gray-700 rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">Transfer Surfaces</h3>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium mb-2">Primary Seating</label>
+          <select
+            value={primarySeating}
+            onChange={(e) => setPrimarySeating(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="chair">Chair</option>
+            <option value="recliner">Recliner</option>
+            <option value="couch">Couch</option>
+            <option value="wheelchair">Wheelchair</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Seat Height</label>
+          <select
+            value={seatHeight}
+            onChange={(e) => setSeatHeight(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="low">Low</option>
+            <option value="standard">Standard</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Armrests Present</label>
+          <select
+            value={armrestsPresent}
+            onChange={(e) => setArmrestsPresent(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Surface Firmness</label>
+          <select
+            value={surfaceFirmness}
+            onChange={(e) => setSurfaceFirmness(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="firm">Firm</option>
+            <option value="soft">Soft</option>
+            <option value="very_soft">Very Soft</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Sit-to-Stand Difficulty</label>
+          <select
+            value={sitToStandDifficulty}
+            onChange={(e) => setSitToStandDifficulty(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="none">None</option>
+            <option value="mild">Mild</option>
+            <option value="moderate">Moderate</option>
+            <option value="severe">Severe</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-2">Assistive Device Used</label>
+          <input
+            type="text"
+            value={transferDevice}
+            onChange={(e) => setTransferDevice(e.target.value)}
+            placeholder="e.g. walker, cane, none"
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          />
+        </div>
+      </div>
     </div>
 
-    <div>
-      <label className="block text-sm font-medium mb-2">Clearance Around Bed</label>
-      <select
-        value={bedClearance}
-        onChange={(e) => setBedClearance(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="adequate">Adequate</option>
-        <option value="limited">Limited</option>
-        <option value="very_limited">Very Limited</option>
-        <option value="unknown">Unknown</option>
-      </select>
-    </div>
+    {/* GENERAL MOBILITY */}
+    <div className="border border-gray-700 rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">General Mobility</h3>
 
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium mb-2">Nighttime / Bedside Hazards</label>
-      <input
-        type="text"
-        value={bedHazards}
-        onChange={(e) => setBedHazards(e.target.value)}
-        placeholder="e.g. clutter, poor lighting, narrow path to bathroom"
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      />
-      <div className="border border-gray-700 rounded-xl p-6 mt-6">
-  <h3 className="text-lg font-semibold mb-4">Transfer Surfaces</h3>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium mb-2">Primary Mobility Device</label>
+          <select
+            value={mobilityDevice}
+            onChange={(e) => setMobilityDevice(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="none">None</option>
+            <option value="cane">Cane</option>
+            <option value="walker">Walker</option>
+            <option value="wheelchair">Wheelchair</option>
+          </select>
+        </div>
 
-  <div className="grid gap-4 md:grid-cols-2">
-    <div>
-      <label className="block text-sm font-medium mb-2">Primary Seating</label>
-      <select
-        value={primarySeating}
-        onChange={(e) => setPrimarySeating(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="chair">Chair</option>
-        <option value="recliner">Recliner</option>
-        <option value="couch">Couch</option>
-        <option value="wheelchair">Wheelchair</option>
-      </select>
-    </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Indoor Mobility Level</label>
+          <select
+            value={indoorMobilityLevel}
+            onChange={(e) => setIndoorMobilityLevel(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="independent">Independent</option>
+            <option value="supervision">Supervision</option>
+            <option value="assist">Assist</option>
+          </select>
+        </div>
 
-    <div>
-      <label className="block text-sm font-medium mb-2">Seat Height</label>
-      <select
-        value={seatHeight}
-        onChange={(e) => setSeatHeight(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="low">Low</option>
-        <option value="standard">Standard</option>
-        <option value="high">High</option>
-      </select>
-    </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Endurance</label>
+          <select
+            value={mobilityEndurance}
+            onChange={(e) => setMobilityEndurance(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="low">Low</option>
+            <option value="moderate">Moderate</option>
+            <option value="good">Good</option>
+          </select>
+        </div>
 
-    <div>
-      <label className="block text-sm font-medium mb-2">Armrests Present</label>
-      <select
-        value={armrestsPresent}
-        onChange={(e) => setArmrestsPresent(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="yes">Yes</option>
-        <option value="no">No</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium mb-2">Surface Firmness</label>
-      <select
-        value={surfaceFirmness}
-        onChange={(e) => setSurfaceFirmness(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="firm">Firm</option>
-        <option value="soft">Soft</option>
-        <option value="very_soft">Very Soft</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium mb-2">Sit-to-Stand Difficulty</label>
-      <select
-        value={sitToStandDifficulty}
-        onChange={(e) => setSitToStandDifficulty(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="none">None</option>
-        <option value="mild">Mild</option>
-        <option value="moderate">Moderate</option>
-        <option value="severe">Severe</option>
-      </select>
-    </div>
-
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium mb-2">Assistive Device Used</label>
-      <input
-        type="text"
-        value={transferDevice}
-        onChange={(e) => setTransferDevice(e.target.value)}
-        placeholder="e.g. walker, cane, none"
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-         />
-         <div className="border border-gray-700 rounded-xl p-6 mt-6">
-  <h3 className="text-lg font-semibold mb-4">General Mobility</h3>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    <div>
-      <label className="block text-sm font-medium mb-2">Primary Mobility Device</label>
-      <select
-        value={mobilityDevice}
-        onChange={(e) => setMobilityDevice(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="none">None</option>
-        <option value="cane">Cane</option>
-        <option value="walker">Walker</option>
-        <option value="wheelchair">Wheelchair</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium mb-2">Indoor Mobility Level</label>
-      <select
-        value={indoorMobilityLevel}
-        onChange={(e) => setIndoorMobilityLevel(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="independent">Independent</option>
-        <option value="supervision">Supervision</option>
-        <option value="assist">Assist</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium mb-2">Endurance</label>
-      <select
-        value={mobilityEndurance}
-        onChange={(e) => setMobilityEndurance(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="low">Low</option>
-        <option value="moderate">Moderate</option>
-        <option value="good">Good</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium mb-2">Recent Falls</label>
-      <select
-        value={recentFalls}
-        onChange={(e) => setRecentFalls(e.target.value)}
-        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="no">No</option>
-        <option value="yes">Yes</option>
-      </select>
-    </div>
-  </div>
-</div>
-    </div>
-  </div>
-</div>
-    </div>
-  </div>
-</div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Recent Falls</label>
+          <select
+            value={recentFalls}
+            onChange={(e) => setRecentFalls(e.target.value)}
+            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
         </div>
       </div>
     </div>
