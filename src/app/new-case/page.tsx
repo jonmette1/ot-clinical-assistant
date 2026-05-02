@@ -23,7 +23,17 @@ type GeneratedPlan = {
 };
 
 export default function NewCasePage() {
+
+  // ==============================
+  // STATE: CASE BASICS
+  // ==============================
+
   const [ageRange, setAgeRange] = useState("70-79");
+  
+    // ==============================
+  // ROUTER
+  // ==============================
+  
   const router = useRouter();
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState("");
  const [targetActivity, setTargetActivity] = useState("Bathing");
@@ -38,6 +48,11 @@ const [primaryGoal, setPrimaryGoal] = useState("");
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+
+  // ==============================
+  // STATE: CLIENT + CAREGIVER
+  // ==============================
+
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -54,6 +69,11 @@ const [caregiverIsPrimarySupport, setCaregiverIsPrimarySupport] = useState(false
   const [caseType, setCaseType] = useState("geriatric");
   const [clinicalFocus, setClinicalFocus] = useState("adl_home_safety");
   const [subcategory, setSubcategory] = useState("fall_prevention");
+
+  // ==============================
+  // STATE: HOME ASSESSMENT - BATHROOM
+  // ==============================
+
 const [bathroomType, setBathroomType] = useState("tub_shower_combo");
 const [stairsPresent, setStairsPresent] = useState("no");
 const [spaceConstraints, setSpaceConstraints] = useState("moderate");
@@ -68,6 +88,11 @@ const [bathSeating, setBathSeating] = useState("none");
   const [otherKeyBarriers, setOtherKeyBarriers] = useState("");
   const [otherSafetyHazards, setOtherSafetyHazards] = useState("");
   const [otherEquipmentPresent, setOtherEquipmentPresent] = useState("");
+
+  // ==============================
+  // STATE: HOME ASSESSMENT - BEDROOM / TRANSFERS / MOBILITY
+  // ==============================
+
   const [bedType, setBedType] = useState("standard");
 const [bedHeight, setBedHeight] = useState("");
 const [bedRails, setBedRails] = useState("none");
@@ -83,7 +108,11 @@ const [mobilityDevice, setMobilityDevice] = useState("none");
 const [indoorMobilityLevel, setIndoorMobilityLevel] = useState("independent");
 const [mobilityEndurance, setMobilityEndurance] = useState("moderate");
 const [recentFalls, setRecentFalls] = useState("no");
-  // OUTSIDE / ENTRANCE ZONE STATE
+
+  // ==============================
+  // STATE: HOME ASSESSMENT - OUTSIDE / ENTRANCE
+  // ==============================
+
 const [drivewaySurface, setDrivewaySurface] = useState("smooth");
 const [parkingType, setParkingType] = useState("driveway");
 const [entryAccess, setEntryAccess] = useState("front");
@@ -102,6 +131,11 @@ const [mailboxLocation, setMailboxLocation] = useState("porch");
 
 const [exteriorHazards, setExteriorHazards] = useState<string[]>([]);
 const [otherExteriorHazards, setOtherExteriorHazards] = useState("");
+
+  // ==============================
+  // OPTIONS
+  // ==============================
+
   const barriers = [
     "Balance",
     "Strength",
@@ -140,6 +174,10 @@ const assistLevelOptions = [
   { value: "6", label: "6 - Modified Independence" },
   { value: "7", label: "7 - Total Independence" },
 ];
+
+  // ==============================
+  // CLINICAL PRIORITY SCORING HELPERS
+  // ==============================
 
 function getAssistSeverityScore(value: string) {
   switch (value) {
@@ -348,6 +386,10 @@ if (recentFalls === "yes") {
   };
 }
 
+  // ==============================
+  // FORM UPDATE HELPERS
+  // ==============================
+
   function toggleBarrier(barrier: string) {
     setKeyBarriers((prev) =>
       prev.includes(barrier)
@@ -380,6 +422,10 @@ function updateAdlAssistLevel(
     [field]: value,
   }));
 }
+
+  // ==============================
+  // GENERATE PLAN + SAVE CASE
+  // ==============================
 
 async function generateLocalPlan() {
   setIsSaving(true);
@@ -677,6 +723,10 @@ setSaveMessage("Case generated with AI and saved successfully.");
   setIsSaving(false);
 }
    
+  // ==============================
+  // PAGE UI
+  // ==============================
+
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-4xl mx-auto">
