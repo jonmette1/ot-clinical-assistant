@@ -54,6 +54,7 @@ type GeneratedOutput = {
   clinicalConsiderations?: string[];
   firstSessionPriorities?: string[];
   caregiverGuidance?: string[];
+  equipmentPlan?: EquipmentPlanItem[];
 clinicalDetailModules?: {
   caregiverInstructions?: string[];
   caregiverScript?: CaregiverScript;
@@ -93,6 +94,40 @@ type AdlPrivacySupport = {
   whenToStepIn?: string[];
   whenToStepBack?: string[];
   dignityWarnings?: string[];
+};
+
+type FeasibilitySnapshot = {
+  financialFeasibility?: "low" | "moderate" | "high" | "unknown";
+  environmentalFeasibility?: "low" | "moderate" | "high" | "unknown";
+  caregiverFlexibility?: "low" | "moderate" | "high" | "unknown";
+  mainConstraint?: string;
+};
+
+type EquipmentFeasibilityItem = {
+  item?: string;
+  reason?: string;
+  priority?: "high" | "medium" | "low" | string;
+  urgency?: "immediate" | "short_term" | "optional" | string;
+  costRange?: string;
+  access?: string;
+  coverageNotes?: string;
+  lowerCostAlternative?: string;
+  contingencyPlan?: string;
+};
+
+type EquipmentFeasibilityPlan = {
+  feasibilitySnapshot?: FeasibilitySnapshot;
+  equipmentPlan?: EquipmentFeasibilityItem[];
+};
+
+type EquipmentPlanItem = {
+  item?: string;
+  reason?: string;
+  priority?: "high" | "medium" | "low" | string;
+  urgency?: "immediate" | "short_term" | "optional" | string;
+  costRange?: string;
+  access?: string;
+  coverageNotes?: string;
 };
 
 type GenerationRow = {
@@ -157,20 +192,38 @@ export default function CaseDetailPage({
   const [showAllVersions, setShowAllVersions] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
-  const [isRestoringVersion, setIsRestoringVersion] = useState(false);
-  const [loading, setLoading] = useState(true);
+const [isRestoringVersion, setIsRestoringVersion] = useState(false);
+const [isSavingCurrentVersion, setIsSavingCurrentVersion] = useState(false);
+const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 const [isDeleting, setIsDeleting] = useState(false);
+const [isEditing, setIsEditing] = useState(false);
 const [generations, setGenerations] = useState<GenerationRow[]>([]);
 const [latestGeneratedPlan, setLatestGeneratedPlan] = useState<GeneratedPlan | null>(null);
 const [selectedGeneration, setSelectedGeneration] = useState<GenerationRow | null>(null);
 const [copyMessage, setCopyMessage] = useState("");
+const [editableTitle, setEditableTitle] = useState("");
+
+const [editableClientInfo, setEditableClientInfo] = useState({
+  client_name: "",
+  phone: "",
+  email: "",
+  address: "",
+});
+
+const [editableCaregiverInfo, setEditableCaregiverInfo] = useState({
+  caregiver_name: "",
+  relationship: "",
+  phone: "",
+});
+
 const [showDetails, setShowDetails] = useState(false);
 const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
 const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
 const [isRegeneratingFocus, setIsRegeneratingFocus] = useState(false);
+const [isRegeneratingPlan, setIsRegeneratingPlan] = useState(false);
 const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
 const [caregiverScript, setCaregiverScript] = useState<CaregiverScript | null>(null);
 const [isGeneratingCaregiverScript, setIsGeneratingCaregiverScript] = useState(false);
@@ -180,6 +233,8 @@ const [isGeneratingTransferDetails, setIsGeneratingTransferDetails] = useState(f
 
 const [adlPrivacy, setAdlPrivacy] = useState<AdlPrivacySupport | null>(null);
 const [isGeneratingAdlPrivacy, setIsGeneratingAdlPrivacy] = useState(false);
+const [equipmentFeasibility, setEquipmentFeasibility] = useState<EquipmentFeasibilityPlan | null>(null);
+const [isGeneratingEquipmentFeasibility, setIsGeneratingEquipmentFeasibility] = useState(false);
 
   useEffect(() => {
     async function loadCase() {
@@ -195,6 +250,20 @@ if (error) {
 } else {
   const typedCase = data as CaseDetail;
   setCaseData(typedCase);
+  setEditableTitle(typedCase.title || "");
+
+  setEditableClientInfo({
+    client_name: typedCase.client_info?.client_name || "",
+    phone: typedCase.client_info?.phone || "",
+    email: typedCase.client_info?.email || "",
+    address: typedCase.client_info?.address || "",
+  });
+
+  setEditableCaregiverInfo({
+    caregiver_name: typedCase.caregiver_info?.caregiver_name || "",
+    relationship: typedCase.caregiver_info?.relationship || "",
+    phone: typedCase.caregiver_info?.phone || "",
+  });
   const savedScript =
   typedCase.generated_output?.clinicalDetailModules?.caregiverScript;
 
@@ -294,6 +363,93 @@ async function handleDeleteGeneration(generationId: string) {
   );
 }
 
+async function handleSaveCurrentVersion() {
+  if (!caseData?.id || !caseData.generated_output) return;
+
+  try {
+    setIsSavingCurrentVersion(true);
+
+    const { data: insertedGenerations, error: generationError } = await supabase
+      .from("generations")
+      .insert([
+        {
+          case_id: caseData.id,
+          prompt_version: "manual-snapshot",
+          input_payload: caseData,
+          output_payload: caseData.generated_output,
+        },
+      ])
+      .select("id, created_at, prompt_version, output_payload");
+
+    if (generationError) {
+      throw generationError;
+    }
+
+    const newGeneration = insertedGenerations?.[0];
+
+    if (!newGeneration) {
+      throw new Error("No generation was created.");
+    }
+
+    const { error: caseUpdateError } = await supabase
+      .from("cases")
+      .update({
+        current_generation_id: newGeneration.id,
+      })
+      .eq("id", caseData.id);
+
+    if (caseUpdateError) {
+      throw caseUpdateError;
+    }
+
+    setCurrentGenerationId(newGeneration.id);
+
+    setCaseData({
+      ...caseData,
+      current_generation_id: newGeneration.id,
+    });
+
+    setGenerations((prev) => [newGeneration as GenerationRow, ...prev]);
+    setSelectedGeneration(null);
+  } catch (error) {
+    console.error("Failed to save current version:", error);
+    alert("Failed to save the current plan as a version.");
+  } finally {
+    setIsSavingCurrentVersion(false);
+  }
+}
+
+async function handleSaveCaseEdits() {
+  if (!caseData?.id) return;
+
+  try {
+    const { error } = await supabase
+      .from("cases")
+      .update({
+        title: editableTitle,
+        client_info: editableClientInfo,
+        caregiver_info: editableCaregiverInfo,
+      })
+      .eq("id", caseData.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setCaseData({
+      ...caseData,
+      title: editableTitle,
+      client_info: editableClientInfo,
+      caregiver_info: editableCaregiverInfo,
+    });
+
+    setIsEditing(false);
+  } catch (error) {
+    console.error("Failed to save case edits:", error);
+    alert("Failed to save changes.");
+  }
+}
+
 async function handleCopySummary() {
   if (!caseData) return;
 
@@ -347,8 +503,73 @@ Tradeoff: ${pathway.tradeoff || "—"}
 CAREGIVER INSTRUCTIONS
 ----------------------
 ${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
-`.trim();
 
+FAMILY / CAREGIVER SCRIPT
+-------------------------
+${generated?.clinicalDetailModules?.caregiverScript
+  ? `
+Conversation Goal:
+${generated.clinicalDetailModules.caregiverScript.conversationGoal || "—"}
+
+Before Task:
+${generated.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}
+
+During Task:
+${generated.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}
+
+If Patient Struggles:
+${generated.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}
+
+If Patient Resists:
+${generated.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}
+
+Reassurance:
+${generated.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}
+
+When to Be Firm:
+${generated.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}
+`.trim()
+  : "—"}
+
+TRANSFER & MOBILITY DETAILS
+---------------------------
+${generated?.clinicalDetailModules?.transferDetails
+  ? `
+Setup Adjustments:
+${(generated.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Transfer Cues:
+${(generated.clinicalDetailModules.transferDetails.transferCues ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Surface Variations:
+${(generated.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Stop Rules:
+${(generated.clinicalDetailModules.transferDetails.stopRules ?? []).map(i => `• ${i}`).join("\n") || "—"}
+`.trim()
+  : "—"}
+
+ADL PRIVACY & DIGNITY SUPPORT
+-----------------------------
+${generated?.clinicalDetailModules?.adlPrivacy
+  ? `
+Privacy Setup:
+${(generated.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Respectful Cueing:
+${(generated.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+When to Step In:
+${(generated.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+When to Step Back:
+${(generated.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Dignity Warnings:
+${(generated.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map(i => `• ${i}`).join("\n") || "—"}
+`.trim()
+  : "—"}
+`.trim();
   await navigator.clipboard.writeText(summary);
   setCopyMessage("Summary copied to clipboard.");
 
@@ -408,6 +629,72 @@ Tradeoff: ${pathway.tradeoff || "—"}
 CAREGIVER INSTRUCTIONS
 ----------------------
 ${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+
+FAMILY / CAREGIVER SCRIPT
+-------------------------
+${generated?.clinicalDetailModules?.caregiverScript
+  ? `
+Conversation Goal:
+${generated.clinicalDetailModules.caregiverScript.conversationGoal || "—"}
+
+Before Task:
+${generated.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}
+
+During Task:
+${generated.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}
+
+If Patient Struggles:
+${generated.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}
+
+If Patient Resists:
+${generated.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}
+
+Reassurance:
+${generated.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}
+
+When to Be Firm:
+${generated.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}
+`.trim()
+  : "—"}
+
+TRANSFER & MOBILITY DETAILS
+---------------------------
+${generated?.clinicalDetailModules?.transferDetails
+  ? `
+Setup Adjustments:
+${(generated.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Transfer Cues:
+${(generated.clinicalDetailModules.transferDetails.transferCues ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Surface Variations:
+${(generated.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Stop Rules:
+${(generated.clinicalDetailModules.transferDetails.stopRules ?? []).map(i => `• ${i}`).join("\n") || "—"}
+`.trim()
+  : "—"}
+
+ADL PRIVACY & DIGNITY SUPPORT
+-----------------------------
+${generated?.clinicalDetailModules?.adlPrivacy
+  ? `
+Privacy Setup:
+${(generated.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Respectful Cueing:
+${(generated.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+When to Step In:
+${(generated.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+When to Step Back:
+${(generated.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map(i => `• ${i}`).join("\n") || "—"}
+
+Dignity Warnings:
+${(generated.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map(i => `• ${i}`).join("\n") || "—"}
+`.trim()
+  : "—"}
 `.trim();
 
   const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
@@ -455,6 +742,56 @@ async function handleGenerateCaregiverScript() {
     }
 
     setCaregiverScript(result.data);
+
+    try {
+      const updatedOutput = {
+        ...(caseData.generated_output || {}),
+        clinicalDetailModules: {
+          ...(caseData.generated_output?.clinicalDetailModules || {}),
+          caregiverScript: result.data,
+        },
+      };
+
+      const { error } = await supabase
+        .from("cases")
+        .update({
+          generated_output: updatedOutput,
+        })
+        .eq("id", caseData.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (currentGenerationId) {
+        const { error: generationUpdateError } = await supabase
+          .from("generations")
+          .update({
+            output_payload: updatedOutput,
+          })
+          .eq("id", currentGenerationId);
+
+        if (generationUpdateError) {
+          throw generationUpdateError;
+        }
+
+        setGenerations((prev) =>
+          prev.map((generation) =>
+            generation.id === currentGenerationId
+              ? { ...generation, output_payload: updatedOutput }
+              : generation
+          )
+        );
+      }
+
+      setCaseData({
+        ...caseData,
+        generated_output: updatedOutput,
+      });
+
+    } catch (e) {
+      console.error("Failed to persist caregiver script", e);
+    }
   } catch (err: any) {
     setCaregiverScriptError(err.message || "Something went wrong.");
   } finally {
@@ -585,6 +922,38 @@ try {
   }
 }
 
+async function handleGenerateEquipmentFeasibility() {
+  if (!caseData) return;
+
+  setIsGeneratingEquipmentFeasibility(true);
+
+  try {
+    const response = await fetch("/api/generate-detail-module", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "equipment_feasibility_plan",
+        caseData,
+        generatedPlan: caseData.generated_output,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to generate equipment feasibility plan.");
+    }
+
+    setEquipmentFeasibility(result.data);
+  } catch (err) {
+    console.error("Equipment feasibility generation failed:", err);
+  } finally {
+    setIsGeneratingEquipmentFeasibility(false);
+  }
+}
+
 const orderedGenerations = [...generations].sort(
   (a, b) =>
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -687,6 +1056,26 @@ const clinicalFocusLabel =
   return "Unknown";
 };
 
+const getPriorityBadgeClass = (priority?: string) => {
+  const value = priority?.toLowerCase();
+
+  if (value === "high") return "bg-red-700 text-white";
+  if (value === "medium") return "bg-yellow-600 text-black";
+  if (value === "low") return "bg-green-700 text-white";
+
+  return "bg-gray-700 text-white";
+};
+
+const getUrgencyBadgeClass = (urgency?: string) => {
+  const value = urgency?.toLowerCase();
+
+  if (value === "immediate") return "bg-red-700 text-white";
+  if (value === "short_term") return "bg-yellow-600 text-black";
+  if (value === "optional") return "bg-green-700 text-white";
+
+  return "bg-gray-700 text-white";
+};
+
 const selectedPlanForExport = {
   title: caseData.title || "Untitled Case",
   patientSnapshot: generated?.patientSnapshot || "",
@@ -721,14 +1110,12 @@ const selectedPlanForExport = {
       current_generation_id: selectedGeneration.id,
     });
 
-    const savedScript =
-  selectedGeneration.output_payload?.clinicalDetailModules?.caregiverScript;
+    const savedModules =
+  selectedGeneration.output_payload?.clinicalDetailModules;
 
-if (savedScript) {
-  setCaregiverScript(savedScript);
-} else {
-  setCaregiverScript(null);
-}
+setCaregiverScript(savedModules?.caregiverScript || null);
+setTransferDetails(savedModules?.transferDetails || null);
+setAdlPrivacy(savedModules?.adlPrivacy || null);
 
     setCurrentGenerationId(selectedGeneration.id);
     setSelectedGeneration(null);
@@ -859,6 +1246,95 @@ setRegeneratingFocus(focus);
   }
 };
 
+async function handleRegenerateCurrentPlan() {
+  if (!caseData?.id || isRegeneratingPlan) return;
+
+  try {
+    setIsRegeneratingPlan(true);
+
+    const updatedCasePayload = {
+      ...caseData,
+      title: editableTitle || caseData.title,
+      client_info: editableClientInfo,
+      caregiver_info: editableCaregiverInfo,
+    };
+
+    const aiResponse = await fetch("/api/generate-plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedCasePayload),
+    });
+
+    const aiData = await aiResponse.json();
+
+    if (!aiData.success || !aiData.plan) {
+      alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
+      return;
+    }
+
+    const plan = aiData.plan;
+
+    const { data: insertedGenerations, error: generationError } = await supabase
+      .from("generations")
+      .insert([
+        {
+          case_id: caseData.id,
+          prompt_version: `v1-ai-${caseData.case_classification?.clinical_focus || "adl_home_safety"}-regenerated`,
+          input_payload: updatedCasePayload,
+          output_payload: plan,
+        },
+      ])
+      .select("id, created_at, prompt_version, output_payload");
+
+    if (generationError) throw generationError;
+
+    const newGeneration = insertedGenerations?.[0];
+
+    const { error: caseUpdateError } = await supabase
+      .from("cases")
+      .update({
+        title: updatedCasePayload.title,
+        client_info: updatedCasePayload.client_info,
+        caregiver_info: updatedCasePayload.caregiver_info,
+        generated_output: plan,
+        current_generation_id: newGeneration?.id || caseData.current_generation_id,
+      })
+      .eq("id", caseData.id);
+
+    if (caseUpdateError) throw caseUpdateError;
+
+    setCaseData({
+      ...caseData,
+      title: updatedCasePayload.title,
+      client_info: updatedCasePayload.client_info,
+      caregiver_info: updatedCasePayload.caregiver_info,
+      generated_output: plan,
+      current_generation_id: newGeneration?.id || caseData.current_generation_id,
+    });
+
+    setCaregiverScript(null);
+    setTransferDetails(null);
+    setAdlPrivacy(null);
+
+    setLatestGeneratedPlan(plan);
+    setSelectedGeneration(null);
+
+    if (newGeneration) {
+      setCurrentGenerationId(newGeneration.id);
+      setGenerations((prev) => [newGeneration as GenerationRow, ...prev]);
+    }
+
+    setIsEditing(false);
+  } catch (error) {
+    console.error("Failed to regenerate current plan:", error);
+    alert("Failed to regenerate the current plan.");
+  } finally {
+    setIsRegeneratingPlan(false);
+  }
+}
+
 return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -866,9 +1342,25 @@ return (
           <div className="flex items-start justify-between gap-4 mb-4">
   
   <div>
-  <h1 className="text-3xl font-bold mb-2">
-    {caseData.title || "Untitled Case"}
-  </h1>
+  {isEditing ? (
+    <input
+      type="text"
+      value={editableTitle}
+      onChange={(e) => setEditableTitle(e.target.value)}
+      className="mb-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-3xl font-bold text-white"
+      placeholder="Untitled Case"
+    />
+  ) : (
+    <h1 className="text-3xl font-bold mb-2">
+      {caseData.title || "Untitled Case"}
+    </h1>
+  )}
+
+    {isEditing && (
+    <div className="mb-3 rounded-lg border border-orange-700 bg-orange-950/40 px-3 py-2 text-sm text-orange-200">
+      Edit Mode Active — fields are not editable yet. Next step is wiring one safe input at a time.
+    </div>
+  )}
 
 <div className="mb-2 flex items-center gap-2">
   {generated?.focusApplied && (
@@ -958,34 +1450,145 @@ disabled={
               <strong>Primary Goal:</strong>{" "}
               {caseData.goals_preferences?.primary_goal || "—"}
             </p>
-            <p>
-  <strong>Client Name:</strong>{" "}
-  {caseData.client_info?.client_name || "—"}
-</p>
-<p>
-  <strong>Client Phone:</strong>{" "}
-  {caseData.client_info?.phone || "—"}
-</p>
-<p>
-  <strong>Client Email:</strong>{" "}
-  {caseData.client_info?.email || "—"}
-</p>
-<p>
-  <strong>Client Address:</strong>{" "}
-  {caseData.client_info?.address || "—"}
-</p>
-<p>
-  <strong>Caregiver Name:</strong>{" "}
-  {caseData.caregiver_info?.caregiver_name || "—"}
-</p>
-<p>
-  <strong>Caregiver Relationship:</strong>{" "}
-  {caseData.caregiver_info?.relationship || "—"}
-</p>
-<p>
-  <strong>Caregiver Phone:</strong>{" "}
-  {caseData.caregiver_info?.phone || "—"}
-</p>
+{isEditing ? (
+  <div className="grid gap-3 md:grid-cols-2">
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Client Name</label>
+      <input
+        type="text"
+        value={editableClientInfo.client_name}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            client_name: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
+      <input
+        type="text"
+        value={editableClientInfo.phone}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            phone: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Client Email</label>
+      <input
+        type="email"
+        value={editableClientInfo.email}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            email: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Client Address</label>
+      <input
+        type="text"
+        value={editableClientInfo.address}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            address: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Caregiver Name</label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.caregiver_name}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            caregiver_name: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Caregiver Relationship</label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.relationship}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            relationship: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">Caregiver Phone</label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.phone}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            phone: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+  </div>
+) : (
+  <>
+    <p>
+      <strong>Client Name:</strong>{" "}
+      {caseData.client_info?.client_name || "—"}
+    </p>
+    <p>
+      <strong>Client Phone:</strong>{" "}
+      {caseData.client_info?.phone || "—"}
+    </p>
+    <p>
+      <strong>Client Email:</strong>{" "}
+      {caseData.client_info?.email || "—"}
+    </p>
+    <p>
+      <strong>Client Address:</strong>{" "}
+      {caseData.client_info?.address || "—"}
+    </p>
+    <p>
+      <strong>Caregiver Name:</strong>{" "}
+      {caseData.caregiver_info?.caregiver_name || "—"}
+    </p>
+    <p>
+      <strong>Caregiver Relationship:</strong>{" "}
+      {caseData.caregiver_info?.relationship || "—"}
+    </p>
+    <p>
+      <strong>Caregiver Phone:</strong>{" "}
+      {caseData.caregiver_info?.phone || "—"}
+    </p>
+  </>
+)}
 <p>
   <strong>Case Type:</strong>{" "}
   {caseData.case_classification?.case_type || "—"}
@@ -1314,104 +1917,126 @@ disabled={
   </div>
 </div>
 
-
-<div className="pt-4 border-t border-gray-800">
-  <h2 className="text-lg font-semibold text-gray-200">Supporting Details</h2>
-  <p className="text-sm text-gray-500">Expand sections below for clinical reasoning details.</p>
-</div>
-
-{generated?.functionalProblemAreas &&
-  generated.functionalProblemAreas.length > 0 && (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-     <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowDetails(!showDetails)}>
-  <h3 className="text-xl font-semibold mb-3">Functional Problem Areas</h3>
-  <span className="text-xs text-gray-400">
-    {showDetails ? "Hide" : "Show"}
-  </span>
-</div> 
-      {showDetails && (
-  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-        {generated.functionalProblemAreas.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>)}
+<div className="mt-6 rounded-xl border border-orange-800 bg-gray-950 p-6">
+  <div className="flex items-start justify-between gap-4 mb-4">
+    <div>
+      <h3 className="text-lg font-semibold">Equipment & Feasibility Plan</h3>
+      <p className="text-sm text-gray-400 mt-1">
+        Generate realistic equipment recommendations based on cost, home setup, and caregiver constraints.
+      </p>
     </div>
-  )}
 
-{generated?.taskBreakdown && generated.taskBreakdown.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowTaskBreakdown(!showTaskBreakdown)}>
-  <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
-  <span className="text-xs text-gray-400">
-    {showTaskBreakdown ? "Hide" : "Show"}
-  </span>
-</div>
-    {showTaskBreakdown && (
-  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-{generated.taskBreakdown.map((item: string, index: number) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>)}
+<button
+  type="button"
+  onClick={handleGenerateEquipmentFeasibility}
+  disabled={isGeneratingEquipmentFeasibility}
+  className="shrink-0 rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isGeneratingEquipmentFeasibility ? "Generating..." : "Generate"}
+</button>
   </div>
-)}
 
-{generated?.clinicalConsiderations && generated.clinicalConsiderations.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowClinicalConsiderations(!showClinicalConsiderations)}>
-  <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
-  <span className="text-xs text-gray-400">
-    {showClinicalConsiderations ? "Hide" : "Show"}
-  </span>
-</div>
-    {showClinicalConsiderations && (
-  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {generated.clinicalConsiderations.map((item: string, index: number) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>)}
-  </div>
-)}
+  {equipmentFeasibility ? (
+    <div className="space-y-4 text-sm text-gray-300">
 
-{generated?.firstSessionPriorities && generated.firstSessionPriorities.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowFirstSessionPriorities(!showFirstSessionPriorities)}>
-  <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
-  <span className="text-xs text-gray-400">
-    {showFirstSessionPriorities ? "Hide" : "Show"}
-  </span>
-</div>
-    {showFirstSessionPriorities && (
-  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-     {generated.firstSessionPriorities.map((item: string, index: number) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>)}
-  </div>
-)}
+      {equipmentFeasibility.feasibilitySnapshot && (
+        <div className="mb-4 space-y-1 text-sm text-gray-400">
+          <p><strong>Financial:</strong> {equipmentFeasibility.feasibilitySnapshot.financialFeasibility}</p>
+          <p><strong>Environmental:</strong> {equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility}</p>
+          <p><strong>Caregiver:</strong> {equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility}</p>
+          <p><strong>Main Constraint:</strong> {equipmentFeasibility.feasibilitySnapshot.mainConstraint}</p>
+        </div>
+      )}
 
-{generated?.sessionPlan && generated.sessionPlan.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-3">Session Plan (Visit 1–3)</h3>
-    <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-      {generated.sessionPlan.map((item: string, index: number) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
-  </div>
-)}
+      <div className="space-y-4">
+        {equipmentFeasibility.equipmentPlan?.map((item, i) => (
+          <div key={i} className="border border-gray-800 rounded-lg p-4 bg-gray-900">
 
-{generated?.clinicalPriorities &&
-  generated.clinicalPriorities.length > 0 && (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-      <h3 className="text-xl font-semibold mb-3">Clinical Priorities</h3>
-      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-        {generated.clinicalPriorities.map((item, index) => (
-          <li key={index}>{item}</li>
+            <h4 className="font-semibold text-white mb-1">{item.item}</h4>
+
+            <p className="text-gray-300 text-sm mb-2">{item.reason}</p>
+
+            <div className="text-xs text-gray-400 space-y-1">
+              <p><strong>Priority:</strong> {item.priority}</p>
+              <p><strong>Urgency:</strong> {item.urgency}</p>
+              <p><strong>Cost:</strong> {item.costRange}</p>
+              <p><strong>Access:</strong> {item.access}</p>
+              <p><strong>Coverage:</strong> {item.coverageNotes}</p>
+            </div>
+
+            {item.lowerCostAlternative && (
+              <p className="text-xs text-yellow-400 mt-2">
+                <strong>Lower-cost option:</strong> {item.lowerCostAlternative}
+              </p>
+            )}
+
+            {item.contingencyPlan && (
+              <p className="text-xs text-red-400 mt-1">
+                <strong>If not available:</strong> {item.contingencyPlan}
+              </p>
+            )}
+
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
+  ) : (
+    <p className="text-sm text-gray-500">
+      No equipment feasibility plan generated yet.
+    </p>
   )}
-       
+</div>
+
+
+
+   {generated?.equipmentPlan && generated.equipmentPlan.length > 0 && (
+  <div className="rounded-xl border border-emerald-800 bg-gray-900 p-6 mb-6">
+    <h3 className="text-xl font-semibold mb-4">
+      Equipment & Home Setup Plan
+    </h3>
+
+    <div className="space-y-4">
+      {generated.equipmentPlan.map((item, index) => (
+        <div
+          key={index}
+          className="rounded-lg border border-gray-800 bg-gray-950 p-4"
+        >
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h4 className="text-base font-semibold text-white">
+              {item.item}
+            </h4>
+
+            <div className="flex gap-2 text-xs">
+<span className={`px-2 py-1 rounded ${getPriorityBadgeClass(item.priority)}`}>
+  Priority: {item.priority || "—"}
+</span>
+<span className={`px-2 py-1 rounded ${getUrgencyBadgeClass(item.urgency)}`}>
+  Urgency: {item.urgency || "—"}
+</span>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-300 mb-2">
+            {item.reason}
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-400">
+            <div>
+              <strong>Cost:</strong> {item.costRange || "—"}
+            </div>
+            <div>
+              <strong>Where:</strong> {item.access || "—"}
+            </div>
+            <div>
+              <strong>Coverage:</strong> {item.coverageNotes || "—"}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
   <h3 className="text-xl font-semibold mb-3">Version History</h3>
   <button
@@ -1499,225 +2124,397 @@ className={`rounded-lg px-4 py-3 transition ${
 )}
 </div> 
 
-
 {selectedGeneration?.output_payload && (
-  <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
- <div className="flex items-center justify-between mb-4">
- <h3 className="text-xl font-semibold">
-  Viewing Version{" "}
-  {getVersionNumber(selectedGeneration.id)}
-</h3>
+  <div className="space-y-6">
+    <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 className="text-xl font-semibold">
+            Viewing Version {getVersionNumber(selectedGeneration.id)}
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Previewing the full saved plan for this version.
+          </p>
+        </div>
 
-  <div className="mb-6 rounded-lg border border-gray-700 p-4">
-  <h4 className="text-sm font-semibold mb-3">Comparison</h4>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRestoreSelectedVersion}
+            disabled={isRestoringVersion}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          >
+            {isRestoringVersion ? "Restoring..." : "Restore this version"}
+          </button>
 
-  <div className="grid grid-cols-2 gap-4 text-xs">
-    
-    {/* Focus */}
-    <div>
-      <p className="text-gray-400 mb-1">Current Focus</p>
-      <p className="text-white">
-        {clinicalFocusLabel}
+          <button
+            type="button"
+            onClick={() => setSelectedGeneration(null)}
+            className="text-sm text-blue-400 underline"
+          >
+            Close preview
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-500">
+        Restoring this version will replace the current live plan with this saved version.
       </p>
     </div>
-
-    <div>
-      <p className="text-gray-400 mb-1">Selected Focus</p>
-      <p className="text-white">
-        {getFocusLabel(selectedGeneration.prompt_version)}
-      </p>
-    </div>
-
-    {/* Plan Summary */}
-    <div>
-      <p className="text-gray-400 mb-1">Current Summary</p>
-      <p className="text-gray-300">
-        {generated?.summary?.planSummary || "—"}
-      </p>
-    </div>
-
-    <div>
-      <p className="text-gray-400 mb-1">Selected Summary</p>
-      <p className="text-gray-300">
-        {selectedGeneration.output_payload.summary?.planSummary || "—"}
-      </p>
-    </div>
-
-    {/* Pathway Titles */}
-    <div>
-      <p className="text-gray-400 mb-1">Current Treatment Approach</p>
-      <ul className="list-disc pl-4 text-gray-300">
-        {(generated?.pathways || []).map((p: any, i: number) => (
-          <li key={i}>{p.title}</li>
-        ))}
-      </ul>
-    </div>
-
-    <div>
-      <p className="text-gray-400 mb-1">Selected Treatment Approaches</p>
-      <ul className="list-disc pl-4 text-gray-300">
-        {(selectedGeneration.output_payload.pathways || []).map(
-          (p: any, i: number) => (
-            <li key={i}>{p.title}</li>
-          )
-        )}
-      </ul>
-    </div>
-
-  </div>
-</div>
-
-  <div className="flex items-center gap-3">
-    <button
-      type="button"
-      onClick={handleRestoreSelectedVersion}
-      disabled={isRestoringVersion}
-      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-    >
-      {isRestoringVersion ? "Restoring..." : "Restore this version as current"}
-    </button>
-    <p className="text-xs text-gray-500 mt-2">
-  Restoring this version will replace the entire current plan, including pathways, summary, and caregiver instructions.
-</p>
-
-    <button
-      type="button"
-      onClick={() => setSelectedGeneration(null)}
-      className="text-sm text-blue-400 underline"
-    >
-      Close preview
-    </button>
-  </div>
-</div>
-
-{selectedGeneration.output_payload.summary && (
-  <div className="mb-6">
-    <h4 className="text-lg font-semibold mb-2">Plan Overview</h4>
-
-    <p className="text-sm text-gray-300 mb-2">
-      {selectedGeneration.output_payload.summary.planSummary || "—"}
-    </p>
-
-    <p className="text-xs text-gray-400 mb-2">
-      Risk Level: {selectedGeneration.output_payload.summary.safetyLevel || "—"}
-    </p>
-
-    <ul className="list-disc pl-5 text-sm text-gray-300">
-      {(selectedGeneration.output_payload.summary.topRisks || []).map(
-        (item: string, i: number) => (
-          <li key={i}>{item}</li>
-        )
-      )}
-    </ul>
-  </div>
-)}
 
     {selectedGeneration.output_payload.patientSnapshot && (
-      <div className="mb-6">
-        <h4 className="text-lg font-semibold mb-2">Patient Snapshot</h4>
+      <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
+        <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
         <p className="text-gray-300">
           {selectedGeneration.output_payload.patientSnapshot}
         </p>
       </div>
     )}
 
-    {selectedGeneration.output_payload.pathways &&
-      selectedGeneration.output_payload.pathways.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-3 mb-6">
-          {selectedGeneration.output_payload.pathways.map((pathway, index) => (
+    {selectedGeneration.output_payload.summary && (
+      <div className="rounded-xl border border-yellow-700 bg-gray-900 p-6">
+        <h3 className="text-xl font-semibold mb-4">Plan Overview</h3>
 
-<div
-  key={`${pathway.type}-${index}`}
-  onClick={() => {}}
-className={`rounded-xl border p-5 cursor-pointer transition transform hover:scale-[1.01] ${
-    false
-      ? "border-blue-500 bg-blue-950/30"
-      : "border-gray-800 bg-gray-900 hover:border-blue-500"
-  }`}
->
+        <p className="text-xs text-gray-500 mb-2">
+          Overview of selected plan. See pathway below for full details.
+        </p>
 
-<p className="text-xs uppercase tracking-wide text-blue-400 mb-2 break-words leading-snug">
-  {String(pathway.type).replaceAll("_", " ")}
-</p>
-              <h4 className="text-lg font-semibold mb-3">{pathway.title}</h4>
+        <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-300">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Risk Level</p>
+            <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
+              {selectedGeneration.output_payload.summary.safetyLevel || "—"}
+            </span>
+          </div>
 
-              <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300 mb-4">
-                {pathway.interventions.map((item, itemIndex) => (
-                  <li key={itemIndex}>{item}</li>
+          <div className="md:col-span-2">
+            <p className="text-xs text-gray-400 mb-1">Plan</p>
+            <p className="text-base text-white leading-relaxed">
+              {selectedGeneration.output_payload.summary.planSummary || "—"}
+            </p>
+          </div>
+
+          {(selectedGeneration.output_payload.summary.topRisks ?? []).length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Top Risks</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
+                {(selectedGeneration.output_payload.summary.topRisks ?? []).map((item, index) => (
+                  <li key={index}>{item}</li>
                 ))}
               </ul>
-
-              <p className="text-sm mb-2">
-                <strong>Timeline:</strong> {pathway.timeline}
-              </p>
-              <p className="text-sm mb-2">
-                <strong>Upside:</strong> {pathway.upside}
-              </p>
-              <p className="text-sm text-gray-400">
-                <strong>Tradeoff:</strong> {pathway.tradeoff}
-              </p>
             </div>
-          ))}
+          )}
+
+          {(selectedGeneration.output_payload.summary.caregiverExpectations ?? []).length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
+                {(selectedGeneration.output_payload.summary.caregiverExpectations ?? []).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {selectedGeneration.output_payload.pathways &&
+          selectedGeneration.output_payload.pathways.length > 0 && (
+            <div className="mt-6">
+              <p className="text-xs text-gray-400 mb-2">Treatment Approaches</p>
+
+              <div className="space-y-4">
+                {selectedGeneration.output_payload.pathways.map((pathway, index) => (
+                  <div
+                    key={`${pathway.type}-${index}`}
+                    className="rounded-lg border border-gray-800 p-4 bg-gray-950"
+                  >
+                    <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
+                      {String(pathway.type).replaceAll("_", " ")}
+                    </p>
+
+                    <h4 className="text-sm font-semibold mb-2">
+                      {pathway.title}
+                    </h4>
+
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
+                      {(pathway.interventions ?? []).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+
+                    <p className="text-xs text-gray-400">
+                      <strong>Timeline:</strong> {pathway.timeline}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      <strong>Upside:</strong> {pathway.upside}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      <strong>Tradeoff:</strong> {pathway.tradeoff}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+      </div>
+    )}
+
+    <div className="rounded-xl border border-purple-800 bg-gray-950 p-6">
+      <h3 className="text-lg font-semibold mb-4">
+        Family / Caregiver Script
+      </h3>
+
+      {selectedGeneration.output_payload.clinicalDetailModules?.caregiverScript ? (
+        <div className="space-y-4 text-sm text-gray-300">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Conversation Goal
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.conversationGoal || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Before Task Script
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              During Task Script
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              If Patient Struggles
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              If Patient Resists
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Reassurance Language
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              When to Be Firm
+            </p>
+            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">No script saved for this version.</p>
+      )}
+    </div>
+
+    <div className="grid gap-6">
+      <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
+        <h3 className="text-lg font-semibold mb-4">Transfer & Mobility Details</h3>
+
+        {selectedGeneration.output_payload.clinicalDetailModules?.transferDetails ? (
+          <div className="space-y-4 text-sm text-gray-300">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Setup Adjustments</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Transfer Cues</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.transferCues ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Surface Variations</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Stop Rules</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.stopRules ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No transfer details saved for this version.</p>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
+        <h3 className="text-lg font-semibold mb-4">ADL Privacy & Dignity Support</h3>
+
+        {selectedGeneration.output_payload.clinicalDetailModules?.adlPrivacy ? (
+          <div className="space-y-4 text-sm text-gray-300">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Privacy Setup</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Respectful Cueing</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step In</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step Back</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Dignity Warnings</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No ADL privacy support saved for this version.</p>
+        )}
+      </div>
+    </div>
+
+    {selectedGeneration.output_payload.functionalProblemAreas &&
+      selectedGeneration.output_payload.functionalProblemAreas.length > 0 && (
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <h3 className="text-xl font-semibold mb-3">Functional Problem Areas</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+            {selectedGeneration.output_payload.functionalProblemAreas.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
         </div>
       )}
-{selectedGeneration.output_payload.caregiverGuidance &&
-  selectedGeneration.output_payload.caregiverGuidance.length > 0 && (
-    <div className="mb-6">
-      <h4 className="text-lg font-semibold mb-2">
-        Caregiver Instructions
-      </h4>
 
-      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-        {selectedGeneration.output_payload.caregiverGuidance.map(
-          (item: string, i: number) => (
-            <li key={i}>{item}</li>
-          )
-        )}
-      </ul>
-    </div>
-  )}
+    {selectedGeneration.output_payload.taskBreakdown &&
+      selectedGeneration.output_payload.taskBreakdown.length > 0 && (
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+            {selectedGeneration.output_payload.taskBreakdown.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
     {selectedGeneration.output_payload.clinicalConsiderations &&
       selectedGeneration.output_payload.clinicalConsiderations.length > 0 && (
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold mb-2">
-            Clinical Considerations
-          </h4>
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.clinicalConsiderations.map(
-              (item, index) => (
-                <li key={index}>{item}</li>
-              )
-            )}
+            {selectedGeneration.output_payload.clinicalConsiderations.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
           </ul>
         </div>
       )}
 
     {selectedGeneration.output_payload.firstSessionPriorities &&
       selectedGeneration.output_payload.firstSessionPriorities.length > 0 && (
-        <div>
-          <h4 className="text-lg font-semibold mb-2">
-            First Session Priorities
-          </h4>
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.firstSessionPriorities.map(
-              (item, index) => (
-                <li key={index}>{item}</li>
-              )
-            )}
+            {selectedGeneration.output_payload.firstSessionPriorities.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
           </ul>
         </div>
       )}
   </div>
-)}  
+)}
+
       </div>
    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 border border-gray-800 px-4 py-3 rounded-xl shadow-lg">
 
-  <Link
-    href={`/cases/${caseData.id}/edit`}
-    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm text-white"
+  <button
+    type="button"
+    onClick={() => setIsEditing((prev) => !prev)}
+    className={`px-4 py-2 rounded-lg text-sm text-white ${
+      isEditing
+        ? "bg-orange-700 hover:bg-orange-600"
+        : "bg-blue-600 hover:bg-blue-700"
+    }`}
   >
-    Edit
-  </Link>
+    {isEditing ? "Exit Edit" : "Edit Case"}
+  </button>
+
+  {isEditing && (
+    <button
+      type="button"
+      onClick={handleSaveCaseEdits}
+      className="bg-orange-700 hover:bg-orange-600 px-4 py-2 rounded-lg text-sm text-white"
+    >
+      Save Changes
+    </button>
+  )}
+
+  <button
+    type="button"
+    onClick={handleRegenerateCurrentPlan}
+    disabled={isRegeneratingPlan}
+    className="bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm text-white"
+  >
+    {isRegeneratingPlan ? "Regenerating..." : "Regenerate Plan"}
+  </button>
+
+  <button
+    type="button"
+    onClick={handleSaveCurrentVersion}
+    disabled={isSavingCurrentVersion}
+    className="bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm text-white"
+  >
+    {isSavingCurrentVersion ? "Saving..." : "Save Version"}
+  </button>
 
   <button
     type="button"

@@ -45,6 +45,7 @@ Output format:
 
 Rules:
 - Focus on communication, tone, pacing, reassurance, consent, and emotional regulation
+- Do NOT use any names from the case data (patient, caregiver, or family members). Always use role-based language only: "the patient", "the caregiver", or "family member"
 - Do NOT turn this into a transfer checklist
 - Do NOT include detailed equipment setup, surface setup, home modification, or ADL technique
 - Do NOT repeat the plan overview
@@ -118,6 +119,7 @@ Output format:
 
 Rules:
 - Each array must contain 3–5 short, specific items
+- Do NOT use any names from the case data. Use role-based language only: "the patient", "the caregiver", or "family member"
 - Focus on real-world execution in THIS home, not general advice
 
 - You MUST ground instructions in:
@@ -199,6 +201,7 @@ Output format:
 
 Rules:
 - Each array must contain 3–5 short, specific items
+- Do NOT use any names from the case data. Use role-based language only: "the patient", "the caregiver", or "family member"
 - Focus only on privacy, dignity, consent, emotional comfort, and caregiver boundaries during ADLs
 - Do NOT turn this into a transfer guide, equipment setup guide, or full ADL technique plan
 - Do NOT repeat the Plan Overview
@@ -241,6 +244,60 @@ Rules:
 - Do not create new goals
 - Do not recommend unsafe lifting
 - Write instructions a clinician could explain to family or caregivers
+
+Case Data:
+${JSON.stringify(caseData, null, 2)}
+
+Generated Plan:
+${JSON.stringify(generatedPlan, null, 2)}
+`;
+    } else if (type === "equipment_feasibility_plan") {
+      prompt = `
+You are an occupational therapist generating a practical equipment and feasibility plan for a home health case.
+
+Your job is NOT to create a new clinical plan.
+Your job is to help the clinician understand what equipment or setup changes are realistic, affordable, and feasible in this specific home situation.
+
+Return valid JSON only. Do not use markdown.
+
+Output format:
+
+{
+  "feasibilitySnapshot": {
+    "financialFeasibility": "low | moderate | high | unknown",
+    "environmentalFeasibility": "low | moderate | high | unknown",
+    "caregiverFlexibility": "low | moderate | high | unknown",
+    "mainConstraint": "string"
+  },
+  "equipmentPlan": [
+    {
+      "item": "string",
+      "reason": "string",
+      "priority": "high | medium | low",
+      "urgency": "immediate | short_term | optional",
+      "costRange": "string",
+      "access": "string",
+      "coverageNotes": "string",
+      "lowerCostAlternative": "string",
+      "contingencyPlan": "string"
+    }
+  ]
+}
+
+Rules:
+
+- Include 3–6 items
+- Focus on the most impactful safety and function changes
+- Do NOT assume ideal conditions, unlimited budget, or full caregiver support
+
+For each item:
+- Provide a clear reason tied to risk or function
+- Include realistic access and cost guidance
+- Include a lowerCostAlternative (safer than doing nothing)
+- Include a contingencyPlan if equipment cannot be obtained
+
+Use role-based language only:
+- "the patient", "the caregiver", "family member"
 
 Case Data:
 ${JSON.stringify(caseData, null, 2)}
