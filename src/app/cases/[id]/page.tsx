@@ -1455,6 +1455,9 @@ async function handleRegenerateCurrentPlan() {
 return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
+
+        {/* CASE HEADER + BASIC DETAILS */}
+
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
           <div className="flex items-start justify-between gap-4 mb-4">
   
@@ -1825,6 +1828,8 @@ disabled={
           </div>
         </div>
 
+        {/* CURRENT LIVE PLAN */}
+
 {generated?.patientSnapshot && (
   <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between mb-4">
@@ -1925,6 +1930,8 @@ disabled={
   </div>
 )}
 
+        {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
+
 <div className="mt-6 rounded-xl border border-purple-800 bg-gray-950 p-6">
   <div className="flex items-start justify-between gap-4 mb-4">
     <div>
@@ -2009,6 +2016,8 @@ disabled={
     </p>
   )}
 </div>
+
+        {/* IDEAL EQUIPMENT SETUP */}
 
 <div className="mt-6 grid gap-6">
   <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
@@ -2337,6 +2346,8 @@ disabled={
     </div>
   </div>
 )}
+
+        {/* VERSION HISTORY */}
 
        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
   <h3 className="text-xl font-semibold mb-3">Version History</h3>
@@ -2775,6 +2786,7 @@ className={`rounded-lg px-4 py-3 transition ${
 )}
 
       </div>
+        {/* CASE ACTION BUTTONS */}
    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 border border-gray-800 px-4 py-3 rounded-xl shadow-lg">
 
   <button
