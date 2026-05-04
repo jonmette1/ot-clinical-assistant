@@ -292,11 +292,6 @@ if (error) {
     phone: typedCase.caregiver_info?.phone || "",
   });
 
-setEditableCaregiverInfo({
-  caregiver_name: typedCase.caregiver_info?.caregiver_name || "",
-  relationship: typedCase.caregiver_info?.relationship || "",
-  phone: typedCase.caregiver_info?.phone || "",
-});
 setEditableFeasibility({
   financial_constraint:
     typedCase.feasibility_context?.financial_constraint || "unknown",
