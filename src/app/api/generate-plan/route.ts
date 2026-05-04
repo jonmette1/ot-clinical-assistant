@@ -175,8 +175,12 @@ Pathway rules:
 - Each pathway must include realistic upside and tradeoff.
 
 Selected pathway summary:
-- Identify the most appropriate pathway based on deficits, environment, severity, safety risk, caregiver feasibility, and selected focus.
-- Summarize it in 2–3 plain-language sentences.
+- This is the recommended plan, not a general summary.
+- State clearly what should be done now.
+- Reflect real-world constraints such as cost, environment, caregiver capacity, equipment access, or patient compliance when present.
+- Include at least one tradeoff, delay, or deferral when ideal conditions are not realistic.
+- Use directive language such as "Use", "Prioritize", "Defer", "Limit", or "Train".
+- Keep it to 2–3 plain-language sentences.
 - Do not list all pathways.
 - Do not repeat intervention bullets.
 
@@ -228,56 +232,6 @@ Rules:
 - Prioritize safety and feasibility over completeness
 - Avoid repeating the same reasoning across items
 
-For high-priority or immediate items:
-- Make the reason stronger and more action-oriented.
-- Clearly explain what risk the item reduces or what task it makes possible.
-- Avoid weak phrases like "may help" or "could improve."
-- Use stronger wording such as "needed to reduce fall risk during..." or "important before the patient attempts..."
-- Include key features inside the reason when relevant, such as height-adjustable, non-slip, armrests, back support, foldable, stable base, correct size, or easy-to-clean surface.
-- For access, give the most realistic first step, such as "start with pharmacy or Amazon for low-cost items" or "ask the physician, insurance, or DME provider for covered equipment."
-
-Feasibility Snapshot Rules:
-
-- Always include feasibilitySnapshot.
-- Infer feasibility from the available case data.
-- If the case does not include clear financial information, use "unknown" for financialFeasibility.
-- Do not assume the patient can afford ideal equipment.
-- Do not assume the home can support ideal setup changes.
-- Do not assume the caregiver can consistently follow through unless caregiver data supports it.
-
-financialFeasibility:
-- low = cost is likely a major barrier or multiple recommended items may create burden
-- moderate = some cost burden likely, but basic low-cost options may be realistic
-- high = equipment or modifications appear financially realistic
-- unknown = not enough information
-
-environmentalFeasibility:
-- low = space constraints, stairs, clutter, narrow bathroom, missing supports, or home layout strongly limits ideal setup
-- moderate = some barriers exist but workarounds are realistic
-- high = home setup appears able to support recommended changes
-- unknown = not enough information
-
-caregiverFlexibility:
-- low = caregiver availability, confidence, training, or physical capacity limits follow-through
-- moderate = caregiver can help with some setup/cueing but may need structure
-- high = caregiver support appears reliable and realistic
-- unknown = not enough information
-
-mainConstraint:
-- Identify the single biggest practical barrier to implementing the plan.
-- Examples: cost, bathroom layout, stairs, lack of caregiver support, limited caregiver capacity, equipment access, patient resistance, or unclear funding.
-
-Equipment feasibility rules:
-
-For each equipmentPlan item:
-- Include an ideal recommendation when clinically appropriate.
-- Include a lowerCostAlternative that is realistic and safer than doing nothing.
-- Include a contingencyPlan for what to do if the ideal item cannot be obtained quickly.
-- Adjust recommendations based on feasibility rather than assuming a perfect home or unlimited budget.
-- For high-priority/immediate items, the contingencyPlan should clearly explain what to avoid or delay until safer setup is available.
-- Avoid recommending expensive equipment without acknowledging lower-cost or temporary alternatives.
-- Do not present lower-cost alternatives as equally safe when they are not.
-
 Output rules:
 Return valid JSON only.
 Do not use markdown.
@@ -311,13 +265,7 @@ Return JSON in this exact format:
   "clinicalConsiderations": ["string"],
   "firstSessionPriorities": ["string"],
   "caregiverGuidance": ["string"],
-  "feasibilitySnapshot": {
-    "financialFeasibility": "low | moderate | high | unknown",
-    "environmentalFeasibility": "low | moderate | high | unknown",
-    "caregiverFlexibility": "low | moderate | high | unknown",
-    "mainConstraint": "string"
-  },
-  "equipmentPlan": [
+"equipmentPlan": [
   {
     "item": "string",
     "reason": "string",
@@ -325,9 +273,7 @@ Return JSON in this exact format:
     "urgency": "immediate | short_term | optional",
     "costRange": "string",
     "access": "string",
-    "coverageNotes": "string",
-    "lowerCostAlternative": "string",
-    "contingencyPlan": "string"
+    "coverageNotes": "string"
   }
 ]
 }

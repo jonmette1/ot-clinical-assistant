@@ -55,11 +55,14 @@ type GeneratedOutput = {
   firstSessionPriorities?: string[];
   caregiverGuidance?: string[];
   equipmentPlan?: EquipmentPlanItem[];
+selectedPathwaySummary?: string;
+
 clinicalDetailModules?: {
   caregiverInstructions?: string[];
   caregiverScript?: CaregiverScript;
   transferDetails?: TransferMobilityDetails;
     adlPrivacy?: AdlPrivacySupport;
+    
 };
     sessionPlan?: string[];
   summary?: {
@@ -111,8 +114,14 @@ type EquipmentFeasibilityItem = {
   costRange?: string;
   access?: string;
   coverageNotes?: string;
-  lowerCostAlternative?: string;
-  contingencyPlan?: string;
+  immediateWorkaround?: string;
+  relativeCost?: "low" | "moderate" | "high" | string;
+  costComparisonNote?: string;
+
+  idealSetup?: string;
+  idealEstimatedCost?: string;
+  feasibleEstimatedCost?: string;
+  clinicalDecision?: string;
 };
 
 type EquipmentFeasibilityPlan = {
@@ -169,6 +178,13 @@ functional_status: {
     relationship?: string;
     phone?: string;
   } | null;
+
+    feasibility_context: {
+    financial_constraint?: string;
+    environmental_constraint?: string;
+    equipment_access?: string;
+  } | null;
+
 case_classification: {
   case_type?: string;
   subcategory?: string;
@@ -218,6 +234,17 @@ const [editableCaregiverInfo, setEditableCaregiverInfo] = useState({
   phone: "",
 });
 
+
+// ==============================
+// STATE: FEASIBILITY (EDIT MODE)
+// ==============================
+
+const [editableFeasibility, setEditableFeasibility] = useState({
+  financial_constraint: "unknown",
+  environmental_constraint: "unknown",
+  equipment_access: "unknown",
+});
+
 const [showDetails, setShowDetails] = useState(false);
 const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
@@ -264,6 +291,21 @@ if (error) {
     relationship: typedCase.caregiver_info?.relationship || "",
     phone: typedCase.caregiver_info?.phone || "",
   });
+
+setEditableCaregiverInfo({
+  caregiver_name: typedCase.caregiver_info?.caregiver_name || "",
+  relationship: typedCase.caregiver_info?.relationship || "",
+  phone: typedCase.caregiver_info?.phone || "",
+});
+setEditableFeasibility({
+  financial_constraint:
+    typedCase.feasibility_context?.financial_constraint || "unknown",
+  environmental_constraint:
+    typedCase.feasibility_context?.environmental_constraint || "unknown",
+  equipment_access:
+    typedCase.feasibility_context?.equipment_access || "unknown",
+});
+
   const savedScript =
   typedCase.generated_output?.clinicalDetailModules?.caregiverScript;
 
@@ -422,26 +464,32 @@ async function handleSaveCurrentVersion() {
 async function handleSaveCaseEdits() {
   if (!caseData?.id) return;
 
+  console.log("Saving feasibility:", editableFeasibility);
+
   try {
     const { error } = await supabase
       .from("cases")
-      .update({
-        title: editableTitle,
-        client_info: editableClientInfo,
-        caregiver_info: editableCaregiverInfo,
-      })
+
+.update({
+  title: editableTitle,
+  client_info: editableClientInfo,
+  caregiver_info: editableCaregiverInfo,
+  feasibility_context: editableFeasibility,
+})
+
       .eq("id", caseData.id);
 
     if (error) {
       throw error;
     }
 
-    setCaseData({
-      ...caseData,
-      title: editableTitle,
-      client_info: editableClientInfo,
-      caregiver_info: editableCaregiverInfo,
-    });
+ setCaseData({
+  ...caseData,
+  title: editableTitle,
+  client_info: editableClientInfo,
+  caregiver_info: editableCaregiverInfo,
+  feasibility_context: editableFeasibility,
+});
 
     setIsEditing(false);
   } catch (error) {
@@ -735,6 +783,8 @@ async function handleGenerateCaregiverScript() {
     });
 
     const result = await response.json();
+    console.log("Equipment feasibility API result:", result);
+console.log("Case feasibility context being sent:", caseData.feasibility_context);
     console.log("Caregiver script result:", result);
 
     if (!result.success) {
@@ -942,11 +992,46 @@ async function handleGenerateEquipmentFeasibility() {
 
     const result = await response.json();
 
+console.log(
+  "Equipment feasibility API result:",
+  JSON.stringify(result, null, 2)
+);
+
+console.log(
+  "Case feasibility context being sent:",
+  JSON.stringify(caseData.feasibility_context, null, 2)
+);
+
     if (!result.success) {
       throw new Error(result.error || "Failed to generate equipment feasibility plan.");
     }
 
-    setEquipmentFeasibility(result.data);
+   const updatedGeneratedOutput = {
+  ...(caseData.generated_output || {}),
+  clinicalDetailModules: {
+    ...((caseData.generated_output as any)?.clinicalDetailModules || {}),
+    equipmentFeasibility: result.data,
+  },
+};
+
+const { error: updateError } = await supabase
+  .from("cases")
+  .update({
+    generated_output: updatedGeneratedOutput,
+  })
+  .eq("id", caseData.id);
+
+if (updateError) {
+  throw updateError;
+}
+
+setEquipmentFeasibility(result.data);
+
+setCaseData({
+  ...caseData,
+  generated_output: updatedGeneratedOutput,
+});
+
   } catch (err) {
     console.error("Equipment feasibility generation failed:", err);
   } finally {
@@ -1056,6 +1141,27 @@ const clinicalFocusLabel =
   return "Unknown";
 };
 
+const mapFinancial = (value?: string) => {
+  if (value === "low") return "Tight budget — keep costs minimal";
+  if (value === "moderate") return "Some flexibility — prioritize key items";
+  if (value === "high") return "Flexible — can consider better options";
+  return "Unknown";
+};
+
+const mapEnvironment = (value?: string) => {
+  if (value === "low") return "Space is limited — minimal changes only";
+  if (value === "moderate") return "Some room to adjust setup";
+  if (value === "high") return "Flexible space — multiple options work";
+  return "Unknown";
+};
+
+const mapCaregiver = (value?: string) => {
+  if (value === "low") return "Limited support — keep tasks simple";
+  if (value === "moderate") return "Some help available";
+  if (value === "high") return "Strong support — more options possible";
+  return "Unknown";
+};
+
 const getPriorityBadgeClass = (priority?: string) => {
   const value = priority?.toLowerCase();
 
@@ -1072,6 +1178,16 @@ const getUrgencyBadgeClass = (urgency?: string) => {
   if (value === "immediate") return "bg-red-700 text-white";
   if (value === "short_term") return "bg-yellow-600 text-black";
   if (value === "optional") return "bg-green-700 text-white";
+
+  return "bg-gray-700 text-white";
+};
+
+const getCostBadgeClass = (value?: string) => {
+  const v = value?.toLowerCase();
+
+  if (v === "high") return "bg-red-700 text-white";
+  if (v === "moderate") return "bg-yellow-600 text-black";
+  if (v === "low") return "bg-green-700 text-white";
 
   return "bg-gray-700 text-white";
 };
@@ -1252,12 +1368,13 @@ async function handleRegenerateCurrentPlan() {
   try {
     setIsRegeneratingPlan(true);
 
-    const updatedCasePayload = {
-      ...caseData,
-      title: editableTitle || caseData.title,
-      client_info: editableClientInfo,
-      caregiver_info: editableCaregiverInfo,
-    };
+   const updatedCasePayload = {
+  ...caseData,
+  title: editableTitle || caseData.title,
+  client_info: editableClientInfo,
+  caregiver_info: editableCaregiverInfo,
+  feasibility_context: editableFeasibility,
+};
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
@@ -1467,6 +1584,79 @@ disabled={
       />
     </div>
 
+{/* FEASIBILITY CONTEXT */}
+<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
+  <h3 className="text-sm font-semibold text-gray-300 mb-3">
+    Real-World Constraints
+  </h3>
+
+  <div className="grid gap-3 md:grid-cols-3">
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Financial Constraint
+      </label>
+      <select
+        value={editableFeasibility.financial_constraint}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            financial_constraint: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="low">Low</option>
+        <option value="moderate">Moderate</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Environmental Constraint
+      </label>
+      <select
+        value={editableFeasibility.environmental_constraint}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            environmental_constraint: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="flexible">Flexible</option>
+        <option value="moderate">Moderate</option>
+        <option value="severe">Severe</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Equipment Access
+      </label>
+      <select
+        value={editableFeasibility.equipment_access}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            equipment_access: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="out_of_pocket">Out of pocket</option>
+        <option value="insurance_dme">Insurance / DME</option>
+        <option value="borrowed">Borrowed</option>
+        <option value="mixed">Mixed</option>
+      </select>
+    </div>
+  </div>
+</div>
+
     <div>
       <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
       <input
@@ -1587,6 +1777,26 @@ disabled={
       <strong>Caregiver Phone:</strong>{" "}
       {caseData.caregiver_info?.phone || "—"}
     </p>
+{/* FEASIBILITY CONTEXT DISPLAY */}
+<div className="mt-4 border-t border-gray-800 pt-4">
+  <h3 className="text-sm font-semibold text-gray-300 mb-2">
+    Real-World Constraints
+  </h3>
+
+  <p>
+    <strong>Financial:</strong>{" "}
+    {caseData.feasibility_context?.financial_constraint || "—"}
+  </p>
+  <p>
+    <strong>Environment:</strong>{" "}
+    {caseData.feasibility_context?.environmental_constraint || "—"}
+  </p>
+  <p>
+    <strong>Equipment Access:</strong>{" "}
+    {caseData.feasibility_context?.equipment_access || "—"}
+  </p>
+</div>
+
   </>
 )}
 <p>
@@ -1643,9 +1853,9 @@ disabled={
 </div>
 
 <div className="md:col-span-2">
-  <p className="text-xs text-gray-400 mb-1">Plan</p>
+  <p className="text-xs text-gray-400 mb-1">Recommended Approach</p>
   <p className="text-base text-white leading-relaxed">
-    {generated.summary.planSummary || "—"}
+    {generated.selectedPathwaySummary || "—"}
   </p>
 </div>
 
@@ -1917,7 +2127,61 @@ disabled={
   </div>
 </div>
 
-<div className="mt-6 rounded-xl border border-orange-800 bg-gray-950 p-6">
+{generated?.equipmentPlan && generated.equipmentPlan.length > 0 && (
+  <div className="rounded-xl border-gray-800 bg-gray-950 p-6 mb-6">
+ <h3 className="text-lg font-medium text-gray-300 mb-2">
+  Ideal Equipment Setup (Reference)
+</h3>
+
+    <p className="text-xs text-gray-500 mb-4">
+  Best-case setup. Use feasibility plan below for what to actually implement.
+</p>
+
+<div className="overflow-x-auto">
+  <table className="w-full text-sm text-left text-gray-300">
+    <thead className="text-xs uppercase text-gray-500 border-b border-gray-800">
+      <tr>
+        <th className="py-2 pr-4">Item</th>
+        <th className="py-2 pr-4">Priority</th>
+        <th className="py-2 pr-4">Cost</th>
+        <th className="py-2 pr-4">Access</th>
+        <th className="py-2">Coverage</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {generated.equipmentPlan.map((item, index) => (
+        <tr key={index} className="border-b border-gray-800 align-top">
+          <td className="py-3 pr-4 font-medium text-white">
+            {item.item}
+          </td>
+
+          <td className="py-3 pr-4">
+            <span className={`px-2 py-1 rounded text-xs ${getPriorityBadgeClass(item.priority)}`}>
+              {item.priority || "—"}
+            </span>
+          </td>
+
+          <td className="py-3 pr-4 text-gray-400">
+            {item.costRange || "—"}
+          </td>
+
+          <td className="py-3 pr-4 text-gray-400">
+            {item.access || "—"}
+          </td>
+
+          <td className="py-3 text-gray-400">
+            {item.coverageNotes || "—"}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+  </div>
+)}
+
+<div className="mt-6 rounded-xl border border-orange-500 bg-gray-900 p-6">
   <div className="flex items-start justify-between gap-4 mb-4">
     <div>
       <h3 className="text-lg font-semibold">Equipment & Feasibility Plan</h3>
@@ -1932,7 +2196,7 @@ disabled={
   disabled={isGeneratingEquipmentFeasibility}
   className="shrink-0 rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
 >
-  {isGeneratingEquipmentFeasibility ? "Generating..." : "Generate"}
+  {isGeneratingEquipmentFeasibility ? "Generating..." : "Generate Feasibility Plan"}
 </button>
   </div>
 
@@ -1941,10 +2205,13 @@ disabled={
 
       {equipmentFeasibility.feasibilitySnapshot && (
         <div className="mb-4 space-y-1 text-sm text-gray-400">
-          <p><strong>Financial:</strong> {equipmentFeasibility.feasibilitySnapshot.financialFeasibility}</p>
-          <p><strong>Environmental:</strong> {equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility}</p>
-          <p><strong>Caregiver:</strong> {equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility}</p>
-          <p><strong>Main Constraint:</strong> {equipmentFeasibility.feasibilitySnapshot.mainConstraint}</p>
+<p>💰 {mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}</p>
+<p>🏠 {mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}</p>
+<p>👤 {mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}</p>
+
+<p className="text-xs text-gray-500 mt-2">
+  <strong>Main Constraint:</strong> {equipmentFeasibility.feasibilitySnapshot.mainConstraint}
+</p>
         </div>
       )}
 
@@ -1964,75 +2231,109 @@ disabled={
               <p><strong>Coverage:</strong> {item.coverageNotes}</p>
             </div>
 
-            {item.lowerCostAlternative && (
-              <p className="text-xs text-yellow-400 mt-2">
-                <strong>Lower-cost option:</strong> {item.lowerCostAlternative}
-              </p>
-            )}
+{item.immediateWorkaround && (
+  <div className="mt-3 rounded-lg border border-gray-800 bg-gray-950 p-3">
+    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+      What can be done today
+    </p>
+    <p className="text-sm text-gray-300">
+      {item.immediateWorkaround}
+    </p>
+  </div>
+)}
 
-            {item.contingencyPlan && (
-              <p className="text-xs text-red-400 mt-1">
-                <strong>If not available:</strong> {item.contingencyPlan}
-              </p>
-            )}
+{item.relativeCost && (
+  <p className="text-xs text-gray-400 mt-3">
+    <span className={`px-2 py-1 rounded text-xs ${getCostBadgeClass(item.relativeCost)}`}>
+  Cost: {item.relativeCost || "—"}
+</span>
+  </p>
+)}
+
+{item.costComparisonNote && (
+  <p className="text-sm text-gray-300 mt-1">
+    {item.costComparisonNote}
+  </p>
+)}
 
           </div>
         ))}
       </div>
     </div>
-  ) : (
-    <p className="text-sm text-gray-500">
-      No equipment feasibility plan generated yet.
+) : (
+  <div>
+    <p className="text-sm text-gray-400">
+      Generate a real-world plan based on this patient’s constraints.
     </p>
-  )}
+
+    <p className="text-xs text-gray-500 mt-1">
+      This will adapt the ideal setup above into something safe and actionable.
+    </p>
+  </div>
+)}
 </div>
 
 
 
-   {generated?.equipmentPlan && generated.equipmentPlan.length > 0 && (
-  <div className="rounded-xl border border-emerald-800 bg-gray-900 p-6 mb-6">
+   
+
+{equipmentFeasibility?.equipmentPlan && (
+  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6 mb-6">
     <h3 className="text-xl font-semibold mb-4">
-      Equipment & Home Setup Plan
+      Ideal Setup Comparison
     </h3>
 
-    <div className="space-y-4">
-      {generated.equipmentPlan.map((item, index) => (
-        <div
-          key={index}
-          className="rounded-lg border border-gray-800 bg-gray-950 p-4"
-        >
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <h4 className="text-base font-semibold text-white">
-              {item.item}
-            </h4>
+    <p className="text-xs text-gray-500 mb-4">
+      Best-case setup vs what is realistic today based on constraints.
+    </p>
 
-            <div className="flex gap-2 text-xs">
-<span className={`px-2 py-1 rounded ${getPriorityBadgeClass(item.priority)}`}>
-  Priority: {item.priority || "—"}
-</span>
-<span className={`px-2 py-1 rounded ${getUrgencyBadgeClass(item.urgency)}`}>
-  Urgency: {item.urgency || "—"}
-</span>
-            </div>
-          </div>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left text-gray-300">
+        <thead className="text-xs uppercase text-gray-500 border-b border-gray-800">
+          <tr>
+            <th className="py-2 pr-4">Item</th>
+            <th className="py-2 pr-4">Ideal Setup</th>
+            <th className="py-2 pr-4">Feasible Plan</th>
+            <th className="py-2 pr-4">Cost Gap (Ideal vs Feasible)</th>
+            <th className="py-2">Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {equipmentFeasibility.equipmentPlan.map((item, i) => (
+            <tr key={i} className="border-b border-gray-800 align-top">
+              <td className="py-3 pr-4 font-medium text-white">
+                {item.item}
+              </td>
 
-          <p className="text-sm text-gray-300 mb-2">
-            {item.reason}
-          </p>
+              <td className="py-3 pr-4">
+                <p className="text-gray-300">{item.idealSetup || "—"}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {item.idealEstimatedCost || ""}
+                </p>
+              </td>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-400">
-            <div>
-              <strong>Cost:</strong> {item.costRange || "—"}
-            </div>
-            <div>
-              <strong>Where:</strong> {item.access || "—"}
-            </div>
-            <div>
-              <strong>Coverage:</strong> {item.coverageNotes || "—"}
-            </div>
-          </div>
-        </div>
-      ))}
+              <td className="py-3 pr-4">
+                <p className="text-gray-300">{item.reason}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {item.feasibleEstimatedCost || item.costRange || ""}
+                </p>
+              </td>
+
+              <td className="py-3 pr-4">
+                <span className={`px-2 py-1 rounded text-xs ${getCostBadgeClass(item.relativeCost)}`}>
+                  {item.relativeCost || "—"}
+                </span>
+              </td>
+
+              <td className="py-3">
+                <p className="text-gray-300">
+                  {item.clinicalDecision || item.costComparisonNote || "—"}
+                </p>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   </div>
 )}

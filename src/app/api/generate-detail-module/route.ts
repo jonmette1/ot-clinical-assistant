@@ -258,6 +258,38 @@ You are an occupational therapist generating a practical equipment and feasibili
 Your job is NOT to create a new clinical plan.
 Your job is to help the clinician understand what equipment or setup changes are realistic, affordable, and feasible in this specific home situation.
 
+CRITICAL MAPPING RULES (MUST FOLLOW):
+
+You MUST directly map the following inputs from caseData.feasibility_context:
+
+- If financial_constraint = "high"
+  → financialFeasibility MUST be "low"
+
+- If financial_constraint = "moderate"
+  → financialFeasibility MUST be "moderate"
+
+- If financial_constraint = "low"
+  → financialFeasibility MUST be "high"
+
+- If environmental_constraint = "severe"
+  → environmentalFeasibility MUST be "low"
+
+- If environmental_constraint = "moderate"
+  → environmentalFeasibility MUST be "moderate"
+
+- If environmental_constraint = "flexible"
+  → environmentalFeasibility MUST be "high"
+
+- equipment_access MUST influence:
+  - access
+  - coverageNotes
+  - lowerCostAlternative
+  - contingencyPlan
+
+You are NOT allowed to invent feasibility levels.
+You are NOT allowed to default to "low".
+You MUST reflect the input values above exactly.
+
 Return valid JSON only. Do not use markdown.
 
 Output format:
@@ -278,13 +310,25 @@ Output format:
       "costRange": "string",
       "access": "string",
       "coverageNotes": "string",
-      "lowerCostAlternative": "string",
-      "contingencyPlan": "string"
+    "immediateWorkaround": "string",
+"relativeCost": "low | moderate | high",
+"costComparisonNote": "string",
+"idealSetup": "string",
+"idealEstimatedCost": "string",
+"feasibleEstimatedCost": "string",
+"clinicalDecision": "string"
     }
   ]
 }
 
 Rules:
+
+- You MUST generate 3–5 feasibility entries
+- Do NOT return the schema or template
+- Do NOT leave any field empty
+- Every field must contain case-specific, concrete content
+- If data is missing, infer cautiously based on available context (do not say "unknown" unless unavoidable)
+- Each entry must reflect REAL constraints from feasibility_context
 
 - Include 3–6 items
 - Focus on the most impactful safety and function changes
@@ -293,18 +337,72 @@ Rules:
 For each item:
 - Provide a clear reason tied to risk or function
 - Include realistic access and cost guidance
-- Include a lowerCostAlternative (safer than doing nothing)
-- Include a contingencyPlan if equipment cannot be obtained
+For immediateWorkaround:
+- Describe what can be done TODAY using items already in the home, simple setup changes, or caregiver assistance
+- This should be a temporary but SAFE solution
+- Do NOT suggest unstable substitutes or unsafe setups
+- Do NOT repeat the main equipment recommendation
+- This should bridge the gap until the preferred setup is in place
+
+Cost comparison rules:
+
+- Compare the preferred or ideal solution against the feasible recommendation for this case
+- Assign relativeCost:
+  - low = minimal cost difference
+  - moderate = noticeable but manageable cost difference
+  - high = significant cost difference
+
+- costComparisonNote:
+  - Write 1 sentence explaining whether the ideal option is worth pursuing now
+  - Reference the real-world constraint when relevant: budget, home setup, equipment access, or caregiver support
+  - Make the sentence useful for clinician decision-making
+  - Do NOT simply repeat the costRange
+  - costComparisonNote must be concise (max 1 sentence, <20 words)
+  - immediateWorkaround must describe a physical action or setup change
+- costComparisonNote must describe a decision (whether to pursue ideal vs feasible)
+- Do not overlap content between these two fields
+
+Ideal vs Feasible comparison rules:
+
+- idealSetup:
+  - Describe the best-case equipment or setup if constraints were not limiting
+  - Be specific (e.g., “wall-mounted grab bars with professional installation”)
+
+- idealEstimatedCost:
+  - Provide a realistic estimated range for the ideal setup
+
+- feasibleEstimatedCost:
+  - Reflect the costRange already provided for the feasible recommendation
+
+- clinicalDecision:
+  - 1 sentence: Should the clinician pursue the ideal setup now, later, or not at all?
+  - Must reference feasibility constraints (budget, environment, caregiver, access)
+  - Must clearly favor the feasible plan when constraints are high
+  - Should sound like a clinical judgment, not a description
 
 Use role-based language only:
 - "the patient", "the caregiver", "family member"
+
+Feasibility Context Rules:
+- You MUST read caseData.feasibility_context.
+- Map financial_constraint directly into feasibilitySnapshot.financialFeasibility.
+- Map environmental_constraint directly into feasibilitySnapshot.environmentalFeasibility.
+- Map equipment_access into access, coverageNotes, lowerCostAlternative, and contingencyPlan.
+- Do not default any feasibilitySnapshot value to "low" unless the case data clearly supports "low".
+- If the value is "unknown", return "unknown" and explain the uncertainty in mainConstraint.
+
+Feasibility Context (authoritative inputs):
+${JSON.stringify(caseData?.feasibility_context || {}, null, 2)}
 
 Case Data:
 ${JSON.stringify(caseData, null, 2)}
 
 Generated Plan:
 ${JSON.stringify(generatedPlan, null, 2)}
+
+Now generate the feasibility plan using the required format. Do NOT repeat the template. Fill it with real content based on the case.
 `;
+
     } else {
       return new Response(
         JSON.stringify({

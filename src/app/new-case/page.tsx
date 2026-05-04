@@ -109,6 +109,14 @@ const [indoorMobilityLevel, setIndoorMobilityLevel] = useState("independent");
 const [mobilityEndurance, setMobilityEndurance] = useState("moderate");
 const [recentFalls, setRecentFalls] = useState("no");
 
+// ==============================
+// STATE: REAL-WORLD CONSTRAINTS
+// ==============================
+
+const [financialConstraint, setFinancialConstraint] = useState("unknown");
+const [environmentalConstraint, setEnvironmentalConstraint] = useState("unknown");
+const [equipmentAccess, setEquipmentAccess] = useState("unknown");
+
   // ==============================
   // STATE: HOME ASSESSMENT - OUTSIDE / ENTRANCE
   // ==============================
@@ -538,6 +546,12 @@ const casePayload = {
     is_primary_support: caregiverIsPrimarySupport,
   },
 
+feasibility_context: {
+  financial_constraint: financialConstraint,
+  environmental_constraint: environmentalConstraint,
+  equipment_access: equipmentAccess,
+},
+
   goals_preferences: {
     primary_goal: primaryGoal,
     other_target_activity: otherTargetActivity,
@@ -571,6 +585,7 @@ console.log("CAREGIVER GUIDANCE FIELD:", plan?.caregiverGuidance);
 setGeneratedPlan(plan);
 
 const insertStart = performance.now();
+
 
 const { data: insertedCases, error } = await supabase
   .from("cases")
@@ -662,10 +677,20 @@ general_mobility: {
     other_exterior_hazards: otherExteriorHazards,
   },
 },
-      goals_preferences: {
-        primary_goal: primaryGoal,other_target_activity: otherTargetActivity,
-      },
-      clinical_constraints: {},
+
+goals_preferences: {
+  primary_goal: primaryGoal,
+  other_target_activity: otherTargetActivity,
+},
+
+feasibility_context: {
+  financial_constraint: financialConstraint || "unknown",
+  environmental_constraint: environmentalConstraint || "unknown",
+  equipment_access: equipmentAccess || "unknown",
+},
+
+clinical_constraints: {},
+
       client_info: {
         client_name: clientName,
         phone: clientPhone,
@@ -693,7 +718,12 @@ case_classification: {
       generated_output: plan,
     },
     ])
-  .select("id");
+   .select("id")
+  .single();
+
+  console.log("INSERT RESULT:", insertedCases);
+console.log("INSERT ERROR:", error);
+
 
 
  if (error) {
@@ -701,7 +731,7 @@ case_classification: {
     `Case generated, but save failed: ${error.message || "Unknown error"}`
   );
 } else {
-  const insertedCaseId = insertedCases?.[0]?.id;
+  const insertedCaseId = insertedCases?.id;
 
 if (insertedCaseId) {
   await supabase.from("generations").insert([
@@ -929,6 +959,62 @@ setSaveMessage("Case generated with AI and saved successfully.");
       />
     </div>
   </div>
+
+{/* REAL-WORLD CONSTRAINTS */}
+<div className="space-y-4">
+  <h2 className="text-lg font-semibold mb-2">Real-World Constraints</h2>
+
+  <div className="grid gap-4 md:grid-cols-3">
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        Financial Constraint
+      </label>
+      <select
+        value={financialConstraint}
+        onChange={(e) => setFinancialConstraint(e.target.value)}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="low">Low</option>
+        <option value="moderate">Moderate</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        Environmental Constraint
+      </label>
+      <select
+        value={environmentalConstraint}
+        onChange={(e) => setEnvironmentalConstraint(e.target.value)}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="flexible">Flexible</option>
+        <option value="moderate">Moderate</option>
+        <option value="severe">Severe</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        Equipment Access
+      </label>
+      <select
+        value={equipmentAccess}
+        onChange={(e) => setEquipmentAccess(e.target.value)}
+        className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-3"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="out_of_pocket">Out of pocket</option>
+        <option value="insurance_dme">Insurance / DME</option>
+        <option value="borrowed">Borrowed</option>
+        <option value="mixed">Mixed</option>
+      </select>
+    </div>
+  </div>
+</div>
 
   {/* OT FOCUS */}
   <div className="space-y-4">
