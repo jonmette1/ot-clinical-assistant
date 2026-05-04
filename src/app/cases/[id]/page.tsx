@@ -345,9 +345,6 @@ setGenerations(gens);
 if (gens.length > 0) {
   setLatestGeneratedPlan(gens[0].output_payload as GeneratedPlan);
 }
-  const latestPlan = generationData && generationData.length > 0
-  ? generationData[0].output_payload
-  : null;
 }
 
       setLoading(false);
@@ -1062,22 +1059,7 @@ if (loading) {
         <div className="max-w-5xl mx-auto">
           <p className="text-red-400">Error loading case: {errorMessage}</p>
         </div>
-        {/* Detail Modules (SAFE TEST) */}
-<div className="mt-6 space-y-6">
-  <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
-    <h3 className="text-lg font-semibold">Transfer & Mobility Details</h3>
-    <p className="text-sm text-gray-400 mt-1">
-      (placeholder – wiring next)
-    </p>
-  </div>
 
-  <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
-    <h3 className="text-lg font-semibold">ADL Privacy & Dignity Support</h3>
-    <p className="text-sm text-gray-400 mt-1">
-      (placeholder – wiring next)
-    </p>
-  </div>
-</div>
       </main>
     );
   }
@@ -1114,8 +1096,6 @@ const worstTransfer =
  console.log("Generated summary:", generated?.summary);
 
 const selectedPathway = generated?.pathways?.[0] ?? null;
-
-const activeGeneratedOutput = latestGeneratedPlan as GeneratedOutput | null;
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -1809,8 +1789,6 @@ disabled={
   <strong>Primary Goal:</strong>{" "}
   {caseData.goals_preferences?.primary_goal || "—"}
 </p>
-
-{/* 👇 ADD YOUR NEW ENVIRONMENT FIELDS RIGHT HERE */}
 
 <p>
   <strong>Bathroom Type:</strong>{" "}
