@@ -1436,6 +1436,7 @@ return (
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
           <div className="flex items-start justify-between gap-4 mb-4">
   
+  {/* TITLE / EDIT TITLE */}
   <div>
   {isEditing ? (
     <input
@@ -1456,6 +1457,8 @@ return (
       Edit Mode Active — fields are not editable yet. Next step is wiring one safe input at a time.
     </div>
   )}
+
+  {/* FOCUS + SEVERITY BADGES */}
 
 <div className="mb-2 flex items-center gap-2">
   {generated?.focusApplied && (
@@ -1483,6 +1486,8 @@ return (
         : "ADL / Home Safety"}
     </span>
   </p>
+
+  {/* CLINICAL FOCUS SWITCHER */}
 
   <div className="mt-4 grid grid-cols-3 gap-2">
     {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
@@ -1522,6 +1527,8 @@ disabled={
 )}
 </div>
 </div>
+
+          {/* CASE DETAIL SUMMARY */}
           <div className="space-y-2 text-sm text-gray-300">
             <p>
               <strong>Age Range:</strong>{" "}
@@ -1545,6 +1552,7 @@ disabled={
               <strong>Primary Goal:</strong>{" "}
               {caseData.goals_preferences?.primary_goal || "—"}
             </p>
+{/* EDIT MODE: CLIENT / CAREGIVER / FEASIBILITY */}
 {isEditing ? (
   <div className="grid gap-3 md:grid-cols-2">
     <div>
@@ -1562,78 +1570,7 @@ disabled={
       />
     </div>
 
-{/* FEASIBILITY CONTEXT */}
-<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
-  <h3 className="text-sm font-semibold text-gray-300 mb-3">
-    Real-World Constraints
-  </h3>
 
-  <div className="grid gap-3 md:grid-cols-3">
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Financial Constraint
-      </label>
-      <select
-        value={editableFeasibility.financial_constraint}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            financial_constraint: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="low">Low</option>
-        <option value="moderate">Moderate</option>
-        <option value="high">High</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Environmental Constraint
-      </label>
-      <select
-        value={editableFeasibility.environmental_constraint}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            environmental_constraint: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="flexible">Flexible</option>
-        <option value="moderate">Moderate</option>
-        <option value="severe">Severe</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Equipment Access
-      </label>
-      <select
-        value={editableFeasibility.equipment_access}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            equipment_access: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="out_of_pocket">Out of pocket</option>
-        <option value="insurance_dme">Insurance / DME</option>
-        <option value="borrowed">Borrowed</option>
-        <option value="mixed">Mixed</option>
-      </select>
-    </div>
-  </div>
-</div>
 
     <div>
       <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
@@ -1724,9 +1661,85 @@ disabled={
         className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
       />
     </div>
+
+{/* FEASIBILITY CONTEXT */}
+<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
+  <h3 className="text-sm font-semibold text-gray-300 mb-3">
+    Real-World Constraints
+  </h3>
+
+  <div className="grid gap-3 md:grid-cols-3">
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Financial Constraint
+      </label>
+      <select
+        value={editableFeasibility.financial_constraint}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            financial_constraint: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="low">Low</option>
+        <option value="moderate">Moderate</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Environmental Constraint
+      </label>
+      <select
+        value={editableFeasibility.environmental_constraint}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            environmental_constraint: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="flexible">Flexible</option>
+        <option value="moderate">Moderate</option>
+        <option value="severe">Severe</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">
+        Equipment Access
+      </label>
+      <select
+        value={editableFeasibility.equipment_access}
+        onChange={(e) =>
+          setEditableFeasibility((prev) => ({
+            ...prev,
+            equipment_access: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      >
+        <option value="unknown">Unknown</option>
+        <option value="out_of_pocket">Out of pocket</option>
+        <option value="insurance_dme">Insurance / DME</option>
+        <option value="borrowed">Borrowed</option>
+        <option value="mixed">Mixed</option>
+      </select>
+    </div>
   </div>
+</div>
+
+  </div>
+
 ) : (
   <>
+  {/* DISPLAY MODE: CLIENT / CAREGIVER / FEASIBILITY */}
     <p>
       <strong>Client Name:</strong>{" "}
       {caseData.client_info?.client_name || "—"}
@@ -1819,52 +1832,55 @@ disabled={
 
 {generated?.summary && (
   <div className="rounded-xl border border-yellow-700 bg-gray-900 p-6">
-   <h3 className="text-xl font-semibold mb-4">Plan Overview</h3>
+    <h3 className="text-xl font-semibold mb-4">Plan Overview</h3>
 
-<p className="text-xs text-gray-500 mb-2">Overview of selected plan. See pathway below for full details.</p>
+    <p className="text-xs text-gray-500 mb-2">
+      Overview of selected plan. See pathway below for full details.
+    </p>
+
     <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-300">
       <div>
-<p className="text-xs text-gray-400 mb-1">Risk Level</p>
-  <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
-    {generated.summary.safetyLevel || "—"}
-  </span>
-</div>
+        <p className="text-xs text-gray-400 mb-1">Risk Level</p>
+        <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
+          {generated.summary.safetyLevel || "—"}
+        </span>
+      </div>
 
-<div className="md:col-span-2">
-  <p className="text-xs text-gray-400 mb-1">Recommended Approach</p>
-  <p className="text-base text-white leading-relaxed">
-    {generated.selectedPathwaySummary || "—"}
-  </p>
-</div>
+      <div className="md:col-span-2">
+        <p className="text-xs text-gray-400 mb-1">Recommended Approach</p>
+        <p className="text-base text-white leading-relaxed">
+          {generated.selectedPathwaySummary || "—"}
+        </p>
+      </div>
 
       {(generated.summary.topRisks ?? []).length > 0 && (
         <div>
-<p className="text-xs text-gray-400 mb-1">Top Risks</p>
-<ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-  {(generated.summary.topRisks ?? []).map((item, index) => (
-    <li key={index}>{item}</li>
-  ))}
-</ul>
+          <p className="text-xs text-gray-400 mb-1">Top Risks</p>
+          <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
+            {(generated.summary.topRisks ?? []).map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
         </div>
       )}
 
       {(generated.summary.caregiverExpectations ?? []).length > 0 && (
         <div>
-<p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
-
-
-
-<ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-  {(generated.summary.caregiverExpectations ?? []).map((item, index) => (
-    <li key={index}>{item}</li>
-  ))}
-</ul>
+          <p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
+          <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
+            {(generated.summary.caregiverExpectations ?? []).map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
-    {generated?.pathways && generated.pathways.length > 0 && (
- <div className="mt-6">
-    <p className="text-xs text-gray-400 mb-2">Treatment Approaches</p>
+  </div>
+)}
+
+{generated?.pathways && generated.pathways.length > 0 && (
+  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+    <h3 className="text-xl font-semibold mb-4">Treatment Approaches</h3>
 
     <div className="space-y-4">
       {generated.pathways.map((pathway, index) => (
@@ -1876,9 +1892,7 @@ disabled={
             {String(pathway.type).replaceAll("_", " ")}
           </p>
 
-          <h4 className="text-sm font-semibold mb-2">
-            {pathway.title}
-          </h4>
+          <h4 className="text-sm font-semibold mb-2">{pathway.title}</h4>
 
           <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
             {pathway.interventions.map((item, i) => (
@@ -1898,8 +1912,6 @@ disabled={
         </div>
       ))}
     </div>
-  </div>
-)}
   </div>
 )}
 
