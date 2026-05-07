@@ -70,6 +70,7 @@ type GeneratedOutput = {
   caregiverGuidance?: string[];
   equipmentPlan?: EquipmentPlanItem[];
 selectedPathwaySummary?: string;
+selectedPathwayIndex?: number;
 
 clinicalDetailModules?: {
   caregiverInstructions?: string[];
@@ -287,6 +288,12 @@ const [showDetails, setShowDetails] = useState(false);
 const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
 const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
+const [showDecisionTransparency, setShowDecisionTransparency] = useState(false);
+const [showAlternativeApproaches, setShowAlternativeApproaches] = useState(false);
+const [showCaregiverGuidance, setShowCaregiverGuidance] = useState(false);
+const [showTransferDetails, setShowTransferDetails] = useState(false);
+const [showEquipmentFeasibility, setShowEquipmentFeasibility] = useState(false);
+const [showAdlPrivacySupport, setShowAdlPrivacySupport] = useState(false);
 const [isRegeneratingFocus, setIsRegeneratingFocus] = useState(false);
 const [isRegeneratingPlan, setIsRegeneratingPlan] = useState(false);
 const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
@@ -1189,7 +1196,15 @@ const worstTransfer =
 
  console.log("Generated summary:", generated?.summary);
 
-const selectedPathway = generated?.pathways?.[0] ?? null;
+const selectedPathwayIndex =
+  typeof generated?.selectedPathwayIndex === "number"
+    ? generated.selectedPathwayIndex
+    : 0;
+
+const selectedPathway =
+  generated?.pathways?.[selectedPathwayIndex] ??
+  generated?.pathways?.[0] ??
+  null;
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -1670,13 +1685,24 @@ return (
     </span>
   </p>
 
-    {!isEditing && (
-    <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
-      <h3 className="text-sm font-semibold text-blue-200 mb-3">
-        Decision Engine Summary
+  {!isEditing && (
+  <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
+    <button
+      type="button"
+      onClick={() => setShowDecisionTransparency((prev) => !prev)}
+      className="flex w-full items-center justify-between text-left"
+    >
+      <h3 className="text-sm font-semibold text-blue-200">
+        Decision Engine Transparency
       </h3>
 
-      <div className="grid gap-3 md:grid-cols-2 text-sm">
+      <span className="text-xs text-blue-300">
+        {showDecisionTransparency ? "Hide" : "Show"}
+      </span>
+    </button>
+
+    {showDecisionTransparency && (
+      <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
         <div>
           <p className="text-xs text-blue-300">Dominant Barrier</p>
           <p className="text-white font-medium">
@@ -1721,8 +1747,9 @@ return (
           </p>
         </div>
       </div>
-    </div>
-  )}
+    )}
+  </div>
+)} 
 
 </div>
 
@@ -2106,34 +2133,46 @@ return (
           </div>
         </div>
 
-{/* CLINICAL FOCUS SWITCHER */}
+{/* CLINICAL FOCUS CONTROLS */}
 
-  <div className="mt-4 grid grid-cols-3 gap-2">
+<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <div className="mb-4">
+    <h2 className="text-2xl font-semibold">
+      Clinical Focus
+    </h2>
+
+    <p className="text-sm text-gray-400 mt-1">
+      Choose how the current plan is emphasized for review. This does not regenerate or change the treatment plan.
+    </p>
+  </div>
+
+  <div className="grid grid-cols-3 gap-2">
     {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
-<button
-  key={focus}
-  type="button"
-disabled={briefingLens === focus}
-onClick={() => {
-  console.log("Selected briefing lens:", focus);
-  setBriefingLens(
-    focus as "adl_home_safety" | "transfers_mobility" | "caregiver_training"
-  );
-}}
-  className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-  briefingLens === focus
-      ? "bg-blue-600 text-white"
-      : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-  }`}
->
-{focus === "adl_home_safety"
-  ? "ADL"
-  : focus === "transfers_mobility"
-  ? "Transfers"
-  : "Caregiver"}
-</button>
+      <button
+        key={focus}
+        type="button"
+        disabled={briefingLens === focus}
+        onClick={() => {
+          console.log("Selected clinical focus:", focus);
+          setBriefingLens(
+            focus as "adl_home_safety" | "transfers_mobility" | "caregiver_training"
+          );
+        }}
+        className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+          briefingLens === focus
+            ? "bg-blue-600 text-white"
+            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+        }`}
+      >
+        {focus === "adl_home_safety"
+          ? "ADL / Home Safety"
+          : focus === "transfers_mobility"
+          ? "Transfers & Mobility"
+          : "Caregiver Training"}
+      </button>
     ))}
-  </div>        
+  </div>
+</div>      
 {/* EXECUTIVE BRIEFING */}
 
 <div className="rounded-xl border border-cyan-800 bg-gray-900 p-6">
@@ -2228,14 +2267,85 @@ onClick={() => {
   </div>
 </div>
 
-        {/* CURRENT LIVE PLAN */}
+{/* ACTIVE OPERATIONAL PATHWAY */}
+
+<div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">
+       Current Treatment Approach
+      </div>
+
+      <h2 className="text-2xl font-semibold text-white">
+        {selectedPathway?.title || "No pathway selected"}
+      </h2>
+
+      <p className="mt-2 text-sm text-emerald-100/80 max-w-3xl">
+        This treatment approach currently drives executive summaries,
+exports, and clinical treatment emphasis.
+      </p>
+    </div>
+
+    <div className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-200 border border-emerald-700">
+      {selectedPathway?.type || "Treatment Approach"}
+    </div>
+  </div>
+
+  <div className="mt-6 grid gap-6 md:grid-cols-3">
+
+    {/* INTERVENTIONS */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+        Operational Priorities
+      </h3>
+
+      <ul className="space-y-2 text-sm text-gray-200">
+        {(selectedPathway?.interventions || []).map((item, index) => (
+          <li
+            key={index}
+            className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    {/* UPSIDE */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+        Expected Advantage
+      </h3>
+
+      <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4 text-sm text-gray-200">
+        {selectedPathway?.upside || "No upside identified."}
+      </div>
+    </div>
+
+    {/* TRADEOFF */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+        Operational Tradeoff
+      </h3>
+
+      <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4 text-sm text-gray-200">
+        {selectedPathway?.tradeoff || "No tradeoff identified."}
+      </div>
+    </div>
+  </div>
+</div>
+
+     {/* STRUCTURED PLAN DETAILS */}
 
 {generated?.patientSnapshot && (
   <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-2xl font-semibold">Current Live Plan</h2>
+     <h2 className="text-xl font-semibold">Structured Plan Details</h2>
       <span className="text-xs uppercase tracking-wide text-green-400">
-        Latest Version
+        Reference Detail
       </span>
     </div>
 
@@ -2294,193 +2404,261 @@ onClick={() => {
 
 {generated?.pathways && generated.pathways.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-4">Treatment Approaches</h3>
 
-    <div className="space-y-4">
-      {generated.pathways.map((pathway, index) => (
-        <div
-          key={`${pathway.type}-${index}`}
-          className="rounded-lg border border-gray-800 p-4 bg-gray-950"
-        >
-          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
-            {String(pathway.type).replaceAll("_", " ")}
-          </p>
-
-          <h4 className="text-sm font-semibold mb-2">{pathway.title}</h4>
-
-          <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
-            {pathway.interventions.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-
-          <p className="text-xs text-gray-400">
-            <strong>Timeline:</strong> {pathway.timeline}
-          </p>
-          <p className="text-xs text-gray-400">
-            <strong>Upside:</strong> {pathway.upside}
-          </p>
-          <p className="text-xs text-gray-500">
-            <strong>Tradeoff:</strong> {pathway.tradeoff}
-          </p>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
-        {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
-
-<div className="mt-6 rounded-xl border border-purple-800 bg-gray-950 p-6">
-  <div className="flex items-start justify-between gap-4 mb-4">
-    <div>
-      <h3 className="text-lg font-semibold">
-        Family / Caregiver Script
-      </h3>
-      <p className="text-sm text-gray-400 mt-1">
-        Generate plain-language instructions a clinician can share with the patient, caregiver, family, or friend.
-      </p>
-    </div>
-
-    <button
-      type="button"
-      onClick={handleGenerateCaregiverScript}
-      disabled={isGeneratingCaregiverScript}
-      className="shrink-0 rounded-lg bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-50"
-    >
-      {isGeneratingCaregiverScript ? "Generating..." : "Generate Script"}
-    </button>
-  </div>
-
-  {caregiverScriptError && (
-    <p className="text-sm text-red-400 mb-4">
-      {caregiverScriptError}
-    </p>
-  )}
-
-  {caregiverScript ? (
-    <div className="space-y-4 text-sm text-gray-300">
+    <div className="flex items-center justify-between mb-4">
       <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          Conversation Goal
-        </p>
-        <p>{caregiverScript.conversationGoal || "—"}</p>
-      </div>
+        <h3 className="text-xl font-semibold text-gray-300">
+          Alternative Treatment Approaches
+        </h3>
 
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          Before Task Script
-        </p>
-        <p>{caregiverScript.beforeTaskScript || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          During Task Script
-        </p>
-        <p>{caregiverScript.duringTaskScript || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          If Patient Struggles
-        </p>
-        <p>{caregiverScript.ifPatientStruggles || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          If Patient Resists
-        </p>
-        <p>{caregiverScript.ifPatientResists || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          Reassurance Language
-        </p>
-        <p>{caregiverScript.reassuranceLanguage || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-          When to Be Firm
-        </p>
-        <p>{caregiverScript.whenToBeFirm || "—"}</p>
-      </div>
-    </div>
-  ) : (
-    <p className="text-sm text-gray-500">
-      No script generated yet.
-    </p>
-  )}
-</div>
-
-        {/* IDEAL EQUIPMENT SETUP */}
-
-<div className="mt-6 grid gap-6">
-  <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
-    <div className="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <h3 className="text-lg font-semibold">Transfer & Mobility Details</h3>
-        <p className="text-sm text-gray-400 mt-1">
-          Generate practical setup, cueing, surface variation, and stop-rule details.
+        <p className="text-sm text-gray-500 mt-1">
+          Other viable treatment directions generated from the same authoritative plan.
         </p>
       </div>
 
       <button
         type="button"
-        onClick={handleGenerateTransferDetails}
-        disabled={isGeneratingTransferDetails}
-        className="shrink-0 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+        onClick={() => setShowAlternativeApproaches((prev) => !prev)}
+        className="text-sm text-blue-400 hover:text-blue-300 transition"
       >
-        {isGeneratingTransferDetails ? "Generating..." : "Generate"}
+        {showAlternativeApproaches ? "Hide" : "Show"}
       </button>
     </div>
 
-    {transferDetails ? (
-      <div className="space-y-4 text-sm text-gray-300">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Setup Adjustments</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(transferDetails.setupAdjustments ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
+    {showAlternativeApproaches && (
+      <div className="space-y-4">
+        {generated.pathways.map((pathway, index) => (
+          <div
+            key={`${pathway.type}-${index}`}
+            className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-80"
+          >
+            <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
+              {String(pathway.type).replaceAll("_", " ")}
+            </p>
 
-        <div>
-          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Transfer Cues</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(transferDetails.transferCues ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
+            <h4 className="text-sm font-semibold mb-2">
+              {pathway.title}
+            </h4>
 
-        <div>
-          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Surface Variations</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(transferDetails.surfaceVariations ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
+              {pathway.interventions.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
 
-        <div>
-          <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Stop Rules</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(transferDetails.stopRules ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
+            <p className="text-xs text-gray-400">
+              <strong>Timeline:</strong> {pathway.timeline}
+            </p>
+
+            <p className="text-xs text-gray-400">
+              <strong>Upside:</strong> {pathway.upside}
+            </p>
+
+            <p className="text-xs text-gray-500">
+              <strong>Tradeoff:</strong> {pathway.tradeoff}
+            </p>
+          </div>
+        ))}
       </div>
-    ) : (
-      <p className="text-sm text-gray-500">No transfer details generated yet.</p>
+    )}
+  </div>
+)}
+
+     {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
+
+<div className="mt-6 rounded-xl border border-purple-800 bg-gray-950 p-6">
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <h3 className="text-lg font-semibold">
+        Family / Caregiver Script
+      </h3>
+
+      <p className="text-sm text-gray-400 mt-1">
+        Plain-language support for caregiver communication and task carryover.
+      </p>
+    </div>
+
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => setShowCaregiverGuidance((prev) => !prev)}
+        className="rounded-lg border border-purple-700 px-4 py-2 text-sm font-medium text-purple-200 hover:bg-purple-950/40"
+      >
+        {showCaregiverGuidance ? "Hide" : "Show"}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleGenerateCaregiverScript}
+        disabled={isGeneratingCaregiverScript}
+        className="shrink-0 rounded-lg bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-50"
+      >
+        {isGeneratingCaregiverScript ? "Generating..." : "Generate"}
+      </button>
+    </div>
+  </div>
+
+  {caregiverScriptError && (
+    <p className="text-sm text-red-400 mt-4">
+      {caregiverScriptError}
+    </p>
+  )}
+
+  {showCaregiverGuidance && (
+    <div className="mt-4">
+      {caregiverScript ? (
+        <div className="space-y-4 text-sm text-gray-300">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Conversation Goal
+            </p>
+            <p>{caregiverScript.conversationGoal || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Before Task Script
+            </p>
+            <p>{caregiverScript.beforeTaskScript || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              During Task Script
+            </p>
+            <p>{caregiverScript.duringTaskScript || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              If Patient Struggles
+            </p>
+            <p>{caregiverScript.ifPatientStruggles || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              If Patient Resists
+            </p>
+            <p>{caregiverScript.ifPatientResists || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              Reassurance Language
+            </p>
+            <p>{caregiverScript.reassuranceLanguage || "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
+              When to Be Firm
+            </p>
+            <p>{caregiverScript.whenToBeFirm || "—"}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">
+          No script generated yet.
+        </p>
+      )}
+    </div>
+  )}
+</div>  
+
+       {/* TRANSFER & MOBILITY DETAILS */}
+
+<div className="mt-6 grid gap-6">
+  <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h3 className="text-lg font-semibold">Transfer & Mobility Details</h3>
+        <p className="text-sm text-gray-400 mt-1">
+          Practical setup, cueing, surface variation, and stop-rule details.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowTransferDetails((prev) => !prev)}
+          className="rounded-lg border border-blue-700 px-4 py-2 text-sm font-medium text-blue-200 hover:bg-blue-950/40"
+        >
+          {showTransferDetails ? "Hide" : "Show"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleGenerateTransferDetails}
+          disabled={isGeneratingTransferDetails}
+          className="shrink-0 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+        >
+          {isGeneratingTransferDetails ? "Generating..." : "Generate"}
+        </button>
+      </div>
+    </div>
+
+    {showTransferDetails && (
+      <div className="mt-4">
+        {transferDetails ? (
+          <div className="space-y-4 text-sm text-gray-300">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Setup Adjustments</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(transferDetails.setupAdjustments ?? []).map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Transfer Cues</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(transferDetails.transferCues ?? []).map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Surface Variations</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(transferDetails.surfaceVariations ?? []).map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Stop Rules</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {(transferDetails.stopRules ?? []).map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No transfer details generated yet.</p>
+        )}
+      </div>
     )}
   </div>
 
-  <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
-    <div className="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <h3 className="text-lg font-semibold">ADL Privacy & Dignity Support</h3>
-        <p className="text-sm text-gray-400 mt-1">
-          Generate plain-language guidance for private ADLs like bathing, toileting, and dressing.
-        </p>
-      </div>
+
+
+<div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <h3 className="text-lg font-semibold">
+        ADL Privacy & Dignity Support
+      </h3>
+
+      <p className="text-sm text-gray-400 mt-1">
+        Guidance for maintaining dignity, privacy, and respectful support during sensitive ADLs.
+      </p>
+    </div>
+
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => setShowAdlPrivacySupport((prev) => !prev)}
+        className="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-950/40"
+      >
+        {showAdlPrivacySupport ? "Hide" : "Show"}
+      </button>
 
       <button
         type="button"
@@ -2491,346 +2669,239 @@ onClick={() => {
         {isGeneratingAdlPrivacy ? "Generating..." : "Generate"}
       </button>
     </div>
-
-    {adlPrivacy ? (
-      <div className="space-y-4 text-sm text-gray-300">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Privacy Setup</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(adlPrivacy.privacySetup ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Respectful Cueing</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(adlPrivacy.respectfulCueing ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step In</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(adlPrivacy.whenToStepIn ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step Back</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(adlPrivacy.whenToStepBack ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Dignity Warnings</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {(adlPrivacy.dignityWarnings ?? []).map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        </div>
-      </div>
-    ) : (
-      <p className="text-sm text-gray-500">No ADL privacy support generated yet.</p>
-    )}
   </div>
+
+  {showAdlPrivacySupport && (
+    <div className="mt-4">
+      {adlPrivacy ? (
+        <div className="space-y-4 text-sm text-gray-300">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">
+              Privacy Setup
+            </p>
+
+            <ul className="list-disc pl-5 space-y-1">
+              {(adlPrivacy.privacySetup ?? []).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">
+              Respectful Cueing
+            </p>
+
+            <ul className="list-disc pl-5 space-y-1">
+              {(adlPrivacy.respectfulCueing ?? []).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">
+              When to Step In
+            </p>
+
+            <ul className="list-disc pl-5 space-y-1">
+              {(adlPrivacy.whenToStepIn ?? []).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">
+              When to Step Back
+            </p>
+
+            <ul className="list-disc pl-5 space-y-1">
+              {(adlPrivacy.whenToStepBack ?? []).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">
+              Dignity Warnings
+            </p>
+
+            <ul className="list-disc pl-5 space-y-1">
+              {(adlPrivacy.dignityWarnings ?? []).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">
+          No ADL privacy support generated yet.
+        </p>
+      )}
+    </div>
+  )}
+</div>
 </div>
 
-{generated?.equipmentPlan && generated.equipmentPlan.length > 0 && (
-  <div className="rounded-xl border-gray-800 bg-gray-950 p-6 mb-6">
- <h3 className="text-lg font-medium text-gray-300 mb-2">
-  Ideal Equipment Setup (Reference)
-</h3>
-
-    <p className="text-xs text-gray-500 mb-4">
-  Best-case setup. Use feasibility plan below for what to actually implement.
-</p>
-
-<div className="overflow-x-auto">
-  <table className="w-full text-sm text-left text-gray-300">
-    <thead className="text-xs uppercase text-gray-500 border-b border-gray-800">
-      <tr>
-        <th className="py-2 pr-4">Item</th>
-        <th className="py-2 pr-4">Priority</th>
-        <th className="py-2 pr-4">Cost</th>
-        <th className="py-2 pr-4">Access</th>
-        <th className="py-2">Coverage</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {generated.equipmentPlan.map((item, index) => (
-        <tr key={index} className="border-b border-gray-800 align-top">
-          <td className="py-3 pr-4 font-medium text-white">
-            {item.item}
-          </td>
-
-          <td className="py-3 pr-4">
-            <span className={`px-2 py-1 rounded text-xs ${getPriorityBadgeClass(item.priority)}`}>
-              {item.priority || "—"}
-            </span>
-          </td>
-
-          <td className="py-3 pr-4 text-gray-400">
-            {item.costRange || "—"}
-          </td>
-
-          <td className="py-3 pr-4 text-gray-400">
-            {item.access || "—"}
-          </td>
-
-          <td className="py-3 text-gray-400">
-            {item.coverageNotes || "—"}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-  </div>
-)}
+{/* EQUIPMENT & FEASIBILITY PLAN */}
 
 <div className="mt-6 rounded-xl border border-orange-500 bg-gray-900 p-6">
-  <div className="flex items-start justify-between gap-4 mb-4">
+  <div className="flex items-start justify-between gap-4">
     <div>
       <h3 className="text-lg font-semibold">Equipment & Feasibility Plan</h3>
       <p className="text-sm text-gray-400 mt-1">
-        Generate realistic equipment recommendations based on cost, home setup, and caregiver constraints.
+        Compare ideal equipment setup against what is realistic based on cost, home setup, and caregiver constraints.
       </p>
     </div>
 
-<button
-  type="button"
-  onClick={handleGenerateEquipmentFeasibility}
-  disabled={isGeneratingEquipmentFeasibility}
-  className="shrink-0 rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
->
-  {isGeneratingEquipmentFeasibility ? "Generating..." : "Generate Feasibility Plan"}
-</button>
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => setShowEquipmentFeasibility((prev) => !prev)}
+        className="rounded-lg border border-orange-700 px-4 py-2 text-sm font-medium text-orange-200 hover:bg-orange-950/40"
+      >
+        {showEquipmentFeasibility ? "Hide" : "Show"}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleGenerateEquipmentFeasibility}
+        disabled={isGeneratingEquipmentFeasibility}
+        className="shrink-0 rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isGeneratingEquipmentFeasibility ? "Generating..." : "Generate"}
+      </button>
+    </div>
   </div>
 
-   {equipmentFeasibility ? (
-    <div className="space-y-6 text-sm text-gray-300">
+  {showEquipmentFeasibility && (
+    <div className="mt-4">
+      {equipmentFeasibility ? (
+        <div className="space-y-6 text-sm text-gray-300">
+          {equipmentFeasibility.feasibilitySnapshot && (
+            <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+              <h4 className="text-sm font-semibold text-gray-200 mb-3">
+                Real-World Constraint Snapshot
+              </h4>
 
-      {equipmentFeasibility.feasibilitySnapshot && (
-        <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-          <h4 className="text-sm font-semibold text-gray-200 mb-3">
-            Real-World Constraint Snapshot
-          </h4>
+              <div className="grid gap-3 md:grid-cols-3 text-sm">
+                <div className="border-l border-gray-700 pl-3">
+                  <p className="text-xs text-gray-500 mb-1">Financial Feasibility</p>
+                  <p className="text-gray-200">
+                    {mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}
+                  </p>
+                </div>
 
-          <div className="grid gap-3 md:grid-cols-3 text-sm">
-            <div className="border-l border-gray-700 pl-3">
-              <p className="text-xs text-gray-500 mb-1">Financial Feasibility</p>
-              <p className="text-gray-200">
-                💰 {mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}
+                <div className="border-l border-gray-700 pl-3">
+                  <p className="text-xs text-gray-500 mb-1">Environmental Feasibility</p>
+                  <p className="text-gray-200">
+                    {mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}
+                  </p>
+                </div>
+
+                <div className="border-l border-gray-700 pl-3">
+                  <p className="text-xs text-gray-500 mb-1">Caregiver Flexibility</p>
+                  <p className="text-gray-200">
+                    {mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-4 border-t border-gray-800 pt-3">
+                <strong>Main Constraint:</strong>{" "}
+                {equipmentFeasibility.feasibilitySnapshot.mainConstraint || "—"}
               </p>
             </div>
+          )}
 
-            <div className="border-l border-gray-700 pl-3">
-              <p className="text-xs text-gray-500 mb-1">Environmental Feasibility</p>
-              <p className="text-gray-200">
-                🏠 {mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}
-              </p>
-            </div>
+          <div className="space-y-6">
+            {equipmentFeasibility.equipmentPlan?.map((item, i) => (
+              <div key={i} className="rounded-xl border border-gray-700 bg-gray-950 p-5">
+                <div className="mb-4 border-b border-gray-800 pb-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                        Recommendation {i + 1}
+                      </p>
+                      <h4 className="text-lg font-semibold text-white">
+                        {item.item || "Recommendation"}
+                      </h4>
+                    </div>
 
-            <div className="border-l border-gray-700 pl-3">
-              <p className="text-xs text-gray-500 mb-1">Caregiver Flexibility</p>
-              <p className="text-gray-200">
-                👤 {mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}
-              </p>
-            </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 mb-1">Urgency</p>
+                      <p className="text-sm font-medium text-gray-200 capitalize">
+                        {String(item.urgency || "—").replaceAll("_", " ")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-300 mt-3">
+                    {item.reason || "—"}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      Ideal Setup
+                    </p>
+                    <p className="text-sm text-gray-200">{item.idealSetup || "—"}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {item.idealEstimatedCost || "Cost unknown"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      Feasible Plan
+                    </p>
+                    <p className="text-sm text-gray-200">{item.item || "—"}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {item.feasibleEstimatedCost || item.costRange || "Cost unknown"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      What Can Be Done Today
+                    </p>
+                    <p className="text-sm text-gray-200">
+                      {item.immediateWorkaround || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-orange-700 bg-gray-900 p-4">
+                  <p className="text-xs uppercase tracking-wide text-orange-300 mb-2">
+                    Clinical Decision
+                  </p>
+                  <p className="text-sm text-gray-100 leading-relaxed">
+                    {item.clinicalDecision || item.costComparisonNote || "—"}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-sm text-gray-400">
+            Generate a realistic environmental plan that compares the ideal setup against what is feasible for this case.
+          </p>
 
-          <p className="text-xs text-gray-400 mt-4 border-t border-gray-800 pt-3">
-            <strong>Main Constraint:</strong>{" "}
-            {equipmentFeasibility.feasibilitySnapshot.mainConstraint || "—"}
+          <p className="text-xs text-gray-500 mt-1">
+            This will show the ideal solution, realistic recommendation, immediate workaround, and clinical tradeoff.
           </p>
         </div>
       )}
-
-      <div className="space-y-8">
-        {equipmentFeasibility.equipmentPlan?.map((item, i) => (
-          <div key={i} className="rounded-xl border border-gray-700 bg-gray-950 p-5 shadow-sm">
-
-            <div className="mb-4 border-b border-gray-800 pb-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                    Recommendation {i + 1}
-                  </p>
-                  <h4 className="text-lg font-semibold text-white">
-                    {item.item || "Recommendation"}
-                  </h4>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-xs text-gray-500 mb-1">Urgency</p>
-                  <p className="text-sm font-medium text-gray-200 capitalize">
-                    {String(item.urgency || "—").replaceAll("_", " ")}
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-gray-300 mt-3">
-                {item.reason || "—"}
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Ideal Setup
-                </p>
-                <p className="text-sm text-gray-200">
-                  {item.idealSetup || "—"}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  {item.idealEstimatedCost || "Cost unknown"}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Realistic Feasible Plan
-                </p>
-                <p className="text-sm text-gray-200">
-                  {item.item || "—"}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  {item.feasibleEstimatedCost || item.costRange || "Cost unknown"}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  What Can Be Done Today
-                </p>
-                <p className="text-sm text-gray-200">
-                  {item.immediateWorkaround || "—"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Access / Coverage Reality
-                </p>
-                <p className="text-sm text-gray-300">
-                  <strong>Access:</strong> {item.access || "—"}
-                </p>
-                <p className="text-sm text-gray-300 mt-1">
-                  <strong>Coverage:</strong> {item.coverageNotes || "—"}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Clinical Tradeoff
-                </p>
-
-                <p className="text-xs text-gray-500 mb-2">
-                  Cost gap:{" "}
-                  <span className="text-gray-300 font-medium">
-                    {item.relativeCost || "—"}
-                  </span>
-                </p>
-
-                <p className="text-sm text-gray-300">
-                  {item.costComparisonNote || "—"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-lg border border-orange-700 bg-gray-900 p-4">
-              <p className="text-xs uppercase tracking-wide text-orange-300 mb-2">
-                Clinical Decision
-              </p>
-              <p className="text-sm text-gray-100 leading-relaxed">
-                {item.clinicalDecision || item.costComparisonNote || "—"}
-              </p>
-            </div>
-
-          </div>
-        ))}
-      </div>
     </div>
-) : (
-  <div>
-    <p className="text-sm text-gray-400">
-      Generate a realistic environmental plan that compares the ideal setup against what is feasible for this case.
-    </p>
-
-    <p className="text-xs text-gray-500 mt-1">
-      This will show the ideal solution, realistic recommendation, immediate workaround, and clinical tradeoff.
-    </p>
-  </div>
-)}
+  )}
 </div>
 
 
-
-   
-
-{equipmentFeasibility?.equipmentPlan && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6 mb-6">
-    <h3 className="text-xl font-semibold mb-4">
-      Ideal Setup Comparison
-    </h3>
-
-    <p className="text-xs text-gray-500 mb-4">
-      Best-case setup vs what is realistic today based on constraints.
-    </p>
-
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-300">
-        <thead className="text-xs uppercase text-gray-500 border-b border-gray-800">
-          <tr>
-            <th className="py-2 pr-4">Item</th>
-            <th className="py-2 pr-4">Ideal Setup</th>
-            <th className="py-2 pr-4">Feasible Plan</th>
-            <th className="py-2 pr-4">Cost Gap (Ideal vs Feasible)</th>
-            <th className="py-2">Decision</th>
-          </tr>
-        </thead>
-        <tbody>
-          {equipmentFeasibility.equipmentPlan.map((item, i) => (
-            <tr key={i} className="border-b border-gray-800 align-top">
-              <td className="py-3 pr-4 font-medium text-white">
-                {item.item}
-              </td>
-
-              <td className="py-3 pr-4">
-                <p className="text-gray-300">{item.idealSetup || "—"}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {item.idealEstimatedCost || ""}
-                </p>
-              </td>
-
-              <td className="py-3 pr-4">
-                <p className="text-gray-300">{item.reason}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {item.feasibleEstimatedCost || item.costRange || ""}
-                </p>
-              </td>
-
-              <td className="py-3 pr-4">
-                <span className={`px-2 py-1 rounded text-xs ${getCostBadgeClass(item.relativeCost)}`}>
-                  {item.relativeCost || "—"}
-                </span>
-              </td>
-
-              <td className="py-3">
-                <p className="text-gray-300">
-                  {item.clinicalDecision || item.costComparisonNote || "—"}
-                </p>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
 
         {/* VERSION HISTORY */}
 
@@ -3023,7 +3094,7 @@ className={`rounded-lg px-4 py-3 transition ${
                 {selectedGeneration.output_payload.pathways.map((pathway, index) => (
                   <div
                     key={`${pathway.type}-${index}`}
-                    className="rounded-lg border border-gray-800 p-4 bg-gray-950"
+                   className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-80"
                   >
                     <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
                       {String(pathway.type).replaceAll("_", " ")}
