@@ -16,7 +16,6 @@ type CaseRow = {
   } | null;
   case_classification: {
     case_type?: string;
-    subcategory?: string;
   } | null;
     functional_status: {
     other_key_barriers?: string;
@@ -37,7 +36,6 @@ export default function CasesPage() {
 
 const [searchTerm, setSearchTerm] = useState("");
 const [selectedCaseType, setSelectedCaseType] = useState("all");
-const [selectedSubcategory, setSelectedSubcategory] = useState("all");
 const [sortOrder, setSortOrder] = useState("newest");
 const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
 const [isDeleting, setIsDeleting] = useState(false);  
@@ -98,21 +96,16 @@ const filteredCases = [...cases]
       c.client_info?.client_name?.toLowerCase().includes(search) ||
       c.patient_profile?.primary_diagnosis?.toLowerCase().includes(search) ||
       c.case_classification?.case_type?.toLowerCase().includes(search) ||
-      c.case_classification?.subcategory?.toLowerCase().includes(search) ||
       c.functional_status?.other_key_barriers?.toLowerCase().includes(search) ||
       c.goals_preferences?.other_target_activity?.toLowerCase().includes(search) ||
       c.environment?.other_safety_hazards?.toLowerCase().includes(search) ||
       c.environment?.other_equipment_present?.toLowerCase().includes(search);
 
-    const matchesCaseType =
-      selectedCaseType === "all" ||
-      c.case_classification?.case_type === selectedCaseType;
+const matchesCaseType =
+  selectedCaseType === "all" ||
+  c.case_classification?.case_type === selectedCaseType;
 
-    const matchesSubcategory =
-      selectedSubcategory === "all" ||
-      c.case_classification?.subcategory === selectedSubcategory;
-
-    return matchesSearch && matchesCaseType && matchesSubcategory;
+return matchesSearch && matchesCaseType;
   })
   .sort((a, b) => {
     if (sortOrder === "oldest") {
@@ -155,19 +148,6 @@ const allFilteredSelected =
     <option value="neurological">Neurological</option>
     <option value="physical_rehabilitation">Physical Rehab</option>
     <option value="pediatric">Pediatric</option>
-  </select>
-
-  <select
-    value={selectedSubcategory}
-    onChange={(e) => setSelectedSubcategory(e.target.value)}
-    className="rounded-lg bg-gray-900 border border-gray-700 px-4 py-2 text-sm"
-  >
-    <option value="all">All Subcategories</option>
-    <option value="fall_prevention">Fall Prevention</option>
-    <option value="home_modification">Home Modification</option>
-    <option value="memory_support">Memory Support</option>
-    <option value="bathing_safety">Bathing Safety</option>
-    <option value="dressing_independence">Dressing Independence</option>
   </select>
 
   <select
@@ -262,10 +242,6 @@ const allFilteredSelected =
                     <p>{c.patient_profile?.primary_diagnosis || "No diagnosis"}</p>
                     <p className="text-gray-400">
                       Client: {c.client_info?.client_name || "Unnamed client"}
-                    </p>
-                    <p className="text-gray-400">
-                      Type: {c.case_classification?.case_type || "—"} | Subcategory:{" "}
-                      {c.case_classification?.subcategory || "—"}
                     </p>
                   </div>
                 </Link>

@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
+import {
+  buildClinicalDecisionInputFromCase,
+  buildClinicalNormalizationInsight,
+} from "@/lib/buildClinicalDecisionInput";
 
 type GeneratedPlan = {
   focusApplied?: string;
@@ -44,6 +49,15 @@ type Pathway = {
 };
 
 type GeneratedOutput = {
+  clinicalDecisionModelUsed?: {
+  primaryStrategy?: string;
+  selectedStrategies?: string[];
+  dominantBarrier?: string;
+  secondaryBarrier?: string;
+  clinicalLens?: string[];
+  environmentContext?: string[];
+  safetyRiskLevel?: string;
+};
   focusApplied?: string;
   patientSnapshot?: string;
   taskBreakdown?: string[];
@@ -187,10 +201,24 @@ functional_status: {
 
 case_classification: {
   case_type?: string;
-  subcategory?: string;
   clinical_focus?: string;
 } | null;
-    environment: {
+
+clinical_decision_input?: {
+  goalCategory?: string;
+  dominantBarrier?: string;
+  dominantBarrierSeverity?: number;
+  secondaryBarrier?: string;
+  secondaryBarrierSeverity?: number;
+  supportLevel?: string;
+  safetyRiskLevel?: string;
+  clinicalLens?: string[];
+  environmentContext?: string[];
+} | null;
+
+clinical_decision_model?: any;
+
+environment: {
     bathroom_type?: string;
     stairs_present?: string;
     space_constraints?: string;
@@ -243,6 +271,16 @@ const [editableFeasibility, setEditableFeasibility] = useState({
   financial_constraint: "unknown",
   environmental_constraint: "unknown",
   equipment_access: "unknown",
+});
+
+const [editableDecisionInputs, setEditableDecisionInputs] = useState({
+  goalCategory: "Independence",
+  dominantBarrier: "Physical",
+  dominantBarrierSeverity: 1 as 1 | 2 | 3,
+  secondaryBarrier: undefined as string | undefined,
+  secondaryBarrierSeverity: undefined as 1 | 2 | 3 | undefined,
+  supportLevel: "Independent",
+  safetyRiskLevel: "low",
 });
 
 const [showDetails, setShowDetails] = useState(false);
@@ -300,7 +338,21 @@ setEditableFeasibility({
   equipment_access:
     typedCase.feasibility_context?.equipment_access || "unknown",
 });
-
+setEditableDecisionInputs({
+  goalCategory: typedCase.clinical_decision_input?.goalCategory || "Independence",
+  dominantBarrier: typedCase.clinical_decision_input?.dominantBarrier || "Physical",
+  dominantBarrierSeverity:
+    (typedCase.clinical_decision_input?.dominantBarrierSeverity as 1 | 2 | 3) || 1,
+  secondaryBarrier: typedCase.clinical_decision_input?.secondaryBarrier,
+  secondaryBarrierSeverity:
+    typedCase.clinical_decision_input?.secondaryBarrierSeverity as
+      | 1
+      | 2
+      | 3
+      | undefined,
+  supportLevel: typedCase.clinical_decision_input?.supportLevel || "Independent",
+  safetyRiskLevel: typedCase.clinical_decision_input?.safetyRiskLevel || "low",
+});
   const savedScript =
   typedCase.generated_output?.clinicalDetailModules?.caregiverScript;
 
@@ -456,37 +508,60 @@ async function handleSaveCurrentVersion() {
 async function handleSaveCaseEdits() {
   if (!caseData?.id) return;
 
-  console.log("Saving feasibility:", editableFeasibility);
-
-  try {
-    const { error } = await supabase
-      .from("cases")
-
-.update({
-  title: editableTitle,
-  client_info: editableClientInfo,
-  caregiver_info: editableCaregiverInfo,
-  feasibility_context: editableFeasibility,
-})
-
-      .eq("id", caseData.id);
-
-    if (error) {
-      throw error;
-    }
-
- setCaseData({
+  const updatedCaseData = {
   ...caseData,
   title: editableTitle,
   client_info: editableClientInfo,
   caregiver_info: editableCaregiverInfo,
   feasibility_context: editableFeasibility,
-});
+};
+
+const clinicalDecisionInput =
+  buildClinicalDecisionInputFromCase(updatedCaseData);
+
+  const clinicalDecisionModel = buildClinicalDecisionModel({
+    goalCategory: clinicalDecisionInput.goalCategory as any,
+    dominantBarrier: clinicalDecisionInput.dominantBarrier as any,
+    dominantBarrierSeverity:
+      clinicalDecisionInput.dominantBarrierSeverity as 1 | 2 | 3,
+    secondaryBarrier: clinicalDecisionInput.secondaryBarrier as any,
+    secondaryBarrierSeverity:
+      clinicalDecisionInput.secondaryBarrierSeverity
+        ? undefined
+        : clinicalDecisionInput.secondaryBarrierSeverity,
+    safetyRiskLevel: clinicalDecisionInput.safetyRiskLevel as any,
+    supportLevel: clinicalDecisionInput.supportLevel as any,
+    clinicalLens: clinicalDecisionInput.clinicalLens as any,
+    environmentContext: clinicalDecisionInput.environmentContext as any,
+  });
+
+  try {
+    const { error } = await supabase
+      .from("cases")
+      .update({
+        title: editableTitle,
+        client_info: editableClientInfo,
+        caregiver_info: editableCaregiverInfo,
+        feasibility_context: editableFeasibility,
+        clinical_decision_input: clinicalDecisionInput,
+      })
+      .eq("id", caseData.id);
+
+    if (error) throw error;
+
+    setCaseData({
+      ...caseData,
+      title: editableTitle,
+      client_info: editableClientInfo,
+      caregiver_info: editableCaregiverInfo,
+      feasibility_context: editableFeasibility,
+      clinical_decision_input: clinicalDecisionInput,
+    });
 
     setIsEditing(false);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to save case edits:", error);
-    alert("Failed to save changes.");
+    alert(`Failed to save changes: ${error?.message || JSON.stringify(error)}`);
   }
 }
 
@@ -767,11 +842,13 @@ async function handleGenerateCaregiverScript() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        type: "caregiver_script",
-        caseData,
-        generatedPlan: caseData.generated_output,
-      }),
+ body: JSON.stringify({
+  type: "caregiver_script",
+  caseData,
+  generatedPlan: caseData.generated_output,
+  clinicalDecisionInput: liveClinicalDecisionInput,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+}),
     });
 
     const result = await response.json();
@@ -852,11 +929,13 @@ async function handleGenerateTransferDetails() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        type: "transfer_mobility_details",
-        caseData,
-        generatedPlan: caseData.generated_output,
-      }),
+     body: JSON.stringify({
+  type: "transfer_mobility_details",
+  caseData,
+  generatedPlan: caseData.generated_output,
+  clinicalDecisionInput: liveClinicalDecisionInput,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+}),
     });
 
     const result = await response.json();
@@ -914,11 +993,13 @@ async function handleGenerateAdlPrivacy() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        type: "adl_privacy_support",
-        caseData,
-        generatedPlan: caseData.generated_output,
-      }),
+body: JSON.stringify({
+  type: "adl_privacy_support",
+  caseData,
+  generatedPlan: caseData.generated_output,
+  clinicalDecisionInput: liveClinicalDecisionInput,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+}),
     });
 
     const result = await response.json();
@@ -975,11 +1056,13 @@ async function handleGenerateEquipmentFeasibility() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        type: "equipment_feasibility_plan",
-        caseData,
-        generatedPlan: caseData.generated_output,
-      }),
+body: JSON.stringify({
+  type: "equipment_feasibility_plan",
+  caseData,
+  generatedPlan: caseData.generated_output,
+  clinicalDecisionInput: liveClinicalDecisionInput,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+}),
     });
 
     const result = await response.json();
@@ -1075,6 +1158,14 @@ if (loading) {
   }
 
  const generated = caseData.generated_output as GeneratedOutput | null;
+
+const liveClinicalDecisionInput = buildClinicalDecisionInputFromCase(caseData);
+
+const liveClinicalDecisionModel =
+  buildClinicalDecisionModel(liveClinicalDecisionInput);
+
+const normalizationInsight =
+  buildClinicalNormalizationInsight(caseData);
 
 const levels = caseData.functional_status?.adl_assist_levels;
 
@@ -1255,7 +1346,7 @@ const handleClinicalFocusChange = async (focus: string) => {
 
   try {
     setIsRegeneratingFocus(true);
-setRegeneratingFocus(focus);
+    setRegeneratingFocus(focus);
 
     const updatedCasePayload = {
       ...caseData,
@@ -1265,12 +1356,24 @@ setRegeneratingFocus(focus);
       },
     };
 
+    const clinicalDecisionInput =
+      buildClinicalDecisionInputFromCase(updatedCasePayload);
+
+    const clinicalDecisionModel =
+      buildClinicalDecisionModel(clinicalDecisionInput);
+
+    const focusRegenerationPayload = {
+      ...updatedCasePayload,
+      clinical_decision_input: clinicalDecisionInput,
+      clinicalDecisionModel,
+    };
+
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedCasePayload),
+      body: JSON.stringify(focusRegenerationPayload),
     });
 
     const aiData = await aiResponse.json();
@@ -1290,7 +1393,7 @@ setRegeneratingFocus(focus);
         {
           case_id: caseData.id,
           prompt_version: `v1-ai-${focus}`,
-          input_payload: updatedCasePayload,
+          input_payload: focusRegenerationPayload,
           output_payload: plan,
         },
       ])
@@ -1306,9 +1409,10 @@ setRegeneratingFocus(focus);
       .from("cases")
       .update({
         case_classification: updatedCasePayload.case_classification,
+        clinical_decision_input: clinicalDecisionInput,
         generated_output: plan,
-        current_generation_id: newGeneration?.id || caseData.current_generation_id,
-        
+        current_generation_id:
+          newGeneration?.id || caseData.current_generation_id,
       })
       .eq("id", caseData.id);
 
@@ -1317,6 +1421,7 @@ setRegeneratingFocus(focus);
     setCaseData((prev: any) => ({
       ...prev,
       case_classification: updatedCasePayload.case_classification,
+      clinical_decision_input: clinicalDecisionInput,
       generated_output: plan,
       current_generation_id: newGeneration?.id || prev.current_generation_id,
     }));
@@ -1332,8 +1437,8 @@ setRegeneratingFocus(focus);
     console.error("Failed to regenerate clinical focus:", error);
     alert("Failed to regenerate plan for this clinical focus.");
   } finally {
-  setIsRegeneratingFocus(false);
-  setRegeneratingFocus(null);
+    setIsRegeneratingFocus(false);
+    setRegeneratingFocus(null);
   }
 };
 
@@ -1343,7 +1448,7 @@ async function handleRegenerateCurrentPlan() {
   try {
     setIsRegeneratingPlan(true);
 
-   const updatedCasePayload = {
+const updatedCasePayload = {
   ...caseData,
   title: editableTitle || caseData.title,
   client_info: editableClientInfo,
@@ -1351,12 +1456,23 @@ async function handleRegenerateCurrentPlan() {
   feasibility_context: editableFeasibility,
 };
 
+const clinicalDecisionInput =
+  buildClinicalDecisionInputFromCase(updatedCasePayload);
+
+const clinicalDecisionModel = buildClinicalDecisionModel(clinicalDecisionInput);
+
+const regenerationPayload = {
+  ...updatedCasePayload,
+  clinical_decision_input: clinicalDecisionInput,
+  clinicalDecisionModel,
+};
+
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedCasePayload),
+    body: JSON.stringify(regenerationPayload),
     });
 
     const aiData = await aiResponse.json();
@@ -1374,7 +1490,7 @@ async function handleRegenerateCurrentPlan() {
         {
           case_id: caseData.id,
           prompt_version: `v1-ai-${caseData.case_classification?.clinical_focus || "adl_home_safety"}-regenerated`,
-          input_payload: updatedCasePayload,
+          input_payload: regenerationPayload,
           output_payload: plan,
         },
       ])
@@ -1384,28 +1500,37 @@ async function handleRegenerateCurrentPlan() {
 
     const newGeneration = insertedGenerations?.[0];
 
-    const { error: caseUpdateError } = await supabase
-      .from("cases")
-      .update({
-        title: updatedCasePayload.title,
-        client_info: updatedCasePayload.client_info,
-        caregiver_info: updatedCasePayload.caregiver_info,
-        generated_output: plan,
-        current_generation_id: newGeneration?.id || caseData.current_generation_id,
-      })
-      .eq("id", caseData.id);
+const { error: caseUpdateError } = await supabase
+  .from("cases")
+  .update({
+    title: updatedCasePayload.title,
+    client_info: updatedCasePayload.client_info,
+    caregiver_info: updatedCasePayload.caregiver_info,
+    feasibility_context: updatedCasePayload.feasibility_context,
 
-    if (caseUpdateError) throw caseUpdateError;
+    clinical_decision_input: clinicalDecisionInput,
+    
 
-    setCaseData({
-      ...caseData,
-      title: updatedCasePayload.title,
-      client_info: updatedCasePayload.client_info,
-      caregiver_info: updatedCasePayload.caregiver_info,
-      generated_output: plan,
-      current_generation_id: newGeneration?.id || caseData.current_generation_id,
-    });
+    generated_output: plan,
+    current_generation_id: newGeneration?.id || caseData.current_generation_id,
+  })
+  .eq("id", caseData.id);
 
+if (caseUpdateError) throw caseUpdateError;
+
+setCaseData({
+  ...caseData,
+  title: updatedCasePayload.title,
+  client_info: updatedCasePayload.client_info,
+  caregiver_info: updatedCasePayload.caregiver_info,
+  feasibility_context: updatedCasePayload.feasibility_context,
+
+  clinical_decision_input: clinicalDecisionInput,
+  
+
+  generated_output: plan,
+  current_generation_id: newGeneration?.id || caseData.current_generation_id,
+});
     setCaregiverScript(null);
     setTransferDetails(null);
     setAdlPrivacy(null);
@@ -1486,6 +1611,60 @@ return (
         : "ADL / Home Safety"}
     </span>
   </p>
+
+    {!isEditing && (
+    <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
+      <h3 className="text-sm font-semibold text-blue-200 mb-3">
+        Decision Engine Summary
+      </h3>
+
+      <div className="grid gap-3 md:grid-cols-2 text-sm">
+        <div>
+          <p className="text-xs text-blue-300">Dominant Barrier</p>
+          <p className="text-white font-medium">
+            {liveClinicalDecisionModel.dominantBarrier || "—"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-blue-300">Secondary Barrier</p>
+          <p className="text-white font-medium">
+            {liveClinicalDecisionModel.secondaryBarrier || "None"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-blue-300">Safety Risk</p>
+          <p className="text-white font-medium">
+            {liveClinicalDecisionModel.safetyRiskLevel || "—"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-blue-300">Support Level</p>
+          <p className="text-white font-medium">
+            {liveClinicalDecisionModel.supportLevel || "—"}
+          </p>
+        </div>
+
+        <div className="md:col-span-2">
+          <p className="text-xs text-blue-300">Selected Strategies</p>
+          <p className="text-white font-medium">
+            {liveClinicalDecisionModel.selectedStrategies?.length
+              ? liveClinicalDecisionModel.selectedStrategies.join(", ")
+              : "—"}
+          </p>
+        </div>
+
+        <div className="md:col-span-2">
+          <p className="text-xs text-blue-300">Reasoning Summary</p>
+          <p className="text-gray-200 leading-relaxed">
+            {liveClinicalDecisionModel.reasoningSummary || "—"}
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
 
   {/* CLINICAL FOCUS SWITCHER */}
 
@@ -1662,6 +1841,95 @@ disabled={
       />
     </div>
 
+{/* DECISION ENGINE SUMMARY */}
+<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
+  <h3 className="text-sm font-semibold text-gray-300 mb-3">
+    Decision Engine Summary
+  </h3>
+
+  <div className="grid gap-3 md:grid-cols-2 text-sm">
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Goal Category</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.goalCategory || "—"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Dominant Barrier</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.dominantBarrier || "—"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Barrier Severity</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.dominantBarrierSeverity || "—"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Safety Risk</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.safetyRiskLevel || "—"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Support Level</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.supportLevel || "—"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+      <div className="text-gray-500 text-xs mb-1">Secondary Barrier</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.secondaryBarrier || "None"}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
+      <div className="text-gray-500 text-xs mb-1">Selected Strategies</div>
+      <div className="text-white">
+        {liveClinicalDecisionModel.selectedStrategies?.length
+          ? liveClinicalDecisionModel.selectedStrategies.join(", ")
+          : "—"}
+      </div>
+    </div>
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
+      <div className="text-gray-500 text-xs mb-2">Normalization Notes</div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
+      <div className="text-gray-500 text-xs mb-2">Barrier Scores</div>
+
+      <div className="grid gap-2 md:grid-cols-4">
+        {normalizationInsight.sortedScores.map(([barrier, score]) => (
+          <div
+            key={barrier}
+            className="rounded border border-gray-800 bg-gray-950 px-2 py-2"
+          >
+            <div className="text-xs text-gray-500">{barrier}</div>
+            <div className="text-sm font-semibold text-white">{score}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+      {normalizationInsight.notes.length > 0 ? (
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {normalizationInsight.notes.map((note, index) => (
+            <li key={index}>{note}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-gray-400">—</div>
+      )}
+    </div>
+  </div>
+</div>
+
 {/* FEASIBILITY CONTEXT */}
 <div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
   <h3 className="text-sm font-semibold text-gray-300 mb-3">
@@ -1794,10 +2062,7 @@ disabled={
   <strong>Case Type:</strong>{" "}
   {caseData.case_classification?.case_type || "—"}
 </p>
-<p>
-  <strong>Subcategory:</strong>{" "}
-  {caseData.case_classification?.subcategory || "—"}
-</p>
+
 <p>
   <strong>Primary Goal:</strong>{" "}
   {caseData.goals_preferences?.primary_goal || "—"}
@@ -2194,61 +2459,147 @@ disabled={
 </button>
   </div>
 
-  {equipmentFeasibility ? (
-    <div className="space-y-4 text-sm text-gray-300">
+   {equipmentFeasibility ? (
+    <div className="space-y-6 text-sm text-gray-300">
 
       {equipmentFeasibility.feasibilitySnapshot && (
-        <div className="mb-4 space-y-1 text-sm text-gray-400">
-<p>💰 {mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}</p>
-<p>🏠 {mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}</p>
-<p>👤 {mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}</p>
+        <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+          <h4 className="text-sm font-semibold text-gray-200 mb-3">
+            Real-World Constraint Snapshot
+          </h4>
 
-<p className="text-xs text-gray-500 mt-2">
-  <strong>Main Constraint:</strong> {equipmentFeasibility.feasibilitySnapshot.mainConstraint}
-</p>
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div className="border-l border-gray-700 pl-3">
+              <p className="text-xs text-gray-500 mb-1">Financial Feasibility</p>
+              <p className="text-gray-200">
+                💰 {mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}
+              </p>
+            </div>
+
+            <div className="border-l border-gray-700 pl-3">
+              <p className="text-xs text-gray-500 mb-1">Environmental Feasibility</p>
+              <p className="text-gray-200">
+                🏠 {mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}
+              </p>
+            </div>
+
+            <div className="border-l border-gray-700 pl-3">
+              <p className="text-xs text-gray-500 mb-1">Caregiver Flexibility</p>
+              <p className="text-gray-200">
+                👤 {mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4 border-t border-gray-800 pt-3">
+            <strong>Main Constraint:</strong>{" "}
+            {equipmentFeasibility.feasibilitySnapshot.mainConstraint || "—"}
+          </p>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-8">
         {equipmentFeasibility.equipmentPlan?.map((item, i) => (
-          <div key={i} className="border border-gray-800 rounded-lg p-4 bg-gray-900">
+          <div key={i} className="rounded-xl border border-gray-700 bg-gray-950 p-5 shadow-sm">
 
-            <h4 className="font-semibold text-white mb-1">{item.item}</h4>
+            <div className="mb-4 border-b border-gray-800 pb-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                    Recommendation {i + 1}
+                  </p>
+                  <h4 className="text-lg font-semibold text-white">
+                    {item.item || "Recommendation"}
+                  </h4>
+                </div>
 
-            <p className="text-gray-300 text-sm mb-2">{item.reason}</p>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 mb-1">Urgency</p>
+                  <p className="text-sm font-medium text-gray-200 capitalize">
+                    {String(item.urgency || "—").replaceAll("_", " ")}
+                  </p>
+                </div>
+              </div>
 
-            <div className="text-xs text-gray-400 space-y-1">
-              <p><strong>Priority:</strong> {item.priority}</p>
-              <p><strong>Urgency:</strong> {item.urgency}</p>
-              <p><strong>Cost:</strong> {item.costRange}</p>
-              <p><strong>Access:</strong> {item.access}</p>
-              <p><strong>Coverage:</strong> {item.coverageNotes}</p>
+              <p className="text-gray-300 mt-3">
+                {item.reason || "—"}
+              </p>
             </div>
 
-{item.immediateWorkaround && (
-  <div className="mt-3 rounded-lg border border-gray-800 bg-gray-950 p-3">
-    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-      What can be done today
-    </p>
-    <p className="text-sm text-gray-300">
-      {item.immediateWorkaround}
-    </p>
-  </div>
-)}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  Ideal Setup
+                </p>
+                <p className="text-sm text-gray-200">
+                  {item.idealSetup || "—"}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {item.idealEstimatedCost || "Cost unknown"}
+                </p>
+              </div>
 
-{item.relativeCost && (
-  <p className="text-xs text-gray-400 mt-3">
-    <span className={`px-2 py-1 rounded text-xs ${getCostBadgeClass(item.relativeCost)}`}>
-  Cost: {item.relativeCost || "—"}
-</span>
-  </p>
-)}
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  Realistic Feasible Plan
+                </p>
+                <p className="text-sm text-gray-200">
+                  {item.item || "—"}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {item.feasibleEstimatedCost || item.costRange || "Cost unknown"}
+                </p>
+              </div>
 
-{item.costComparisonNote && (
-  <p className="text-sm text-gray-300 mt-1">
-    {item.costComparisonNote}
-  </p>
-)}
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  What Can Be Done Today
+                </p>
+                <p className="text-sm text-gray-200">
+                  {item.immediateWorkaround || "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  Access / Coverage Reality
+                </p>
+                <p className="text-sm text-gray-300">
+                  <strong>Access:</strong> {item.access || "—"}
+                </p>
+                <p className="text-sm text-gray-300 mt-1">
+                  <strong>Coverage:</strong> {item.coverageNotes || "—"}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  Clinical Tradeoff
+                </p>
+
+                <p className="text-xs text-gray-500 mb-2">
+                  Cost gap:{" "}
+                  <span className="text-gray-300 font-medium">
+                    {item.relativeCost || "—"}
+                  </span>
+                </p>
+
+                <p className="text-sm text-gray-300">
+                  {item.costComparisonNote || "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-orange-700 bg-gray-900 p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-300 mb-2">
+                Clinical Decision
+              </p>
+              <p className="text-sm text-gray-100 leading-relaxed">
+                {item.clinicalDecision || item.costComparisonNote || "—"}
+              </p>
+            </div>
 
           </div>
         ))}
@@ -2257,11 +2608,11 @@ disabled={
 ) : (
   <div>
     <p className="text-sm text-gray-400">
-      Generate a real-world plan based on this patient’s constraints.
+      Generate a realistic environmental plan that compares the ideal setup against what is feasible for this case.
     </p>
 
     <p className="text-xs text-gray-500 mt-1">
-      This will adapt the ideal setup above into something safe and actionable.
+      This will show the ideal solution, realistic recommendation, immediate workaround, and clinical tradeoff.
     </p>
   </div>
 )}

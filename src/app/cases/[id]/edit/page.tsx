@@ -43,10 +43,22 @@ caregiver_info: {
 } | null;
 case_classification: {
   case_type?: string;
-  subcategory?: string;
   clinical_focus?: string;
 } | null;
-  generated_output?: GeneratedPlan | null;
+
+clinical_decision_input?: {
+  goalCategory?: string;
+  dominantBarrier?: string;
+  dominantBarrierSeverity?: number;
+  secondaryBarrier?: string;
+  secondaryBarrierSeverity?: number;
+  supportLevel?: string;
+  safetyRiskLevel?: string;
+  clinicalLens?: string[];
+  environmentContext?: string[];
+} | null;
+
+generated_output?: GeneratedPlan | null;
 environment: {
   bathroom_type?: string;
   stairs_present?: string;
@@ -162,8 +174,14 @@ export default function EditCasePage({
   const [caregiverPriorities, setCaregiverPriorities] = useState("");
   const [caregiverIsPrimarySupport, setCaregiverIsPrimarySupport] = useState(false);
   const [caseType, setCaseType] = useState("geriatric");
-  const [subcategory, setSubcategory] = useState("fall_prevention");
   const [clinicalFocus, setClinicalFocus] = useState("adl_home_safety");
+  const [goalCategory, setGoalCategory] = useState("Safety");
+const [dominantBarrier, setDominantBarrier] = useState("Physical");
+const [dominantBarrierSeverity, setDominantBarrierSeverity] = useState(2);
+const [secondaryBarrier, setSecondaryBarrier] = useState("");
+const [secondaryBarrierSeverity, setSecondaryBarrierSeverity] = useState(0);
+const [supportLevel, setSupportLevel] = useState("Intermittent Support");
+const [safetyRiskLevel, setSafetyRiskLevel] = useState("medium");
   const [ageRange, setAgeRange] = useState("70-79");
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState("");
   const [assistanceLevel, setAssistanceLevel] = useState("3");
@@ -442,10 +460,33 @@ const clinicalPrioritySummary = buildClinicalPrioritySummary();
 
 const casePayload = {
   clinical_focus: clinicalFocus,
+
+  clinicalDecisionModel: {
+  goalCategory,
+  dominantBarrier,
+  dominantBarrierSeverity,
+  secondaryBarrier,
+  secondaryBarrierSeverity,
+  supportLevel,
+  safetyRiskLevel,
+},
 case_classification: {
   case_type: caseType,
-  subcategory: subcategory,
   clinical_focus: clinicalFocus,
+},
+clinical_decision_input: {
+  goalCategory,
+  dominantBarrier,
+  dominantBarrierSeverity,
+  secondaryBarrier,
+  secondaryBarrierSeverity,
+  supportLevel,
+  safetyRiskLevel,
+  clinicalLens:
+    secondaryBarrier && secondaryBarrier !== "None"
+      ? [secondaryBarrier]
+      : [],
+  environmentContext: clinicalFocus ? [clinicalFocus] : [],
 },
   clientName,
   clientPhone,
@@ -455,7 +496,6 @@ case_classification: {
   caregiverRelationship,
   caregiverPhone,
   caseType,
-  subcategory,
   ageRange,
   primaryDiagnosis,
   targetActivity: "Bathing",
@@ -566,7 +606,9 @@ caregiverSupport: {
 const updatedPlan = aiData.plan;
 setSaveMessage("Saving updated treatment plan...");
 
-  const { error } = await supabase
+
+
+  const { data: updatedCase, error } = await supabase
     .from("cases")
     .update({
       title: `${caseType} case - ${primaryDiagnosis || "Untitled"}`,
@@ -659,15 +701,31 @@ goals_preferences: {
       is_primary_support: caregiverIsPrimarySupport,
 },
 
-      case_classification: {
-        case_type: caseType,
-        subcategory: subcategory,
-        clinical_focus: clinicalFocus,
-      },
-      generated_output: updatedPlan,
-    })
-    .eq("id", caseId);
+case_classification: {
+  case_type: caseType,
+  clinical_focus: clinicalFocus,
+},
 
+clinical_decision_input: {
+  goalCategory,
+  dominantBarrier,
+  dominantBarrierSeverity,
+  secondaryBarrier,
+  secondaryBarrierSeverity,
+  supportLevel,
+  safetyRiskLevel,
+clinicalLens: secondaryBarrier && secondaryBarrier !== "None" ? [secondaryBarrier] : [],
+environmentContext: clinicalFocus ? [clinicalFocus] : [],
+},
+
+generated_output: updatedPlan,
+    })
+  .eq("id", caseId)
+.select("clinical_decision_input");
+console.log(
+  "UPDATED clinical_decision_input:",
+  updatedCase
+);
 if (error) {
   setSaveMessage(`Update failed: ${error.message || "Unknown error"}`);
 } else {
@@ -696,7 +754,7 @@ async function updateCaseOnly() {
 
   const clinicalPrioritySummary = buildClinicalPrioritySummary();
 
-  const { error } = await supabase
+  const { data: updatedCase, error } = await supabase
     .from("cases")
     .update({
       title: `${caseType} case - ${primaryDiagnosis || "Untitled"}`,
@@ -786,15 +844,34 @@ async function updateCaseOnly() {
         priorities: caregiverPriorities,
         is_primary_support: caregiverIsPrimarySupport,
       },
-        case_classification: {
-          case_type: caseType,
-          subcategory: subcategory,
-          clinical_focus: clinicalFocus,
-        },
-      generated_output: generatedPlan, // 👈 key line (no AI)
-    })
-    .eq("id", caseId);
+case_classification: {
+  case_type: caseType,
+  clinical_focus: clinicalFocus,
+},
 
+clinical_decision_input: {
+  goalCategory,
+  dominantBarrier,
+  dominantBarrierSeverity,
+  secondaryBarrier,
+  secondaryBarrierSeverity,
+  supportLevel,
+  safetyRiskLevel,
+  clinicalLens:
+    secondaryBarrier && secondaryBarrier !== "None"
+      ? [secondaryBarrier]
+      : [],
+  environmentContext: clinicalFocus ? [clinicalFocus] : [],
+},
+
+generated_output: generatedPlan,
+    })
+   .eq("id", caseId)
+.select("clinical_decision_input");
+console.log(
+  "UPDATED clinical_decision_input:",
+  updatedCase
+);
 if (error) {
   setSaveMessage(`Update failed: ${error.message || "Unknown error"}`);
 } else {
@@ -822,7 +899,7 @@ if (error) {
 const { data, error } = await supabase
   .from("cases")
 .select(
-  "id, title, patient_profile, functional_status, goals_preferences, client_info, caregiver_info, case_classification, environment, generated_output"
+  "id, title, patient_profile, functional_status, goals_preferences, client_info, caregiver_info, case_classification, clinical_decision_input, environment, generated_output"
 )
   .eq("id", resolvedParams.id)
   .single();
@@ -831,6 +908,10 @@ const { data, error } = await supabase
         setErrorMessage(error.message || "Failed to load case.");
       } else {
         const caseData = data as CaseDetail;
+        alert(
+  JSON.stringify(caseData.clinical_decision_input, null, 2)
+);
+console.log("EDIT LOAD clinical_decision_input:", caseData.clinical_decision_input);
 const loadedPlan = caseData.generated_output || null;
 
 if (loadedPlan) {
@@ -853,7 +934,6 @@ if (loadedPlan) {
         setCaregiverPriorities(caseData.caregiver_info?.priorities || "");
         setCaregiverIsPrimarySupport(caseData.caregiver_info?.is_primary_support || false);
         setCaseType(caseData.case_classification?.case_type || "geriatric");
-        setSubcategory(caseData.case_classification?.subcategory || "fall_prevention");
         setClinicalFocus(
   caseData.case_classification?.clinical_focus || "adl_home_safety"
 );
@@ -871,6 +951,33 @@ setAdlAssistLevels({
     caseData.functional_status?.adl_assist_levels?.shower_transfer || "3",
 });
 setPrimaryGoal(caseData.goals_preferences?.primary_goal || "");
+setGoalCategory(
+  caseData.clinical_decision_input?.goalCategory || "Safety"
+);
+
+setDominantBarrier(
+  caseData.clinical_decision_input?.dominantBarrier || "Physical"
+);
+
+setDominantBarrierSeverity(
+  caseData.clinical_decision_input?.dominantBarrierSeverity ?? 2
+);
+
+setSecondaryBarrier(
+  caseData.clinical_decision_input?.secondaryBarrier || ""
+);
+
+setSecondaryBarrierSeverity(
+  caseData.clinical_decision_input?.secondaryBarrierSeverity ?? 0
+);
+
+setSupportLevel(
+  caseData.clinical_decision_input?.supportLevel || "Intermittent Support"
+);
+
+setSafetyRiskLevel(
+  caseData.clinical_decision_input?.safetyRiskLevel || "medium"
+);
 setKeyBarriers(caseData.functional_status?.key_barriers || []);
 setBathroomType(
   caseData.environment?.bathroom_assessment?.bathroom_type ||
@@ -1190,18 +1297,111 @@ setGeneralMobility({
   </select>
 </div>
 
+<div className="md:col-span-2 pt-4 border-t border-gray-800">
+  <h3 className="text-lg font-semibold">Decision Engine Inputs</h3>
+  <p className="text-sm text-gray-400">
+    These fields control the strategy selection used to generate pathways.
+  </p>
+</div>
+
 <div>
-  <label className="block text-sm font-medium mb-2">Subcategory</label>
+  <label className="block text-sm font-medium mb-2">Goal Category</label>
   <select
-    value={subcategory}
-    onChange={(e) => setSubcategory(e.target.value)}
+    value={goalCategory}
+    onChange={(e) => setGoalCategory(e.target.value)}
     className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
   >
-    <option value="fall_prevention">Fall Prevention</option>
-    <option value="home_modification">Home Modification</option>
-    <option value="memory_support">Memory Support</option>
-    <option value="bathing_safety">Bathing Safety</option>
-    <option value="dressing_independence">Dressing Independence</option>
+    <option value="Safety">Safety</option>
+    <option value="Independence">Independence</option>
+    <option value="Participation">Participation</option>
+    <option value="Caregiver Relief">Caregiver Relief</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Dominant Barrier</label>
+  <select
+    value={dominantBarrier}
+    onChange={(e) => setDominantBarrier(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="Physical">Physical</option>
+    <option value="Cognitive">Cognitive</option>
+    <option value="Behavioral">Behavioral</option>
+    <option value="Sensory">Sensory</option>
+    <option value="Environmental">Environmental</option>
+    <option value="Caregiver">Caregiver</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Dominant Barrier Severity</label>
+  <select
+    value={dominantBarrierSeverity}
+    onChange={(e) => setDominantBarrierSeverity(Number(e.target.value))}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value={1}>Low</option>
+    <option value={2}>Moderate</option>
+    <option value={3}>High</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Secondary Barrier</label>
+  <select
+    value={secondaryBarrier}
+    onChange={(e) => setSecondaryBarrier(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="">None</option>
+    <option value="Physical">Physical</option>
+    <option value="Cognitive">Cognitive</option>
+    <option value="Behavioral">Behavioral</option>
+    <option value="Sensory">Sensory</option>
+    <option value="Environmental">Environmental</option>
+    <option value="Caregiver">Caregiver</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Secondary Barrier Severity</label>
+  <select
+    value={secondaryBarrierSeverity}
+    onChange={(e) => setSecondaryBarrierSeverity(Number(e.target.value))}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value={0}>None</option>
+    <option value={1}>Low</option>
+    <option value={2}>Moderate</option>
+    <option value={3}>High</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Support Level</label>
+  <select
+    value={supportLevel}
+    onChange={(e) => setSupportLevel(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="No Support">No Support</option>
+    <option value="Intermittent Support">Intermittent Support</option>
+    <option value="Daily Support">Daily Support</option>
+    <option value="Full-Time Support">Full-Time Support</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium mb-2">Safety Risk Level</label>
+  <select
+    value={safetyRiskLevel}
+    onChange={(e) => setSafetyRiskLevel(e.target.value)}
+    className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+  >
+    <option value="low">Low</option>
+    <option value="medium">Medium</option>
+    <option value="high">High</option>
   </select>
 </div>
 

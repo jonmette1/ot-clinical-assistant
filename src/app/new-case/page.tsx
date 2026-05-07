@@ -3,24 +3,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
+import { buildClinicalDecisionInputFromCase } from "@/lib/buildClinicalDecisionInput";
 
-type Pathway = {
-  type: string;
-  title: string;
-  interventions: string[];
-  timeline: string;
-  upside: string;
-  tradeoff: string;
-};
-
-type GeneratedPlan = {
-  patientSnapshot: string;
-  pathways: Pathway[];
-  clinicalConsiderations: string[];
-  firstSessionPriorities: string[];
-  taskBreakdown?: string[];
-  functionalProblemAreas?: string[];
-};
 
 export default function NewCasePage() {
 
@@ -45,9 +30,23 @@ const [adlAssistLevels, setAdlAssistLevels] = useState({
 });
 const [primaryGoal, setPrimaryGoal] = useState("");
   const [keyBarriers, setKeyBarriers] = useState<string[]>([]);
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+
+  // ==============================
+  // STATE: DECSION ENGINE
+  // ==============================
+
+const [goalCategory, setGoalCategory] = useState("");
+const [dominantBarrier, setDominantBarrier] = useState("");
+const [dominantBarrierSeverity, setDominantBarrierSeverity] = useState("");
+const [secondaryBarrier, setSecondaryBarrier] = useState("");
+const [secondaryBarrierSeverity, setSecondaryBarrierSeverity] = useState("");
+const [safetyRiskLevel, setSafetyRiskLevel] = useState("");
+const [supportLevel, setSupportLevel] = useState("");
+const [clinicalLens, setClinicalLens] = useState<string[]>([]);
+const [environmentContext, setEnvironmentContext] = useState<string[]>([]);
+
 
   // ==============================
   // STATE: CLIENT + CAREGIVER
@@ -68,7 +67,6 @@ const [caregiverPriorities, setCaregiverPriorities] = useState("");
 const [caregiverIsPrimarySupport, setCaregiverIsPrimarySupport] = useState(false);
   const [caseType, setCaseType] = useState("geriatric");
   const [clinicalFocus, setClinicalFocus] = useState("adl_home_safety");
-  const [subcategory, setSubcategory] = useState("fall_prevention");
 
   // ==============================
   // STATE: HOME ASSESSMENT - BATHROOM
@@ -97,13 +95,12 @@ const [bathSeating, setBathSeating] = useState("none");
 const [bedHeight, setBedHeight] = useState("");
 const [bedRails, setBedRails] = useState("none");
 const [bedClearance, setBedClearance] = useState("adequate");
-const [bedHazards, setBedHazards] = useState("");
+const [bedHazards, setBedHazards] = useState<string[]>([]);
 const [primarySeating, setPrimarySeating] = useState("chair");
 const [seatHeight, setSeatHeight] = useState("standard");
 const [armrestsPresent, setArmrestsPresent] = useState("yes");
 const [surfaceFirmness, setSurfaceFirmness] = useState("firm");
 const [sitToStandDifficulty, setSitToStandDifficulty] = useState("none");
-const [transferDevice, setTransferDevice] = useState("");
 const [mobilityDevice, setMobilityDevice] = useState("none");
 const [indoorMobilityLevel, setIndoorMobilityLevel] = useState("independent");
 const [mobilityEndurance, setMobilityEndurance] = useState("moderate");
@@ -143,6 +140,61 @@ const [otherExteriorHazards, setOtherExteriorHazards] = useState("");
   // ==============================
   // OPTIONS
   // ==============================
+
+const goalCategoryOptions = [
+  "Independence",
+  "Safety",
+  "Efficiency",
+  "Endurance",
+  "Participation",
+  "Caregiver Burden",
+  "Consistency",
+  "Skill Acquisition",
+];
+
+const barrierOptions = [
+  "Physical",
+  "Cognitive",
+  "Sensory",
+  "Behavioral",
+  "Endurance",
+  "Environmental",
+  "Support System",
+  "Pain",
+];
+
+const severityOptions = [
+  { label: "1 - Mild", value: "1" },
+  { label: "2 - Moderate", value: "2" },
+  { label: "3 - Severe", value: "3" },
+];
+
+const safetyRiskOptions = ["low", "medium", "high"];
+
+const supportLevelOptions = [
+  "Independent",
+  "Intermittent Support",
+  "Full-Time Caregiver",
+  "Unreliable Support",
+];
+
+const clinicalLensOptions = [
+  "Neurological",
+  "Orthopedic",
+  "Cardiopulmonary",
+  "Cognitive",
+  "Developmental",
+  "Mental Health",
+  "Chronic/Progressive",
+];
+
+const environmentContextOptions = [
+  "Home – Bathroom",
+  "Home – Bedroom",
+  "Home – Entry/Exit",
+  "Home – General Mobility",
+  "Community / Work / School",
+];
 
   const barriers = [
     "Balance",
@@ -318,10 +370,10 @@ function buildClinicalPrioritySummary() {
     bedroomScore += 1;
     bedroomDrivers.push("bed height concern");
   }
-  if (bedHazards.trim() !== "") {
-    bedroomScore += 1;
-    bedroomDrivers.push("nighttime or bedside hazards");
-  }
+if (bedHazards.length > 0) {
+  bedroomScore += 1;
+  bedroomDrivers.push("nighttime or bedside hazards");
+}
 
   const transferDrivers: string[] = [];
   let transferScore = 0;
@@ -353,10 +405,6 @@ function buildClinicalPrioritySummary() {
   if (surfaceFirmness === "very_soft") {
     transferScore += 2;
     transferDrivers.push("very soft seating surface");
-  }
-  if (transferDevice.trim() !== "") {
-    transferScore += 1;
-    transferDrivers.push("assistive device needed for transfers");
   }
   if (mobilityEndurance === "low") {
   transferScore += 1;
@@ -391,6 +439,129 @@ if (recentFalls === "yes") {
         drivers: transferDrivers,
       },
     ]),
+  };
+}
+
+// ==============================
+// HELPERS: CLINICAL REASONING PROFILE
+// ==============================
+
+function buildClinicalReasoningProfile() {
+  const diagnosis = primaryDiagnosis.toLowerCase();
+  const barriersText = [...keyBarriers, otherKeyBarriers]
+    .join(" ")
+    .toLowerCase();
+
+  const isPediatric = caseType === "pediatric" || ageRange === "Under 18";
+  const isGeriatric =
+    caseType === "geriatric" ||
+    ["70-79", "80-89", "90+"].includes(ageRange);
+
+  const populationType = isPediatric
+    ? "pediatric"
+    : isGeriatric
+    ? "geriatric"
+    : caseType;
+
+  const driverScores: Record<string, number> = {
+    sensory_behavioral: 0,
+    cognitive_safety: 0,
+    motor_planning_neurological: 0,
+    strength_endurance: 0,
+    balance_fall_risk: 0,
+    environmental_access: 0,
+    caregiver_capacity: 0,
+  };
+
+  if (
+    diagnosis.includes("autism") ||
+    diagnosis.includes("sensory") ||
+    barriersText.includes("fear") ||
+    barriersText.includes("anxiety")
+  ) {
+    driverScores.sensory_behavioral += 3;
+  }
+
+  if (
+    diagnosis.includes("dementia") ||
+    diagnosis.includes("memory") ||
+    barriersText.includes("cognition") ||
+    barriersText.includes("sequencing")
+  ) {
+    driverScores.cognitive_safety += 3;
+  }
+
+  if (
+    caseType === "neurological" ||
+    diagnosis.includes("stroke") ||
+    diagnosis.includes("tbi") ||
+    diagnosis.includes("parkinson") ||
+    diagnosis.includes("ms")
+  ) {
+    driverScores.motor_planning_neurological += 3;
+  }
+
+  if (
+    barriersText.includes("strength") ||
+    barriersText.includes("endurance") ||
+    mobilityEndurance === "low"
+  ) {
+    driverScores.strength_endurance += 2;
+  }
+
+  if (
+    barriersText.includes("balance") ||
+    recentFalls === "yes" ||
+    sitToStandDifficulty === "moderate" ||
+    sitToStandDifficulty === "severe"
+  ) {
+    driverScores.balance_fall_risk += 3;
+  }
+
+  if (
+    barriersText.includes("environment") ||
+    spaceConstraints === "significant" ||
+    environmentalConstraint === "severe" ||
+    stepsPresent === "yes" ||
+    safetyHazards.length >= 2 ||
+    exteriorHazards.length >= 2
+  ) {
+    driverScores.environmental_access += 2;
+  }
+
+  if (
+    clinicalFocus === "caregiver_training" ||
+    caregiverAvailability === "intermittent_availability" ||
+    caregiverAvailability === "rarely_available" ||
+    caregiverPhysicalCapacity === "cannot_provide_physical_assist" ||
+    caregiverConfidence === "low_confidence"
+  ) {
+    driverScores.caregiver_capacity += 3;
+  }
+
+  const dominantDriver = Object.entries(driverScores).sort(
+    (a, b) => b[1] - a[1]
+  )[0][0];
+
+  const focusInterpretation =
+    clinicalFocus === "adl_home_safety"
+      ? `Apply the ${dominantDriver} driver to ADL performance, task setup, routine completion, and home safety.`
+      : clinicalFocus === "transfers_mobility"
+      ? `Apply the ${dominantDriver} driver to transfer setup, surface safety, movement quality, and mobility carryover.`
+      : `Apply the ${dominantDriver} driver to caregiver setup, cueing, supervision boundaries, and carryover.`;
+
+  return {
+    populationType,
+    dominantDriver,
+    focusInterpretation,
+    supportingSignals: {
+      diagnosis: primaryDiagnosis,
+      keyBarriers,
+      otherKeyBarriers,
+      clinicalFocus,
+      caseType,
+      ageRange,
+    },
   };
 }
 
@@ -440,11 +611,10 @@ async function generateLocalPlan() {
   setSaveMessage("");
 
   const clinicalPrioritySummary = buildClinicalPrioritySummary();
-
+const clinicalReasoningProfile = buildClinicalReasoningProfile();
 const casePayload = {
   case_classification: {
     case_type: caseType,
-    subcategory: subcategory,
     clinical_focus: clinicalFocus,
   },
 
@@ -474,7 +644,6 @@ const casePayload = {
       armrests_present: armrestsPresent,
       surface_firmness: surfaceFirmness,
       sit_to_stand_difficulty: sitToStandDifficulty,
-      assistive_device_used: transferDevice,
     },
   },
 
@@ -499,7 +668,6 @@ const casePayload = {
       armrests_present: armrestsPresent,
       surface_firmness: surfaceFirmness,
       sit_to_stand_difficulty: sitToStandDifficulty,
-      assistive_device_used: transferDevice,
     },
 
     general_mobility: {
@@ -556,15 +724,103 @@ feasibility_context: {
     primary_goal: primaryGoal,
     other_target_activity: otherTargetActivity,
   },
+
+clinical_decision_inputs: null as any,
+
+clinicalDecisionModel: null as any,
 };
 
+const clinicalDecisionInput = buildClinicalDecisionInputFromCase(casePayload);
+
+casePayload.clinical_decision_inputs = clinicalDecisionInput;
+
+console.log("Decision input before engine:", clinicalDecisionInput);
+
+const clinicalDecisionModel = buildClinicalDecisionModel({
+  goalCategory: (clinicalDecisionInput.goalCategory || "Safety") as any,
+  dominantBarrier: (clinicalDecisionInput.dominantBarrier || "Physical") as any,
+  dominantBarrierSeverity:
+    (clinicalDecisionInput.dominantBarrierSeverity as 1 | 2 | 3) || 2,
+  secondaryBarrier: clinicalDecisionInput.secondaryBarrier as any,
+  secondaryBarrierSeverity:
+    (clinicalDecisionInput.secondaryBarrierSeverity as 1 | 2 | 3) || undefined,
+  safetyRiskLevel: (clinicalDecisionInput.safetyRiskLevel || "medium") as any,
+  supportLevel: (clinicalDecisionInput.supportLevel ||
+    "Intermittent Support") as any,
+  clinicalLens:
+    clinicalDecisionInput.clinicalLens?.length > 0
+      ? (clinicalDecisionInput.clinicalLens as any)
+      : ["Cognitive"],
+  environmentContext:
+    clinicalDecisionInput.environmentContext?.length > 0
+      ? (clinicalDecisionInput.environmentContext as any)
+      : ["Home – General Mobility"],
+});
+
+casePayload.clinicalDecisionModel = clinicalDecisionModel;
+
+console.log("clinicalDecisionModel", clinicalDecisionModel);
+
+// ==============================
+// HELPERS: AI PLAN INPUT
+// ==============================
+
+console.log(
+  "BEFORE planInput → clinicalDecisionModel:",
+  casePayload.clinicalDecisionModel
+);
+
+const planInput = {
+  case_classification: casePayload.case_classification,
+  clinicalDecisionModel: (() => {
+  console.log("INJECTING INTO planInput:", casePayload.clinicalDecisionModel);
+  return casePayload.clinicalDecisionModel;
+})(),
+  patient_profile: casePayload.patient_profile,
+  target_activities: [targetActivity],
+
+  goals_preferences: casePayload.goals_preferences,
+
+  functional_status: {
+    current_assistance_level:
+      casePayload.functional_status.current_assistance_level,
+    adl_assist_levels:
+      casePayload.functional_status.adl_assist_levels,
+    key_barriers:
+      casePayload.functional_status.key_barriers,
+    other_key_barriers:
+      casePayload.functional_status.other_key_barriers,
+    clinical_priority_summary:
+      casePayload.functional_status.clinical_priority_summary,
+    general_mobility_summary:
+      casePayload.functional_status.general_mobility_summary,
+    transfer_surface_summary:
+      casePayload.functional_status.transfer_surface_summary,
+  },
+
+  environment: {
+    bathroom_assessment: casePayload.environment.bathroom_assessment,
+    transfer_surfaces: casePayload.environment.transfer_surfaces,
+    general_mobility: casePayload.environment.general_mobility,
+    bedroom_bed_setup: casePayload.environment.bedroom_bed_setup,
+    outside_entrance: casePayload.environment.outside_entrance,
+  },
+
+  caregiverSupport: casePayload.caregiverSupport,
+  feasibility_context: casePayload.feasibility_context,
+};
+
+console.log(
+  "INSIDE planInput → clinicalDecisionModel:",
+  planInput.clinicalDecisionModel
+);
 
 const aiResponse = await fetch("/api/generate-plan", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
   },
-body: JSON.stringify(casePayload),
+body: JSON.stringify(planInput),
 });
 
   const aiData = await aiResponse.json();
@@ -580,9 +836,6 @@ body: JSON.stringify(casePayload),
 const plan = aiData.plan;
 
 console.log("FULL AI PLAN:", plan);
-console.log("CAREGIVER GUIDANCE FIELD:", plan?.caregiverGuidance);
-
-setGeneratedPlan(plan);
 
 const insertStart = performance.now();
 
@@ -617,7 +870,6 @@ transfer_surface_summary: {
   armrests_present: armrestsPresent,
   surface_firmness: surfaceFirmness,
   sit_to_stand_difficulty: sitToStandDifficulty,
-  assistive_device_used: transferDevice,
 },
 },
 environment: {
@@ -640,7 +892,6 @@ environment: {
   armrests_present: armrestsPresent,
   surface_firmness: surfaceFirmness,
   sit_to_stand_difficulty: sitToStandDifficulty,
-  assistive_device_used: transferDevice,
 },
 general_mobility: {
   primary_mobility_device: mobilityDevice,
@@ -690,6 +941,8 @@ feasibility_context: {
 },
 
 clinical_constraints: {},
+clinical_decision_input: clinicalDecisionInput,
+
 
       client_info: {
         client_name: clientName,
@@ -710,11 +963,6 @@ caregiver_info: {
   is_primary_support: caregiverIsPrimarySupport,
 },
 
-case_classification: {
-  case_type: caseType,
-  subcategory: subcategory,
-  clinical_focus: clinicalFocus,
-},
       generated_output: plan,
     },
     ])
@@ -922,18 +1170,6 @@ setSaveMessage("Case generated with AI and saved successfully.");
   <option value="caregiver_training">Caregiver Training</option>
 </select>
 
-      <select
-        value={subcategory}
-        onChange={(e) => setSubcategory(e.target.value)}
-        className="w-full mb-2 rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-      >
-        <option value="fall_prevention">Fall Prevention</option>
-        <option value="home_modification">Home Modification</option>
-        <option value="memory_support">Memory Support</option>
-        <option value="bathing_safety">Bathing Safety</option>
-        <option value="dressing_independence">Dressing Independence</option>
-      </select>
-
       <label className="block text-sm font-medium mb-2 mt-4">Age Range</label>
       <select
         value={ageRange}
@@ -959,6 +1195,17 @@ setSaveMessage("Case generated with AI and saved successfully.");
       />
     </div>
   </div>
+
+{/* CLINICAL DECISION INPUTS - derived automatically */}
+<div className="mt-6 border-t border-gray-800 pt-6">
+  <h2 className="text-lg font-semibold mb-2 text-gray-200">
+    Clinical Decision Inputs
+  </h2>
+  <p className="text-sm text-gray-400">
+    Decision inputs are derived automatically from functional status,
+    environment, caregiver support, safety risk, and feasibility data.
+  </p>
+</div>
 
 {/* REAL-WORLD CONSTRAINTS */}
 <div className="space-y-4">
@@ -1232,25 +1479,29 @@ setSaveMessage("Case generated with AI and saved successfully.");
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Step Height</label>
-          <input
-            type="text"
-            value={stepHeight}
-            onChange={(e) => setStepHeight(e.target.value)}
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-            placeholder="e.g. 6 inches"
-          />
+<label className="block text-sm font-medium mb-2">Step Height</label>
+<select
+  value={stepHeight}
+  onChange={(e) => setStepHeight(e.target.value)}
+  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+>
+  <option value="">Select</option>
+  <option value="low">Low</option>
+  <option value="high">High</option>
+</select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Step Depth</label>
-          <input
-            type="text"
-            value={stepDepth}
-            onChange={(e) => setStepDepth(e.target.value)}
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-            placeholder="e.g. 11 inches"
-          />
+        <label className="block text-sm font-medium mb-2">Step Depth</label>
+<select
+  value={stepDepth}
+  onChange={(e) => setStepDepth(e.target.value)}
+  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+>
+  <option value="">Select</option>
+  <option value="deep">Deep</option>
+  <option value="shallow">Shallow</option>
+</select>
         </div>
 
         <div>
@@ -1280,13 +1531,16 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
         <div>
           <label className="block text-sm font-medium mb-2">Door Width</label>
-          <input
-            type="text"
-            value={doorWidth}
-            onChange={(e) => setDoorWidth(e.target.value)}
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-            placeholder="e.g. 32 inches"
-          />
+         <select
+  value={doorWidth}
+  onChange={(e) => setDoorWidth(e.target.value)}
+  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+>
+  <option value="">Select</option>
+  <option value="narrow">Narrow</option>
+  <option value="standard">Standard</option>
+  <option value="wide">Wide</option>
+</select>
         </div>
 
         <div>
@@ -1517,13 +1771,16 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
         <div>
           <label className="block text-sm font-medium mb-2">Bed Height</label>
-          <input
-            type="text"
-            value={bedHeight}
-            onChange={(e) => setBedHeight(e.target.value)}
-            placeholder="e.g. low, standard, high"
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-          />
+<select
+  value={bedHeight}
+  onChange={(e) => setBedHeight(e.target.value)}
+  className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
+>
+  <option value="">Select</option>
+  <option value="low">Low</option>
+  <option value="standard">Standard</option>
+  <option value="high">High</option>
+</select>
         </div>
 
         <div>
@@ -1554,18 +1811,39 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </select>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-2">
-            Nighttime / Bedside Hazards
-          </label>
-          <input
-            type="text"
-            value={bedHazards}
-            onChange={(e) => setBedHazards(e.target.value)}
-            placeholder="e.g. clutter, poor lighting, narrow path to bathroom"
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-          />
-        </div>
+<div className="md:col-span-2">
+  <label className="block text-sm font-medium mb-2">
+    Nighttime / Bedside Hazards
+  </label>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+    {[
+      { value: "clutter", label: "Clutter" },
+      { value: "obstacles", label: "Obstacles" },
+      { value: "poor_lighting", label: "Poor lighting" },
+      { value: "narrow_path", label: "Narrow path" },
+      { value: "long_path", label: "Long path" },
+      { value: "stairs", label: "Stairs" },
+    ].map((hazard) => (
+      <label key={hazard.value} className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={bedHazards.includes(hazard.value)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setBedHazards([...bedHazards, hazard.value]);
+            } else {
+              setBedHazards(
+                bedHazards.filter((item) => item !== hazard.value)
+              );
+            }
+          }}
+        />
+        {hazard.label}
+      </label>
+    ))}
+  </div>
+</div>
       </div>
     </div>
 
@@ -1640,16 +1918,6 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </select>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-2">Assistive Device Used</label>
-          <input
-            type="text"
-            value={transferDevice}
-            onChange={(e) => setTransferDevice(e.target.value)}
-            placeholder="e.g. walker, cane, none"
-            className="w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2"
-          />
-        </div>
       </div>
     </div>
 
@@ -1805,89 +2073,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             
           </div>
         </div>
-        {generatedPlan && (
-          <div className="mt-10 space-y-6">
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-              <h2 className="text-2xl font-semibold mb-4">Generated Plan</h2>
-              <p className="text-gray-300">{generatedPlan.patientSnapshot}</p>
-            </div>
 
-        {generatedPlan.taskBreakdown && generatedPlan.taskBreakdown.length > 0 && (
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-            <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
-            <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-              {generatedPlan.taskBreakdown.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {generatedPlan.functionalProblemAreas &&
-          generatedPlan.functionalProblemAreas.length > 0 && (
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-              <h3 className="text-xl font-semibold mb-3">
-                Functional Problem Areas
-              </h3>
-              <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-                {generatedPlan.functionalProblemAreas.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-            <div className="grid gap-6 md:grid-cols-3">
-              {generatedPlan.pathways.map((pathway) => (
-                <div
-                  key={pathway.type}
-                  className="rounded-xl border border-gray-800 bg-gray-900 p-5"
-                >
-                  <p className="text-sm uppercase tracking-wide text-blue-400 mb-2">
-                    {pathway.type}
-                  </p>
-                  <h3 className="text-lg font-semibold mb-3">{pathway.title}</h3>
-
-                  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300 mb-4">
-                    {pathway.interventions.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-
-                  <p className="text-sm mb-2">
-                    <strong>Timeline:</strong> {pathway.timeline}
-                  </p>
-                  <p className="text-sm mb-2">
-                    <strong>Upside:</strong> {pathway.upside}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    <strong>Tradeoff:</strong> {pathway.tradeoff}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-              <h3 className="text-xl font-semibold mb-3">
-                Clinical Considerations
-              </h3>
-              <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-                {generatedPlan.clinicalConsiderations.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-              <h3 className="text-xl font-semibold mb-3">
-                First Session Priorities
-              </h3>
-              <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-                {generatedPlan.firstSessionPriorities.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

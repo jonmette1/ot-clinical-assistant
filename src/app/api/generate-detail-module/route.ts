@@ -15,7 +15,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, caseData, generatedPlan } = body;
+    const {
+  type,
+  caseData,
+  generatedPlan,
+  clinicalDecisionInput,
+  clinicalDecisionModel,
+} = body;
 
     const client = new OpenAI({ apiKey });
 
@@ -98,6 +104,92 @@ ${JSON.stringify(caseData, null, 2)}
 
 Generated Plan:
 ${JSON.stringify(generatedPlan, null, 2)}
+
+Clinical Decision Input:
+${JSON.stringify(clinicalDecisionInput, null, 2)}
+
+Clinical Decision Model:
+${JSON.stringify(clinicalDecisionModel, null, 2)}
+
+CRITICAL STRATEGY ALIGNMENT RULES:
+
+- You MUST align all caregiver communication guidance with:
+  - dominantBarrier
+  - safetyRiskLevel
+  - supportLevel
+  - selectedStrategies
+
+- Do NOT invent a different clinical direction from the decision engine.
+
+- If selectedStrategies include:
+  - "Routine/Behavioral"
+    → emphasize pacing, repetition, emotional regulation, consistency, and cueing
+  - "Caregiver Support"
+    → emphasize caregiver communication, reassurance, supervision, and coaching
+  - "Safety Containment"
+    → emphasize calm but direct stop-language and immediate safety intervention
+  - "Adaptation"
+    → emphasize setup preparation and simplifying task expectations
+  - "Compensation"
+    → emphasize alternative methods, energy management, and reducing unsafe demands
+
+- Communication tone must reflect:
+  - cognition level
+  - emotional state
+  - caregiver reliability
+  - safety urgency
+
+INTERACTION FRAMEWORK RULES:
+
+If dominantBarrier is "Cognitive":
+- Use one-step instructions
+- Use repetition and orientation cueing
+- Reduce information density
+- Avoid multi-step commands
+- Reinforce sequencing and predictability
+- Use concrete and simple language
+
+If dominantBarrier is "Sensory":
+- Reduce sensory overload
+- Offer choices and control whenever possible
+- Prepare transitions before changing tasks
+- Avoid rushing language
+- Acknowledge tactile, auditory, or environmental discomfort
+- Encourage regulation breaks
+
+If dominantBarrier is "Behavioral":
+- Emphasize emotional validation
+- Use calm redirection
+- Avoid confrontation or excessive correction
+- Encourage pacing and emotional regulation
+- Reduce pressure and performance demands
+
+If selectedStrategies include "Safety Containment":
+- Include direct stop-language when safety is compromised
+- Prioritize immediate safety over task completion
+- Use calm but firm intervention phrasing
+
+If selectedStrategies include "Routine/Behavioral":
+- Reinforce consistency, pacing, repetition, and cueing
+
+If selectedStrategies include "Adaptation":
+- Emphasize environmental setup and reducing task complexity
+
+If selectedStrategies include "Compensation":
+- Emphasize simplifying demands and alternative approaches
+
+IMPORTANT:
+The caregiver script should feel fundamentally different across:
+- cognitive
+- sensory
+- behavioral
+- safety-driven
+
+cases.
+
+Do NOT generate generic supportive scripts that could apply equally to all cases.
+
+- Do NOT generate communication strategies that conflict with selectedStrategies.
 `;
     } else if (type === "transfer_mobility_details") {
       prompt = `
@@ -179,6 +271,86 @@ ${JSON.stringify(caseData, null, 2)}
 
 Generated Plan:
 ${JSON.stringify(generatedPlan, null, 2)}
+
+Clinical Decision Input:
+${JSON.stringify(clinicalDecisionInput, null, 2)}
+
+Clinical Decision Model:
+${JSON.stringify(clinicalDecisionModel, null, 2)}
+
+CRITICAL STRATEGY ALIGNMENT RULES:
+
+- You MUST align all transfer and mobility details with:
+  - dominantBarrier
+  - secondaryBarrier
+  - safetyRiskLevel
+  - supportLevel
+  - selectedStrategies
+
+- Do NOT invent a different clinical direction from the decision engine.
+- Do NOT create a new treatment plan.
+- Do NOT create transfer advice that conflicts with selectedStrategies.
+
+TRANSFER EXECUTION FRAMEWORK RULES:
+
+If selectedStrategies include "Safety Containment":
+- Emphasize stop rules, supervision, blocked unsafe attempts, and when NOT to attempt a transfer
+- Prioritize immediate risk reduction over progression
+- Use clear threshold language such as "do not continue if..."
+
+If selectedStrategies include "Compensation":
+- Emphasize reducing physical demand
+- Modify task setup, surface choice, body position, sequencing, and caregiver positioning
+- Prioritize safer completion over restoring original performance
+
+If selectedStrategies include "Adaptation":
+- Emphasize environmental setup, surface modification, pathway clearing, lighting, equipment already present, and feasible home changes
+- Prioritize matching the environment to the patient’s current ability
+
+If selectedStrategies include "Caregiver Support":
+- Include where the caregiver should stand
+- Include when the caregiver should cue, wait, guard, or physically assist
+- Reflect supportLevel. Do not assume constant help if support is intermittent or unreliable
+
+If selectedStrategies include "Routine/Behavioral":
+- Emphasize predictable sequencing, calm pacing, repetition, and reducing rushing
+- Include simple cueing patterns that support consistency
+
+If selectedStrategies include "Energy Conservation":
+- Emphasize rest breaks, shorter transfer sequences, seated setup, reduced trips, and fatigue stop rules
+
+DOMINANT BARRIER EXECUTION RULES:
+
+If dominantBarrier is "Physical":
+- Focus on strength, balance, body mechanics, surface height, foot placement, and controlled standing
+
+If dominantBarrier is "Cognitive":
+- Focus on simple one-step transfer cues, repeated sequencing, avoiding distractions, and caregiver timing
+
+If dominantBarrier is "Behavioral":
+- Focus on fear, hesitation, rushing, resistance, pacing, and calm redirection
+
+If dominantBarrier is "Endurance":
+- Focus on fatigue signs, rest breaks, seated preparation, and reducing repeated transfers
+
+If dominantBarrier is "Environmental":
+- Focus on the exact home setup, surface constraints, pathways, lighting, grab bars, tub edge, toilet setup, and clutter
+
+If dominantBarrier is "Sensory":
+- Focus on sensory triggers that affect movement, such as water, noise, lighting, texture, temperature, or overwhelm during transfers
+
+IMPORTANT:
+The transfer details should feel fundamentally different across:
+- physical
+- cognitive
+- behavioral
+- endurance
+- environmental
+- safety-driven
+
+cases.
+
+Do NOT generate generic transfer advice that could apply equally to all cases.
 `;
     } else if (type === "adl_privacy_support") {
       prompt = `
@@ -250,6 +422,78 @@ ${JSON.stringify(caseData, null, 2)}
 
 Generated Plan:
 ${JSON.stringify(generatedPlan, null, 2)}
+
+Clinical Decision Input:
+${JSON.stringify(clinicalDecisionInput, null, 2)}
+
+Clinical Decision Model:
+${JSON.stringify(clinicalDecisionModel, null, 2)}
+
+CRITICAL STRATEGY ALIGNMENT RULES:
+
+- You MUST align all ADL privacy and dignity guidance with:
+  - dominantBarrier
+  - secondaryBarrier
+  - safetyRiskLevel
+  - supportLevel
+  - selectedStrategies
+
+- Do NOT invent a different clinical direction from the decision engine.
+- Do NOT create a new treatment plan.
+- Do NOT turn privacy support into a transfer guide or equipment guide.
+- Do NOT generate dignity guidance that conflicts with selectedStrategies.
+
+ADL PRIVACY EXECUTION FRAMEWORK RULES:
+
+If dominantBarrier is "Cognitive":
+- Emphasize consent before touch, one-step cueing, simple explanations, and protecting dignity when the patient forgets steps
+- Include caregiver language that re-orients without embarrassing the patient
+- Avoid correcting the patient harshly or pointing out mistakes in a shaming way
+
+If dominantBarrier is "Sensory":
+- Emphasize comfort, control, sensory tolerance, body covering, water/texture/temperature sensitivity, and choice-making
+- Include caregiver language that lets the patient pause, choose order, or signal discomfort
+- Reduce exposure and sensory overload during bathing or hygiene
+
+If dominantBarrier is "Behavioral":
+- Emphasize emotional safety, de-escalation, refusal handling, privacy boundaries, and avoiding power struggles
+- Include caregiver language that validates feelings while maintaining necessary hygiene/safety boundaries
+
+If dominantBarrier is "Physical":
+- Emphasize dignity during hands-on assistance, body positioning, covering exposed areas, consent before physical help, and avoiding rushed care
+- Do NOT focus on transfer mechanics unless privacy or dignity is directly affected
+
+If dominantBarrier is "Endurance":
+- Emphasize pacing, seated privacy setup, rest breaks, and preserving dignity when fatigue limits participation
+
+If selectedStrategies include "Caregiver Support":
+- Make caregiver boundaries explicit: when to assist, when to wait, when to ask permission, and when to step back
+
+If selectedStrategies include "Safety Containment":
+- Include calm, direct language for stepping in when privacy must briefly yield to immediate safety
+- Preserve dignity even when the caregiver must intervene quickly
+
+If selectedStrategies include "Routine/Behavioral":
+- Emphasize predictable routines, repeated privacy scripts, and consistent cueing language
+
+If selectedStrategies include "Adaptation":
+- Emphasize privacy setup changes, covering strategies, environmental simplification, and realistic task modifications
+
+If selectedStrategies include "Compensation":
+- Emphasize preserving independence by letting the patient complete safe parts while the caregiver assists only with difficult or unsafe parts
+
+IMPORTANT:
+The ADL privacy guidance should feel fundamentally different across:
+- cognitive
+- sensory
+- behavioral
+- physical
+- endurance
+- safety-driven
+
+cases.
+
+Do NOT generate generic dignity guidance that could apply equally to all cases.
 `;
     } else if (type === "equipment_feasibility_plan") {
       prompt = `
@@ -399,6 +643,83 @@ ${JSON.stringify(caseData, null, 2)}
 
 Generated Plan:
 ${JSON.stringify(generatedPlan, null, 2)}
+
+Clinical Decision Input:
+${JSON.stringify(clinicalDecisionInput, null, 2)}
+
+Clinical Decision Model:
+${JSON.stringify(clinicalDecisionModel, null, 2)}
+
+CRITICAL STRATEGY ALIGNMENT RULES:
+
+- You MUST align all feasibility recommendations with:
+  - dominantBarrier
+  - secondaryBarrier
+  - safetyRiskLevel
+  - supportLevel
+  - selectedStrategies
+
+- Do NOT invent a different clinical direction from the decision engine.
+- Do NOT create a new treatment plan.
+- Do NOT recommend unrealistic ideal solutions without also providing a realistic feasible alternative.
+- Do NOT assume unlimited budget, unlimited caregiver support, or ideal home layouts.
+
+FEASIBILITY EXECUTION FRAMEWORK RULES:
+
+If selectedStrategies include "Adaptation":
+- Emphasize environmental modifications, setup simplification, and realistic home changes
+- Prioritize feasible environmental matching over idealized recommendations
+
+If selectedStrategies include "Compensation":
+- Emphasize alternative methods, reducing physical demand, and safer completion using realistic supports
+- Prioritize practical function over restoring ideal performance
+
+If selectedStrategies include "Safety Containment":
+- Prioritize immediate fall prevention and risk reduction even if the ideal setup is not achievable yet
+- Include temporary but safer contingency plans
+
+If selectedStrategies include "Caregiver Support":
+- Consider caregiver burden, reliability, physical capacity, and supervision availability before recommending complex setups
+
+If selectedStrategies include "Energy Conservation":
+- Prioritize seated setups, reduced transfer frequency, simplified layouts, and minimizing repeated movement demands
+
+DOMINANT BARRIER FEASIBILITY RULES:
+
+If dominantBarrier is "Physical":
+- Focus on stability, transfer support, body mechanics, surface height, and fall reduction
+
+If dominantBarrier is "Cognitive":
+- Focus on simplifying setup, reducing sequencing complexity, reducing clutter, and creating predictable environments
+
+If dominantBarrier is "Behavioral":
+- Focus on reducing overwhelm, avoiding escalation triggers, improving tolerance, and minimizing frustration
+
+If dominantBarrier is "Environmental":
+- Focus heavily on actual home limitations including narrow spaces, stairs, bathroom access, surface layout, and structural constraints
+
+If dominantBarrier is "Sensory":
+- Focus on sensory tolerance, lighting, sound, water exposure, textures, and overstimulation risks
+
+If dominantBarrier is "Endurance":
+- Focus on reducing movement demand, seated setups, pacing, and minimizing exertion
+
+IMPORTANT:
+The feasibility plan should feel fundamentally different across:
+- physical
+- cognitive
+- behavioral
+- environmental
+- sensory
+- endurance
+- safety-driven
+
+cases.
+
+The module should think like:
+- a clinical environmental reasoning tool
+NOT:
+- a shopping recommendation engine
 
 Now generate the feasibility plan using the required format. Do NOT repeat the template. Fill it with real content based on the case.
 `;
