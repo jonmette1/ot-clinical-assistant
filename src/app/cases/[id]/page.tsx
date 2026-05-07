@@ -76,8 +76,8 @@ clinicalDetailModules?: {
   caregiverInstructions?: string[];
   caregiverScript?: CaregiverScript;
   transferDetails?: TransferMobilityDetails;
-    adlPrivacy?: AdlPrivacySupport;
-    
+  adlPrivacy?: AdlPrivacySupport;
+  equipmentFeasibility?: EquipmentFeasibilityPlan;
 };
     sessionPlan?: string[];
   summary?: {
@@ -388,6 +388,15 @@ if (savedAdlPrivacy) {
   setAdlPrivacy(savedAdlPrivacy);
 } else {
   setAdlPrivacy(null);
+}
+
+const savedEquipmentFeasibility =
+  typedCase.generated_output?.clinicalDetailModules?.equipmentFeasibility;
+
+if (savedEquipmentFeasibility) {
+  setEquipmentFeasibility(savedEquipmentFeasibility);
+} else {
+  setEquipmentFeasibility(null);
 }
 
   setCurrentGenerationId(typedCase.current_generation_id);
