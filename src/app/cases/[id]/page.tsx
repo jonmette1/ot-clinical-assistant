@@ -290,6 +290,9 @@ const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(fal
 const [isRegeneratingFocus, setIsRegeneratingFocus] = useState(false);
 const [isRegeneratingPlan, setIsRegeneratingPlan] = useState(false);
 const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
+const [briefingLens, setBriefingLens] = useState<
+  "adl_home_safety" | "transfers_mobility" | "caregiver_training"
+>("adl_home_safety");
 const [caregiverScript, setCaregiverScript] = useState<CaregiverScript | null>(null);
 const [isGeneratingCaregiverScript, setIsGeneratingCaregiverScript] = useState(false);
 const [caregiverScriptError, setCaregiverScriptError] = useState("");
@@ -1267,6 +1270,61 @@ const selectedPlanForExport = {
   summary: generated?.summary || null,
   caregiverGuidance: caregiverGuidance || [],
 };
+const executiveBriefing = (() => {
+  const risks = generated?.summary?.topRisks || [];
+
+  const pathwayInterventions =
+    selectedPathway?.interventions || [];
+
+  const caregiverItems =
+    generated?.summary?.caregiverExpectations || [];
+
+  if (briefingLens === "transfers_mobility") {
+    return {
+      title: "Transfers & Mobility Briefing",
+
+      priorities: pathwayInterventions.filter(
+        (item) =>
+          item.toLowerCase().includes("transfer") ||
+          item.toLowerCase().includes("mobility") ||
+          item.toLowerCase().includes("balance") ||
+          item.toLowerCase().includes("guard") ||
+          item.toLowerCase().includes("position")
+      ),
+
+      risks: risks.filter(
+        (item) =>
+          item.toLowerCase().includes("fall") ||
+          item.toLowerCase().includes("transfer") ||
+          item.toLowerCase().includes("mobility")
+      ),
+
+      considerations: caregiverItems,
+    };
+  }
+
+  if (briefingLens === "caregiver_training") {
+    return {
+      title: "Caregiver Training Briefing",
+
+      priorities: caregiverGuidance,
+
+      risks,
+
+      considerations: caregiverItems,
+    };
+  }
+
+  return {
+    title: "ADL / Home Safety Briefing",
+
+    priorities: pathwayInterventions,
+
+    risks,
+
+    considerations: caregiverItems,
+  };
+})();
 
   const handleRestoreSelectedVersion = async () => {
   if (!selectedGeneration || !caseData?.id) return;
@@ -1666,37 +1724,6 @@ return (
     </div>
   )}
 
-  {/* CLINICAL FOCUS SWITCHER */}
-
-  <div className="mt-4 grid grid-cols-3 gap-2">
-    {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
-<button
-  key={focus}
-  type="button"
-disabled={
-  isRegeneratingFocus ||
-  caseData.case_classification?.clinical_focus === focus
-}
-  onClick={() => {
-    console.log("Clicked focus:", focus);
-    handleClinicalFocusChange(focus);
-  }}
-  className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-    caseData.case_classification?.clinical_focus === focus
-      ? "bg-blue-600 text-white"
-      : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-  }`}
->
-{regeneratingFocus === focus
-  ? "Generating..."
-  : focus === "adl_home_safety"
-  ? "ADL"
-  : focus === "transfers_mobility"
-  ? "Transfers"
-  : "Caregiver"}
-</button>
-    ))}
-  </div>
 </div>
 
  <div className="hidden">
@@ -2078,6 +2105,128 @@ disabled={
 </p>
           </div>
         </div>
+
+{/* CLINICAL FOCUS SWITCHER */}
+
+  <div className="mt-4 grid grid-cols-3 gap-2">
+    {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
+<button
+  key={focus}
+  type="button"
+disabled={briefingLens === focus}
+onClick={() => {
+  console.log("Selected briefing lens:", focus);
+  setBriefingLens(
+    focus as "adl_home_safety" | "transfers_mobility" | "caregiver_training"
+  );
+}}
+  className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+  briefingLens === focus
+      ? "bg-blue-600 text-white"
+      : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+  }`}
+>
+{focus === "adl_home_safety"
+  ? "ADL"
+  : focus === "transfers_mobility"
+  ? "Transfers"
+  : "Caregiver"}
+</button>
+    ))}
+  </div>        
+{/* EXECUTIVE BRIEFING */}
+
+<div className="rounded-xl border border-cyan-800 bg-gray-900 p-6">
+  <div className="flex items-center justify-between mb-4">
+    <div>
+      <h2 className="text-2xl font-semibold">
+        {executiveBriefing.title}
+      </h2>
+
+      <p className="text-sm text-gray-400 mt-1">
+        Executive synthesis derived from the authoritative plan.
+      </p>
+    </div>
+
+    <span className="text-xs uppercase tracking-wide text-cyan-400">
+      Briefing Lens
+    </span>
+  </div>
+
+  <div className="grid gap-6 md:grid-cols-3">
+
+    {/* PRIORITIES */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+        Priority Focus
+      </h3>
+
+      <ul className="space-y-2 text-sm text-gray-300">
+        {executiveBriefing.priorities.length > 0 ? (
+          executiveBriefing.priorities.map((item, index) => (
+            <li
+              key={index}
+              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+            >
+              {item}
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500">No priorities identified.</li>
+        )}
+      </ul>
+    </div>
+
+    {/* RISKS */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+        Dominant Risks
+      </h3>
+
+      <ul className="space-y-2 text-sm text-gray-300">
+        {executiveBriefing.risks.length > 0 ? (
+          executiveBriefing.risks.map((item, index) => (
+            <li
+              key={index}
+              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+            >
+              {item}
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500">No major risks identified.</li>
+        )}
+      </ul>
+    </div>
+
+    {/* CONSIDERATIONS */}
+
+    <div>
+      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+        Caregiver / Environment
+      </h3>
+
+      <ul className="space-y-2 text-sm text-gray-300">
+        {executiveBriefing.considerations.length > 0 ? (
+          executiveBriefing.considerations.map((item, index) => (
+            <li
+              key={index}
+              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+            >
+              {item}
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500">
+            No additional considerations identified.
+          </li>
+        )}
+      </ul>
+    </div>
+  </div>
+</div>
 
         {/* CURRENT LIVE PLAN */}
 
