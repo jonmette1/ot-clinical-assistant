@@ -46,6 +46,15 @@ type Pathway = {
   timeline: string;
   upside: string;
   tradeoff: string;
+
+  selected?: boolean;
+selectionDrivers?: string[];
+primaryFocus?: string;
+prioritizes?: string[];
+deprioritizes?: string[];
+bestFitFor?: string[];
+notSelectedBecause?: string[];
+operationalRisk?: string;
 };
 
 type GeneratedOutput = {
@@ -584,126 +593,246 @@ const clinicalDecisionInput =
   }
 }
 
-async function handleCopySummary() {
-  if (!caseData) return;
+function buildCaseSummaryText() {
+  if (!caseData) return "";
 
   const generated = caseData.generated_output as GeneratedOutput | null;
 
-  const summary = `
+  return `
 ==============================
 CASE: ${caseData.title || "Untitled Case"}
 ==============================
 
-CURRENT LIVE PLAN
------------------
+CLINICAL FOCUS
+--------------
+${
+  briefingLens === "adl_home_safety"
+    ? "ADL / Home Safety"
+    : briefingLens === "transfers_mobility"
+    ? "Transfers & Mobility"
+    : "Caregiver Training"
+}
+
+EXECUTIVE BRIEFING
+------------------
+${executiveBriefing.title}
+
+Priority Focus:
+${
+  executiveBriefing.priorities.length
+    ? executiveBriefing.priorities.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+Dominant Risks:
+${
+  executiveBriefing.risks.length
+    ? executiveBriefing.risks.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+Caregiver / Environment Considerations:
+${
+  executiveBriefing.considerations.length
+    ? executiveBriefing.considerations.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+CURRENT TREATMENT APPROACH
+--------------------------
+${selectedPathway?.title || "—"}
+
+Type:
+${selectedPathway?.type || "—"}
+
+Operational Priorities:
+${
+  selectedPathway?.interventions?.length
+    ? selectedPathway.interventions.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+Expected Advantage:
+${selectedPathway?.upside || "—"}
+
+Operational Tradeoff:
+${selectedPathway?.tradeoff || "—"}
+
+STRUCTURED PLAN DETAILS
+-----------------------
 Patient Snapshot:
 ${generated?.patientSnapshot || "—"}
 
-PLAN OVERVIEW
--------------
+Plan Overview:
+${generated?.summary?.planSummary || generated?.selectedPathwaySummary || "—"}
+
 Risk Level:
 ${generated?.summary?.safetyLevel || "—"}
 
-Plan:
-${generated?.summary?.planSummary || "—"}
-
 Top Risks:
-${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+${
+  generated?.summary?.topRisks?.length
+    ? generated.summary.topRisks.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
 
 Caregiver Expectations:
-${(generated?.summary?.caregiverExpectations ?? [])
-  .map((i) => `• ${i}`)
-  .join("\n") || "—"}
-
-Treatment Approaches:
-${(generated?.pathways ?? [])
-  .map(
-    (pathway, index) => `
-Approach ${index + 1}
-${String(pathway.type || "—").replaceAll("_", " ")}
-
-${pathway.title || "Untitled Approach"}
-
-Interventions:
-${(pathway.interventions ?? []).map((i) => `• ${i}`).join("\n") || "—"}
-
-Timeline: ${pathway.timeline || "—"}
-Upside: ${pathway.upside || "—"}
-Tradeoff: ${pathway.tradeoff || "—"}
-`.trim()
-  )
-  .join("\n\n") || "—"}
-
-CAREGIVER INSTRUCTIONS
-----------------------
-${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
+${
+  generated?.summary?.caregiverExpectations?.length
+    ? generated.summary.caregiverExpectations.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
 
 FAMILY / CAREGIVER SCRIPT
 -------------------------
-${generated?.clinicalDetailModules?.caregiverScript
-  ? `
+${
+  caregiverScript
+    ? `
 Conversation Goal:
-${generated.clinicalDetailModules.caregiverScript.conversationGoal || "—"}
+${caregiverScript.conversationGoal || "—"}
 
 Before Task:
-${generated.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}
+${caregiverScript.beforeTaskScript || "—"}
 
 During Task:
-${generated.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}
+${caregiverScript.duringTaskScript || "—"}
 
 If Patient Struggles:
-${generated.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}
+${caregiverScript.ifPatientStruggles || "—"}
 
 If Patient Resists:
-${generated.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}
+${caregiverScript.ifPatientResists || "—"}
 
 Reassurance:
-${generated.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}
+${caregiverScript.reassuranceLanguage || "—"}
 
 When to Be Firm:
-${generated.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}
+${caregiverScript.whenToBeFirm || "—"}
 `.trim()
-  : "—"}
+    : "—"
+}
 
 TRANSFER & MOBILITY DETAILS
 ---------------------------
-${generated?.clinicalDetailModules?.transferDetails
-  ? `
+${
+  transferDetails
+    ? `
 Setup Adjustments:
-${(generated.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(transferDetails.setupAdjustments ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 Transfer Cues:
-${(generated.clinicalDetailModules.transferDetails.transferCues ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(transferDetails.transferCues ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 Surface Variations:
-${(generated.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(transferDetails.surfaceVariations ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 Stop Rules:
-${(generated.clinicalDetailModules.transferDetails.stopRules ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(transferDetails.stopRules ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 `.trim()
-  : "—"}
+    : "—"
+}
 
 ADL PRIVACY & DIGNITY SUPPORT
 -----------------------------
-${generated?.clinicalDetailModules?.adlPrivacy
-  ? `
+${
+  adlPrivacy
+    ? `
 Privacy Setup:
-${(generated.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(adlPrivacy.privacySetup ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 Respectful Cueing:
-${(generated.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(adlPrivacy.respectfulCueing ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 When to Step In:
-${(generated.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(adlPrivacy.whenToStepIn ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 When to Step Back:
-${(generated.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(adlPrivacy.whenToStepBack ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 
 Dignity Warnings:
-${(generated.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map(i => `• ${i}`).join("\n") || "—"}
+${(adlPrivacy.dignityWarnings ?? []).map((i) => `• ${i}`).join("\n") || "—"}
 `.trim()
-  : "—"}
+    : "—"
+}
+
+EQUIPMENT & FEASIBILITY PLAN
+----------------------------
+${
+  equipmentFeasibility?.feasibilitySnapshot
+    ? `
+Financial Feasibility:
+${mapFinancial(equipmentFeasibility.feasibilitySnapshot.financialFeasibility)}
+
+Environmental Feasibility:
+${mapEnvironment(equipmentFeasibility.feasibilitySnapshot.environmentalFeasibility)}
+
+Caregiver Flexibility:
+${mapCaregiver(equipmentFeasibility.feasibilitySnapshot.caregiverFlexibility)}
+
+Main Constraint:
+${equipmentFeasibility.feasibilitySnapshot.mainConstraint || "—"}
+`.trim()
+    : "—"
+}
+
+${
+  equipmentFeasibility?.equipmentPlan?.length
+    ? equipmentFeasibility.equipmentPlan
+        .map(
+          (item, index) => `
+Recommendation ${index + 1}: ${item.item || "—"}
+
+Reason:
+${item.reason || "—"}
+
+Ideal Setup:
+${item.idealSetup || "—"}
+
+Feasible Plan:
+${item.item || "—"}
+
+Immediate Workaround:
+${item.immediateWorkaround || "—"}
+
+Clinical Decision:
+${item.clinicalDecision || item.costComparisonNote || "—"}
+`.trim()
+        )
+        .join("\n\n")
+    : ""
+}
+
+DECISION ENGINE TRANSPARENCY
+----------------------------
+Dominant Barrier:
+${liveClinicalDecisionModel.dominantBarrier || "—"}
+
+Secondary Barrier:
+${liveClinicalDecisionModel.secondaryBarrier || "None"}
+
+Safety Risk:
+${liveClinicalDecisionModel.safetyRiskLevel || "—"}
+
+Support Level:
+${liveClinicalDecisionModel.supportLevel || "—"}
+
+Selected Strategies:
+${
+  liveClinicalDecisionModel.selectedStrategies?.length
+    ? liveClinicalDecisionModel.selectedStrategies.join(", ")
+    : "—"
+}
+
+Reasoning Summary:
+${liveClinicalDecisionModel.reasoningSummary || "—"}
 `.trim();
+}
+
+async function handleCopySummary() {
+  const summary = buildCaseSummaryText();
+
+  if (!summary) return;
+
   await navigator.clipboard.writeText(summary);
   setCopyMessage("Summary copied to clipboard.");
 
@@ -711,137 +840,25 @@ ${(generated.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map(i => `�
 }
 
 function handleDownloadSummary() {
-  if (!caseData) return;
+  const summary = buildCaseSummaryText();
 
-  const generated = caseData.generated_output as GeneratedOutput | null;
+  if (!summary || !caseData) return;
 
-  const summary = `
-==============================
-CASE: ${caseData.title || "Untitled Case"}
-==============================
+  const blob = new Blob([summary], {
+    type: "text/plain;charset=utf-8",
+  });
 
-CURRENT LIVE PLAN
------------------
-Patient Snapshot:
-${generated?.patientSnapshot || "—"}
-
-PLAN OVERVIEW
--------------
-Risk Level:
-${generated?.summary?.safetyLevel || "—"}
-
-Plan:
-${generated?.summary?.planSummary || "—"}
-
-Top Risks:
-${(generated?.summary?.topRisks ?? []).map((i) => `• ${i}`).join("\n") || "—"}
-
-Caregiver Expectations:
-${(generated?.summary?.caregiverExpectations ?? [])
-  .map((i) => `• ${i}`)
-  .join("\n") || "—"}
-
-Treatment Approaches:
-${(generated?.pathways ?? [])
-  .map(
-    (pathway, index) => `
-Approach ${index + 1}
-${String(pathway.type || "—").replaceAll("_", " ")}
-
-${pathway.title || "Untitled Approach"}
-
-Interventions:
-${(pathway.interventions ?? []).map((i) => `• ${i}`).join("\n") || "—"}
-
-Timeline: ${pathway.timeline || "—"}
-Upside: ${pathway.upside || "—"}
-Tradeoff: ${pathway.tradeoff || "—"}
-`.trim()
-  )
-  .join("\n\n") || "—"}
-
-CAREGIVER INSTRUCTIONS
-----------------------
-${(generated?.caregiverGuidance ?? []).map((i) => `• ${i}`).join("\n") || "—"}
-
-FAMILY / CAREGIVER SCRIPT
--------------------------
-${generated?.clinicalDetailModules?.caregiverScript
-  ? `
-Conversation Goal:
-${generated.clinicalDetailModules.caregiverScript.conversationGoal || "—"}
-
-Before Task:
-${generated.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}
-
-During Task:
-${generated.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}
-
-If Patient Struggles:
-${generated.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}
-
-If Patient Resists:
-${generated.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}
-
-Reassurance:
-${generated.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}
-
-When to Be Firm:
-${generated.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}
-`.trim()
-  : "—"}
-
-TRANSFER & MOBILITY DETAILS
----------------------------
-${generated?.clinicalDetailModules?.transferDetails
-  ? `
-Setup Adjustments:
-${(generated.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-Transfer Cues:
-${(generated.clinicalDetailModules.transferDetails.transferCues ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-Surface Variations:
-${(generated.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-Stop Rules:
-${(generated.clinicalDetailModules.transferDetails.stopRules ?? []).map(i => `• ${i}`).join("\n") || "—"}
-`.trim()
-  : "—"}
-
-ADL PRIVACY & DIGNITY SUPPORT
------------------------------
-${generated?.clinicalDetailModules?.adlPrivacy
-  ? `
-Privacy Setup:
-${(generated.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-Respectful Cueing:
-${(generated.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-When to Step In:
-${(generated.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-When to Step Back:
-${(generated.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map(i => `• ${i}`).join("\n") || "—"}
-
-Dignity Warnings:
-${(generated.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map(i => `• ${i}`).join("\n") || "—"}
-`.trim()
-  : "—"}
-`.trim();
-
-  const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-
-  const safeTitle = (caseData.title || "case-summary")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${safeTitle || "case-summary"}.txt`;
+
+  const safeTitle =
+    caseData.title?.replace(/[^a-z0-9]/gi, "_").toLowerCase() ||
+    "case_summary";
+
+  link.download = `${safeTitle}_summary.txt`;
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -1295,58 +1312,69 @@ const selectedPlanForExport = {
   caregiverGuidance: caregiverGuidance || [],
 };
 const executiveBriefing = (() => {
-  const risks = generated?.summary?.topRisks || [];
-
-  const pathwayInterventions =
-    selectedPathway?.interventions || [];
-
-  const caregiverItems =
+  const risks: string[] = generated?.summary?.topRisks || [];
+  const pathwayInterventions: string[] = selectedPathway?.interventions || [];
+  const caregiverItems: string[] =
     generated?.summary?.caregiverExpectations || [];
+
+  const selectedDrivers: string[] = selectedPathway?.selectionDrivers || [];
+  const pathwayPriorities: string[] = selectedPathway?.prioritizes || [];
+  const pathwayTradeoffs: string[] = selectedPathway?.tradeoff
+    ? [selectedPathway.tradeoff]
+    : [];
+  const pathwayRisks: string[] = selectedPathway?.operationalRisk
+    ? [selectedPathway.operationalRisk]
+    : [];
+
+  const matches = (item: string, terms: string[]) =>
+    terms.some((term) => item.toLowerCase().includes(term));
+
+  const unique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 
   if (briefingLens === "transfers_mobility") {
     return {
       title: "Transfers & Mobility Briefing",
-
-      priorities: pathwayInterventions.filter(
-        (item) =>
-          item.toLowerCase().includes("transfer") ||
-          item.toLowerCase().includes("mobility") ||
-          item.toLowerCase().includes("balance") ||
-          item.toLowerCase().includes("guard") ||
-          item.toLowerCase().includes("position")
+      priorities: unique([
+        ...pathwayInterventions.filter((item) =>
+          matches(item, ["transfer", "mobility", "balance", "position", "stair", "step", "shower"])
+        ),
+        ...pathwayPriorities.filter((item) =>
+          matches(item, ["transfer", "mobility", "balance", "position", "stair", "step", "shower"])
+        ),
+      ]),
+      risks: unique(
+        risks.filter((item) =>
+          matches(item, ["fall", "transfer", "mobility", "stair", "step", "night", "bathroom"])
+        )
       ),
-
-      risks: risks.filter(
-        (item) =>
-          item.toLowerCase().includes("fall") ||
-          item.toLowerCase().includes("transfer") ||
-          item.toLowerCase().includes("mobility")
-      ),
-
-      considerations: caregiverItems,
+      considerations: unique([...pathwayTradeoffs, ...pathwayRisks]),
     };
   }
 
   if (briefingLens === "caregiver_training") {
     return {
       title: "Caregiver Training Briefing",
-
-      priorities: caregiverGuidance,
-
-      risks,
-
-      considerations: caregiverItems,
+      priorities: unique([...caregiverGuidance, ...caregiverItems]),
+      risks: unique([
+        ...pathwayRisks,
+        ...risks.filter((item) =>
+          matches(item, ["cognitive", "cue", "supervision", "caregiver", "unsafe", "anxiety", "freezing"])
+        ),
+      ]),
+      considerations: unique([
+        ...pathwayTradeoffs,
+        ...selectedDrivers.filter((item) =>
+          matches(item, ["caregiver", "cognitive", "supervision", "unsafe"])
+        ),
+      ]),
     };
   }
 
   return {
     title: "ADL / Home Safety Briefing",
-
-    priorities: pathwayInterventions,
-
-    risks,
-
-    considerations: caregiverItems,
+    priorities: unique([...selectedDrivers, ...pathwayInterventions]),
+    risks: unique(risks),
+    considerations: unique([...pathwayTradeoffs, ...caregiverItems]),
   };
 })();
 
@@ -2192,86 +2220,79 @@ return (
       </h2>
 
       <p className="text-sm text-gray-400 mt-1">
-        Executive synthesis derived from the authoritative plan.
+        Focused briefing based on the selected clinical lens.
       </p>
     </div>
 
-    <span className="text-xs uppercase tracking-wide text-cyan-400">
+    <span className="text-xs tracking-wide text-cyan-400">
       Briefing Lens
     </span>
   </div>
 
-  <div className="grid gap-6 md:grid-cols-3">
-
-    {/* PRIORITIES */}
-
-    <div>
-      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+  <div className="mt-4 grid gap-3 md:grid-cols-3">
+    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
         Priority Focus
-      </h3>
+      </div>
 
-      <ul className="space-y-2 text-sm text-gray-300">
+      <div className="flex flex-wrap gap-2">
         {executiveBriefing.priorities.length > 0 ? (
-          executiveBriefing.priorities.map((item, index) => (
-            <li
+          executiveBriefing.priorities.slice(0, 4).map((item: string, index: number) => (
+            <div
               key={index}
-              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+              className="rounded-md bg-cyan-950/40 border border-cyan-900/60 px-2 py-1 text-xs text-cyan-100"
             >
               {item}
-            </li>
+            </div>
           ))
         ) : (
-          <li className="text-gray-500">No priorities identified.</li>
+          <div className="text-xs text-gray-500">No priorities identified.</div>
         )}
-      </ul>
+      </div>
     </div>
 
-    {/* RISKS */}
-
-    <div>
-      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
         Dominant Risks
-      </h3>
+      </div>
 
-      <ul className="space-y-2 text-sm text-gray-300">
+      <div className="flex flex-wrap gap-2">
         {executiveBriefing.risks.length > 0 ? (
-          executiveBriefing.risks.map((item, index) => (
-            <li
+          executiveBriefing.risks.slice(0, 4).map((item: string, index: number) => (
+            <div
               key={index}
-              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+              className="rounded-md bg-red-950/30 border border-red-900/50 px-2 py-1 text-xs text-red-100"
             >
               {item}
-            </li>
+            </div>
           ))
         ) : (
-          <li className="text-gray-500">No major risks identified.</li>
+          <div className="text-xs text-gray-500">No major risks identified.</div>
         )}
-      </ul>
+      </div>
     </div>
 
-    {/* CONSIDERATIONS */}
-
-    <div>
-      <h3 className="text-sm font-semibold text-cyan-300 mb-3">
+    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">
         Caregiver / Environment
-      </h3>
+      </div>
 
-      <ul className="space-y-2 text-sm text-gray-300">
+      <div className="flex flex-wrap gap-2">
         {executiveBriefing.considerations.length > 0 ? (
-          executiveBriefing.considerations.map((item, index) => (
-            <li
+          executiveBriefing.considerations.slice(0, 4).map((item: string, index: number) => (
+            <div
               key={index}
-              className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2"
+              className="rounded-md bg-emerald-950/30 border border-emerald-900/50 px-2 py-1 text-xs text-emerald-100"
             >
               {item}
-            </li>
+            </div>
           ))
         ) : (
-          <li className="text-gray-500">
+          <div className="text-xs text-gray-500">
             No additional considerations identified.
-          </li>
+          </div>
         )}
-      </ul>
+      </div>
     </div>
   </div>
 </div>
@@ -2279,137 +2300,91 @@ return (
 {/* ACTIVE OPERATIONAL PATHWAY */}
 
 <div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
-  <div className="flex items-start justify-between gap-4">
+  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div>
       <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">
-       Current Treatment Approach
+        Recommended Treatment Approach
       </div>
 
       <h2 className="text-2xl font-semibold text-white">
-        {selectedPathway?.title || "No pathway selected"}
+        {selectedPathway?.type || selectedPathway?.title || "No pathway selected"}
       </h2>
 
       <p className="mt-2 text-sm text-emerald-100/80 max-w-3xl">
-        This treatment approach currently drives executive summaries,
-exports, and clinical treatment emphasis.
+        {generated?.selectedPathwaySummary ||
+          "This approach represents the primary operational direction for treatment emphasis."}
       </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+  <button className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition">
+    View Clinical Summary
+  </button>
+
+  <button className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition">
+    Copy Summary
+  </button>
+</div>
     </div>
 
     <div className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-200 border border-emerald-700">
-      {selectedPathway?.type || "Treatment Approach"}
+      Recommended
     </div>
   </div>
 
-  <div className="mt-6 grid gap-6 md:grid-cols-3">
-
-    {/* INTERVENTIONS */}
-
-    <div>
+  <div className="mt-6 grid gap-4 md:grid-cols-3">
+    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Operational Priorities
+        Why This Was Selected
       </h3>
 
       <ul className="space-y-2 text-sm text-gray-200">
-        {(selectedPathway?.interventions || []).map((item, index) => (
-          <li
-            key={index}
-            className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
-          >
-            {item}
-          </li>
+        {(selectedPathway?.selectionDrivers || []).slice(0, 3).map((item, index) => (
+          <li key={index}>• {item}</li>
         ))}
       </ul>
     </div>
 
-    {/* UPSIDE */}
-
-    <div>
+    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Expected Advantage
+        Prioritizes
       </h3>
 
-      <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4 text-sm text-gray-200">
-        {selectedPathway?.upside || "No upside identified."}
-      </div>
+      <ul className="space-y-2 text-sm text-gray-200">
+        {(selectedPathway?.prioritizes || []).slice(0, 3).map((item, index) => (
+          <li key={index}>• {item}</li>
+        ))}
+      </ul>
     </div>
 
-    {/* TRADEOFF */}
-
-    <div>
+    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Operational Tradeoff
+        Main Tradeoff
       </h3>
 
-      <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4 text-sm text-gray-200">
+      <p className="text-sm text-gray-200">
         {selectedPathway?.tradeoff || "No tradeoff identified."}
-      </div>
+      </p>
     </div>
+  </div>
+
+  <div className="mt-6">
+    <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+      Operational Actions
+    </h3>
+
+    <ul className="grid gap-2 md:grid-cols-2 text-sm text-gray-200">
+      {(selectedPathway?.interventions || []).map((item, index) => (
+        <li
+          key={index}
+          className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
   </div>
 </div>
 
-     {/* STRUCTURED PLAN DETAILS */}
-
-{generated?.patientSnapshot && (
-  <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
-    <div className="flex items-center justify-between mb-4">
-     <h2 className="text-xl font-semibold">Structured Plan Details</h2>
-      <span className="text-xs uppercase tracking-wide text-green-400">
-        Reference Detail
-      </span>
-    </div>
-
-    <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
-  <p className="text-gray-300">{generated.patientSnapshot}</p>
-  </div>
-)}
-
-{generated?.summary && (
-  <div className="rounded-xl border border-yellow-700 bg-gray-900 p-6">
-    <h3 className="text-xl font-semibold mb-4">Plan Overview</h3>
-
-    <p className="text-xs text-gray-500 mb-2">
-      Overview of selected plan. See pathway below for full details.
-    </p>
-
-    <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-300">
-      <div>
-        <p className="text-xs text-gray-400 mb-1">Risk Level</p>
-        <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
-          {generated.summary.safetyLevel || "—"}
-        </span>
-      </div>
-
-      <div className="md:col-span-2">
-        <p className="text-xs text-gray-400 mb-1">Recommended Approach</p>
-        <p className="text-base text-white leading-relaxed">
-          {generated.selectedPathwaySummary || "—"}
-        </p>
-      </div>
-
-      {(generated.summary.topRisks ?? []).length > 0 && (
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Top Risks</p>
-          <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-            {(generated.summary.topRisks ?? []).map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {(generated.summary.caregiverExpectations ?? []).length > 0 && (
-        <div>
-          <p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
-          <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-            {(generated.summary.caregiverExpectations ?? []).map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+{/* Alternative Treatment Approaches */}
 
 {generated?.pathways && generated.pathways.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
@@ -2472,6 +2447,32 @@ exports, and clinical treatment emphasis.
     )}
   </div>
 )}
+
+{/* STRUCTURED PLAN DETAILS */}
+
+{generated?.patientSnapshot && (
+  <details className="rounded-xl border border-green-800 bg-gray-900 p-6">
+    <summary className="flex cursor-pointer items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold">Structured Plan Details</h2>
+        <p className="mt-1 text-sm text-gray-400">
+          Reference detail for deeper review when needed.
+        </p>
+      </div>
+
+      <span className="text-xs tracking-wide text-green-400">
+        Show
+      </span>
+    </summary>
+
+    <div className="mt-6 border-t border-gray-800 pt-4">
+      <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
+      <p className="text-gray-300">{generated.patientSnapshot}</p>
+    </div>
+  </details>
+)}
+
+
 
      {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
 
@@ -3352,63 +3353,41 @@ className={`rounded-lg px-4 py-3 transition ${
 
       </div>
         {/* CASE ACTION BUTTONS */}
-   <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 border border-gray-800 px-4 py-3 rounded-xl shadow-lg">
+   <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur"> 
 
-  <button
-    type="button"
-    onClick={() => setIsEditing((prev) => !prev)}
-    className={`px-4 py-2 rounded-lg text-sm text-white ${
-      isEditing
-        ? "bg-orange-700 hover:bg-orange-600"
-        : "bg-blue-600 hover:bg-blue-700"
-    }`}
-  >
-    {isEditing ? "Exit Edit" : "Edit Case"}
-  </button>
+<button
+  type="button"
+  onClick={handleRegenerateCurrentPlan}
+  disabled={isRegeneratingPlan}
+  className="min-w-[96px] rounded-lg bg-purple-700 px-3 py-2 text-xs font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+>
+ {isRegeneratingPlan ? "Generating..." : "Regenerate"}
+</button>
 
-  {isEditing && (
-    <button
-      type="button"
-      onClick={handleSaveCaseEdits}
-      className="bg-orange-700 hover:bg-orange-600 px-4 py-2 rounded-lg text-sm text-white"
-    >
-      Save Changes
-    </button>
-  )}
+<button
+  type="button"
+  onClick={handleSaveCurrentVersion}
+  disabled={isSavingCurrentVersion}
+  className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+>
+  {isSavingCurrentVersion ? "Saving..." : "Save"}
+</button>
 
-  <button
-    type="button"
-    onClick={handleRegenerateCurrentPlan}
-    disabled={isRegeneratingPlan}
-    className="bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm text-white"
-  >
-    {isRegeneratingPlan ? "Regenerating..." : "Regenerate Plan"}
-  </button>
+<button
+  type="button"
+  onClick={handleCopySummary}
+  className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+>
+  Copy
+</button>
 
-  <button
-    type="button"
-    onClick={handleSaveCurrentVersion}
-    disabled={isSavingCurrentVersion}
-    className="bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm text-white"
-  >
-    {isSavingCurrentVersion ? "Saving..." : "Save Version"}
-  </button>
-
-  <button
-    type="button"
-    onClick={handleCopySummary}
-    className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white"
-  >
-    Copy
-  </button>
-
-  <button
-    type="button"
-    onClick={handleDownloadSummary}
-    className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm text-white"
-  >
-    Download
-  </button>
+<button
+  type="button"
+  onClick={handleDownloadSummary}
+  className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+>
+  Download
+</button>
 
 </div>
     </main>
