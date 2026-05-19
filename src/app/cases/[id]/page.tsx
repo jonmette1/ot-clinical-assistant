@@ -10,6 +10,13 @@ import {
   buildClinicalNormalizationInsight,
 } from "@/lib/buildClinicalDecisionInput";
 
+import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
+
+// ==============================
+// TYPES
+// ==============================
+
+
 type GeneratedPlan = {
   focusApplied?: string;
   patientSnapshot?: string;
@@ -167,6 +174,7 @@ type GenerationRow = {
   id: string;
   created_at: string;
   prompt_version: string | null;
+  input_payload: any;
   output_payload: GeneratedOutput | null;
 };
 
@@ -227,6 +235,11 @@ clinical_decision_input?: {
 } | null;
 
 clinical_decision_model?: any;
+selected_pathway_index?: number | null;
+reasoning_stale?: boolean;
+plan_stale?: boolean;
+modules_stale?: boolean;
+clinician_notes?: string | null;
 
 environment: {
     bathroom_type?: string;
@@ -236,6 +249,12 @@ environment: {
     equipment_present?: string[];
   } | null;
   generated_output: GeneratedOutput | null;
+detail_modules?: {
+  caregiverScript?: CaregiverScript;
+  transferDetails?: TransferMobilityDetails;
+  adlPrivacy?: AdlPrivacySupport;
+  equipmentFeasibility?: EquipmentFeasibilityPlan;
+} | null;
 };
 
 export default function CaseDetailPage({
@@ -243,6 +262,11 @@ export default function CaseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+// ==============================
+// STATE
+// ==============================
+
   const [showAllVersions, setShowAllVersions] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
@@ -258,6 +282,7 @@ const [latestGeneratedPlan, setLatestGeneratedPlan] = useState<GeneratedPlan | n
 const [selectedGeneration, setSelectedGeneration] = useState<GenerationRow | null>(null);
 const [copyMessage, setCopyMessage] = useState("");
 const [editableTitle, setEditableTitle] = useState("");
+
 
 const [editableClientInfo, setEditableClientInfo] = useState({
   client_name: "",
@@ -283,6 +308,7 @@ const [editableFeasibility, setEditableFeasibility] = useState({
   equipment_access: "unknown",
 });
 
+const [clinicianNotes, setClinicianNotes] = useState("");
 const [editableDecisionInputs, setEditableDecisionInputs] = useState({
   goalCategory: "Independence",
   dominantBarrier: "Physical",
@@ -309,6 +335,7 @@ const [regeneratingFocus, setRegeneratingFocus] = useState<string | null>(null);
 const [briefingLens, setBriefingLens] = useState<
   "adl_home_safety" | "transfers_mobility" | "caregiver_training"
 >("adl_home_safety");
+const [showClinicalSummary, setShowClinicalSummary] = useState(false);
 const [caregiverScript, setCaregiverScript] = useState<CaregiverScript | null>(null);
 const [isGeneratingCaregiverScript, setIsGeneratingCaregiverScript] = useState(false);
 const [caregiverScriptError, setCaregiverScriptError] = useState("");
@@ -319,6 +346,11 @@ const [adlPrivacy, setAdlPrivacy] = useState<AdlPrivacySupport | null>(null);
 const [isGeneratingAdlPrivacy, setIsGeneratingAdlPrivacy] = useState(false);
 const [equipmentFeasibility, setEquipmentFeasibility] = useState<EquipmentFeasibilityPlan | null>(null);
 const [isGeneratingEquipmentFeasibility, setIsGeneratingEquipmentFeasibility] = useState(false);
+
+// ==============================
+// DATA LOADING
+// ==============================
+
 
   useEffect(() => {
     async function loadCase() {
@@ -335,6 +367,7 @@ if (error) {
   const typedCase = data as CaseDetail;
   setCaseData(typedCase);
   setEditableTitle(typedCase.title || "");
+  setClinicianNotes(typedCase.clinician_notes || "");
 
   setEditableClientInfo({
     client_name: typedCase.client_info?.client_name || "",
@@ -373,50 +406,38 @@ setEditableDecisionInputs({
   safetyRiskLevel: typedCase.clinical_decision_input?.safetyRiskLevel || "low",
 });
   const savedScript =
+  typedCase.detail_modules?.caregiverScript ||
   typedCase.generated_output?.clinicalDetailModules?.caregiverScript;
 
-if (savedScript) {
-  setCaregiverScript(savedScript);
-} else {
-  setCaregiverScript(null);
-}
+setCaregiverScript(savedScript || null);
 
-  const savedTransferDetails =
-    typedCase.generated_output?.clinicalDetailModules?.transferDetails;
+const savedTransferDetails =
+  typedCase.detail_modules?.transferDetails ||
+  typedCase.generated_output?.clinicalDetailModules?.transferDetails;
 
-  if (savedTransferDetails) {
-    setTransferDetails(savedTransferDetails);
-  } else {
-    setTransferDetails(null);
-  }
+setTransferDetails(savedTransferDetails || null);
 
 const savedAdlPrivacy =
+  typedCase.detail_modules?.adlPrivacy ||
   typedCase.generated_output?.clinicalDetailModules?.adlPrivacy;
 
-if (savedAdlPrivacy) {
-  setAdlPrivacy(savedAdlPrivacy);
-} else {
-  setAdlPrivacy(null);
-}
+setAdlPrivacy(savedAdlPrivacy || null);
 
 const savedEquipmentFeasibility =
+  typedCase.detail_modules?.equipmentFeasibility ||
   typedCase.generated_output?.clinicalDetailModules?.equipmentFeasibility;
 
-if (savedEquipmentFeasibility) {
-  setEquipmentFeasibility(savedEquipmentFeasibility);
-} else {
-  setEquipmentFeasibility(null);
-}
+setEquipmentFeasibility(savedEquipmentFeasibility || null);
 
   setCurrentGenerationId(typedCase.current_generation_id);
   console.log("Loaded current_generation_id:", typedCase.current_generation_id);
 }
 
       const { data: generationData, error: generationError } = await supabase
-  .from("generations")
-.select("id, created_at, prompt_version, output_payload")
+.from("generations")
+.select("id, created_at, prompt_version, input_payload, output_payload")
   .eq("case_id", resolvedParams.id)
-  .order("created_at", { ascending: true })
+ .order("created_at", { ascending: false })
 
 if (!generationError) {
 const gens = (generationData as GenerationRow[]) || [];
@@ -432,6 +453,12 @@ if (gens.length > 0) {
 
     loadCase();
   }, [params]);
+  
+  // ==============================
+// OPERATIONAL HANDLERS
+// save / delete / restore / regenerate
+// ==============================
+  
   async function handleDeleteCase() {
   const confirmed = window.confirm(
     "Are you sure you want to delete this case? This cannot be undone."
@@ -454,6 +481,11 @@ if (gens.length > 0) {
 }
 
 async function handleDeleteGeneration(generationId: string) {
+  if (generationId === currentGenerationId) {
+    alert("You cannot delete the current active version. Restore another version first, then delete this one.");
+    return;
+  }
+
   const confirmed = window.confirm(
     "Delete this saved version? This cannot be undone."
   );
@@ -493,7 +525,7 @@ async function handleSaveCurrentVersion() {
           output_payload: caseData.generated_output,
         },
       ])
-      .select("id, created_at, prompt_version, output_payload");
+      .select("id, created_at, prompt_version, input_payload, output_payload");
 
     if (generationError) {
       throw generationError;
@@ -534,7 +566,13 @@ async function handleSaveCurrentVersion() {
 }
 
 async function handleSaveCaseEdits() {
-  if (!caseData?.id) return;
+  
+
+  if (!caseData?.id) {
+    return;
+  }
+
+
 
   const updatedCaseData = {
   ...caseData,
@@ -544,24 +582,10 @@ async function handleSaveCaseEdits() {
   feasibility_context: editableFeasibility,
 };
 
-const clinicalDecisionInput =
-  buildClinicalDecisionInputFromCase(updatedCaseData);
+const canonicalPayload = buildCanonicalCasePayload(updatedCaseData);
 
-  const clinicalDecisionModel = buildClinicalDecisionModel({
-    goalCategory: clinicalDecisionInput.goalCategory as any,
-    dominantBarrier: clinicalDecisionInput.dominantBarrier as any,
-    dominantBarrierSeverity:
-      clinicalDecisionInput.dominantBarrierSeverity as 1 | 2 | 3,
-    secondaryBarrier: clinicalDecisionInput.secondaryBarrier as any,
-    secondaryBarrierSeverity:
-      clinicalDecisionInput.secondaryBarrierSeverity
-        ? undefined
-        : clinicalDecisionInput.secondaryBarrierSeverity,
-    safetyRiskLevel: clinicalDecisionInput.safetyRiskLevel as any,
-    supportLevel: clinicalDecisionInput.supportLevel as any,
-    clinicalLens: clinicalDecisionInput.clinicalLens as any,
-    environmentContext: clinicalDecisionInput.environmentContext as any,
-  });
+const clinicalDecisionInput = canonicalPayload.clinicalDecisionInput;
+const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
 
   try {
     const { error } = await supabase
@@ -571,11 +595,51 @@ const clinicalDecisionInput =
         client_info: editableClientInfo,
         caregiver_info: editableCaregiverInfo,
         feasibility_context: editableFeasibility,
+        clinician_notes: clinicianNotes,
         clinical_decision_input: clinicalDecisionInput,
+clinical_decision_model: clinicalDecisionModel,
+reasoning_stale: true,
+plan_stale: true,
+modules_stale: true,
       })
       .eq("id", caseData.id);
 
     if (error) throw error;
+
+const { data: savedGenerations, error: snapshotError } = await supabase
+  .from("generations")
+  .insert([
+    {
+      case_id: caseData.id,
+      prompt_version: "v2-continuity-save",
+input_payload: {
+  ...caseData,
+  title: editableTitle,
+  client_info: editableClientInfo,
+  caregiver_info: editableCaregiverInfo,
+  feasibility_context: editableFeasibility,
+  clinician_notes: clinicianNotes,
+  clinical_decision_input: clinicalDecisionInput,
+  clinical_decision_model: clinicalDecisionModel,
+  selected_pathway_index: caseData.selected_pathway_index,
+  reasoning_stale: true,
+  plan_stale: true,
+  modules_stale: true,
+},
+      output_payload: caseData.generated_output,
+    },
+  ])
+ .select("id, created_at, prompt_version, input_payload, output_payload");
+
+if (snapshotError) {
+  throw snapshotError;
+}
+
+const savedGeneration = savedGenerations?.[0];
+
+if (savedGeneration) {
+  setGenerations((prev) => [savedGeneration as GenerationRow, ...prev]);
+}
 
     setCaseData({
       ...caseData,
@@ -583,15 +647,25 @@ const clinicalDecisionInput =
       client_info: editableClientInfo,
       caregiver_info: editableCaregiverInfo,
       feasibility_context: editableFeasibility,
+      clinician_notes: clinicianNotes,
       clinical_decision_input: clinicalDecisionInput,
+clinical_decision_model: clinicalDecisionModel,
+reasoning_stale: true,
+plan_stale: true,
+modules_stale: true,
     });
 
     setIsEditing(false);
-  } catch (error: any) {
-    console.error("Failed to save case edits:", error);
-    alert(`Failed to save changes: ${error?.message || JSON.stringify(error)}`);
-  }
+} catch (error: any) {
+  console.error("Failed to save case edits:", error);
+  alert(`Failed to save changes: ${error?.message || JSON.stringify(error)}`);
 }
+}
+
+// ==============================
+// COPY / EXPORT HELPERS
+// ==============================
+
 
 function buildCaseSummaryText() {
   if (!caseData) return "";
@@ -638,25 +712,36 @@ ${
     : "—"
 }
 
-CURRENT TREATMENT APPROACH
---------------------------
-${selectedPathway?.title || "—"}
+RECOMMENDED TREATMENT APPROACH
+------------------------------
+${selectedPathway?.type || selectedPathway?.title || "—"}
 
-Type:
-${selectedPathway?.type || "—"}
+Why This Was Selected:
+${
+  selectedPathway?.selectionDrivers?.length
+    ? selectedPathway.selectionDrivers.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
 
-Operational Priorities:
+Prioritizes:
+${
+  selectedPathway?.prioritizes?.length
+    ? selectedPathway.prioritizes.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+Operational Actions:
 ${
   selectedPathway?.interventions?.length
     ? selectedPathway.interventions.map((i) => `• ${i}`).join("\n")
     : "—"
 }
 
-Expected Advantage:
-${selectedPathway?.upside || "—"}
-
-Operational Tradeoff:
+Primary Tradeoff:
 ${selectedPathway?.tradeoff || "—"}
+
+Operational Risk:
+${selectedPathway?.operationalRisk || "—"}
 
 STRUCTURED PLAN DETAILS
 -----------------------
@@ -828,13 +913,69 @@ ${liveClinicalDecisionModel.reasoningSummary || "—"}
 `.trim();
 }
 
+function buildRecommendedApproachSummary() {
+  return `
+RECOMMENDED TREATMENT APPROACH
+------------------------------
+${selectedPathway?.type || selectedPathway?.title || "—"}
+
+SUMMARY
+-------
+${generated?.selectedPathwaySummary || "—"}
+
+WHY THIS WAS SELECTED
+---------------------
+${
+  selectedPathway?.selectionDrivers?.length
+    ? selectedPathway.selectionDrivers.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+PRIORITIZES
+-----------
+${
+  selectedPathway?.prioritizes?.length
+    ? selectedPathway.prioritizes.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+OPERATIONAL ACTIONS
+-------------------
+${
+  selectedPathway?.interventions?.length
+    ? selectedPathway.interventions.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+PRIMARY TRADEOFF
+----------------
+${selectedPathway?.tradeoff || "—"}
+
+OPERATIONAL RISK
+----------------
+${selectedPathway?.operationalRisk || "—"}
+`.trim();
+}
+
 async function handleCopySummary() {
-  const summary = buildCaseSummaryText();
+const summary = buildCaseSummaryText();
 
   if (!summary) return;
 
   await navigator.clipboard.writeText(summary);
-  setCopyMessage("Summary copied to clipboard.");
+  setCopyMessage("Clinical summary copied.");
+
+  setTimeout(() => setCopyMessage(""), 2000);
+}
+
+async function handleCopyRecommendedSummary() {
+  const summary = buildRecommendedApproachSummary();
+
+  if (!summary) return;
+
+  await navigator.clipboard.writeText(summary);
+
+  setCopyMessage("Recommended approach copied.");
 
   setTimeout(() => setCopyMessage(""), 2000);
 }
@@ -899,19 +1040,22 @@ console.log("Case feasibility context being sent:", caseData.feasibility_context
     setCaregiverScript(result.data);
 
     try {
-      const updatedOutput = {
-        ...(caseData.generated_output || {}),
-        clinicalDetailModules: {
-          ...(caseData.generated_output?.clinicalDetailModules || {}),
-          caregiverScript: result.data,
-        },
-      };
+const updatedDetailModules = {
+  ...(caseData.detail_modules || {}),
+  caregiverScript: result.data,
+};
+
+const updatedOutput = {
+  ...(caseData.generated_output || {}),
+};
 
       const { error } = await supabase
         .from("cases")
-        .update({
-          generated_output: updatedOutput,
-        })
+.update({
+  generated_output: updatedOutput,
+    detail_modules: updatedDetailModules,
+  modules_stale: false,
+})
         .eq("id", caseData.id);
 
       if (error) {
@@ -939,10 +1083,12 @@ console.log("Case feasibility context being sent:", caseData.feasibility_context
         );
       }
 
-      setCaseData({
-        ...caseData,
-        generated_output: updatedOutput,
-      });
+setCaseData({
+  ...caseData,
+  generated_output: updatedOutput,
+    detail_modules: updatedDetailModules,
+  modules_stale: false,
+});
 
     } catch (e) {
       console.error("Failed to persist caregiver script", e);
@@ -983,29 +1129,34 @@ async function handleGenerateTransferDetails() {
     setTransferDetails(result.data);
 
     try {
-      const updatedOutput = {
-        ...(caseData.generated_output || {}),
-        clinicalDetailModules: {
-          ...(caseData.generated_output?.clinicalDetailModules || {}),
-          transferDetails: result.data,
-        },
-      };
+const updatedDetailModules = {
+  ...(caseData.detail_modules || {}),
+  transferDetails: result.data,
+};
+
+const updatedOutput = {
+  ...(caseData.generated_output || {}),
+};
 
       const { error } = await supabase
         .from("cases")
-        .update({
-          generated_output: updatedOutput,
-        })
+.update({
+  generated_output: updatedOutput,
+    detail_modules: updatedDetailModules,
+  modules_stale: false,
+})
         .eq("id", caseData.id);
 
       if (error) {
         throw error;
       }
 
-      setCaseData({
-        ...caseData,
-        generated_output: updatedOutput,
-      });
+setCaseData({
+  ...caseData,
+  generated_output: updatedOutput,
+    detail_modules: updatedDetailModules,
+  modules_stale: false,
+});
     } catch (e) {
       console.error("Failed to persist transfer details", e);
     }
@@ -1048,18 +1199,21 @@ body: JSON.stringify({
 
     // Persist to case
 try {
-  const updatedOutput = {
-    ...(caseData.generated_output || {}),
-    clinicalDetailModules: {
-      ...(caseData.generated_output?.clinicalDetailModules || {}),
-      adlPrivacy: result.data,
-    },
-  };
+  const updatedDetailModules = {
+  ...(caseData.detail_modules || {}),
+  adlPrivacy: result.data,
+};
+
+const updatedOutput = {
+  ...(caseData.generated_output || {}),
+};
 
   const { error } = await supabase
     .from("cases")
     .update({
       generated_output: updatedOutput,
+        detail_modules: updatedDetailModules,
+  modules_stale: false,
     })
     .eq("id", caseData.id);
 
@@ -1070,6 +1224,8 @@ try {
   setCaseData({
     ...caseData,
     generated_output: updatedOutput,
+      detail_modules: updatedDetailModules,
+  modules_stale: false,
   });
 } catch (e) {
   console.error("Failed to persist ADL privacy", e);
@@ -1117,18 +1273,21 @@ console.log(
       throw new Error(result.error || "Failed to generate equipment feasibility plan.");
     }
 
-   const updatedGeneratedOutput = {
+const updatedDetailModules = {
+  ...(caseData.detail_modules || {}),
+  equipmentFeasibility: result.data,
+};
+
+const updatedOutput = {
   ...(caseData.generated_output || {}),
-  clinicalDetailModules: {
-    ...((caseData.generated_output as any)?.clinicalDetailModules || {}),
-    equipmentFeasibility: result.data,
-  },
 };
 
 const { error: updateError } = await supabase
   .from("cases")
   .update({
-    generated_output: updatedGeneratedOutput,
+    generated_output: updatedOutput,
+      detail_modules: updatedDetailModules,
+  modules_stale: false,
   })
   .eq("id", caseData.id);
 
@@ -1140,7 +1299,9 @@ setEquipmentFeasibility(result.data);
 
 setCaseData({
   ...caseData,
-  generated_output: updatedGeneratedOutput,
+  generated_output: updatedOutput,
+      detail_modules: updatedDetailModules,
+  modules_stale: false,
 });
 
   } catch (err) {
@@ -1152,7 +1313,7 @@ setCaseData({
 
 const orderedGenerations = [...generations].sort(
   (a, b) =>
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 );
 
 const visibleGenerations = showAllVersions
@@ -1161,6 +1322,66 @@ const visibleGenerations = showAllVersions
 
 const getVersionNumber = (generationId: string) =>
   orderedGenerations.findIndex((g) => g.id === generationId) + 1;
+
+const getSnapshotTypeLabel = (promptVersion?: string | null) => {
+  if (!promptVersion) return "Saved Plan Snapshot";
+
+  if (promptVersion.includes("manual-snapshot")) {
+    return "Manual Snapshot";
+  }
+
+  if (promptVersion.includes("continuity-save")) {
+    return "Saved After Case Edit";
+  }
+
+  if (promptVersion.includes("regenerated")) {
+    return "Regenerated Plan";
+  }
+
+  if (promptVersion.includes("transfers_mobility")) {
+    return "Transfers & Mobility Focus";
+  }
+
+  if (promptVersion.includes("caregiver_training")) {
+    return "Caregiver Training Focus";
+  }
+
+  if (promptVersion.includes("adl_home_safety")) {
+    return "ADL / Home Safety Focus";
+  }
+
+  return "Saved Plan Snapshot";
+};
+
+const getSnapshotReasonLabel = (promptVersion?: string | null) => {
+  if (!promptVersion) return "Saved clinical reasoning snapshot.";
+
+  if (promptVersion.includes("manual-snapshot")) {
+    return "Clinician saved the current plan state.";
+  }
+
+  if (promptVersion.includes("continuity-save")) {
+    return "Case information was edited; snapshot preserved for continuity.";
+  }
+
+  if (promptVersion.includes("regenerated")) {
+    return "Plan was regenerated from the current case information.";
+  }
+
+  if (promptVersion.includes("transfers_mobility")) {
+    return "Plan was generated with transfers and mobility emphasized.";
+  }
+
+  if (promptVersion.includes("caregiver_training")) {
+    return "Plan was generated with caregiver training emphasized.";
+  }
+
+  if (promptVersion.includes("adl_home_safety")) {
+    return "Plan was generated with ADL and home safety emphasized.";
+  }
+
+  return "Saved clinical reasoning snapshot.";
+};
 
 if (loading) {
   return (
@@ -1192,18 +1413,34 @@ if (loading) {
       </main>
     );
   }
+const isViewingHistoricalVersion =
+  Boolean(selectedGeneration) && selectedGeneration?.id !== currentGenerationId;
 
- const generated = caseData.generated_output as GeneratedOutput | null;
+// ==============================
+// DERIVED DISPLAY MODEL
+// displayCase / generated / selectedPathway / executiveBriefing
+// ==============================
 
-const liveClinicalDecisionInput = buildClinicalDecisionInputFromCase(caseData);
+const displayCase = selectedGeneration?.input_payload
+  ? ({
+      ...caseData,
+      ...selectedGeneration.input_payload,
+      generated_output: selectedGeneration.output_payload,
+      current_generation_id: selectedGeneration.id,
+    } as CaseDetail)
+  : caseData;
+
+const generated = displayCase.generated_output as GeneratedOutput | null;
+
+const liveClinicalDecisionInput = buildClinicalDecisionInputFromCase(displayCase);
 
 const liveClinicalDecisionModel =
   buildClinicalDecisionModel(liveClinicalDecisionInput);
 
 const normalizationInsight =
-  buildClinicalNormalizationInsight(caseData);
+  buildClinicalNormalizationInsight(displayCase);
 
-const levels = caseData.functional_status?.adl_assist_levels;
+const levels = displayCase.functional_status?.adl_assist_levels;
 
 const transferScores = levels
   ? [
@@ -1238,9 +1475,9 @@ const caregiverGuidance: string[] =
     : selectedPathway?.interventions ?? [];
 
 const clinicalFocusLabel =
-  caseData.case_classification?.clinical_focus === "transfers_mobility"
+  displayCase.case_classification?.clinical_focus === "transfers_mobility"
     ? "Transfers & Mobility"
-    : caseData.case_classification?.clinical_focus === "caregiver_training"
+    : displayCase.case_classification?.clinical_focus === "caregiver_training"
     ? "Caregiver Training"
     : "ADL / Home Safety";
 
@@ -1303,7 +1540,7 @@ const getCostBadgeClass = (value?: string) => {
 };
 
 const selectedPlanForExport = {
-  title: caseData.title || "Untitled Case",
+  title: displayCase.title || "Untitled Case",
   patientSnapshot: generated?.patientSnapshot || "",
   selectedPathwayTitle: selectedPathway?.title || "",
   selectedPathwayType: selectedPathway?.type || "",
@@ -1378,36 +1615,74 @@ const executiveBriefing = (() => {
   };
 })();
 
-  const handleRestoreSelectedVersion = async () => {
+const handleRestoreSelectedVersion = async () => {
   if (!selectedGeneration || !caseData?.id) return;
 
   try {
     setIsRestoringVersion(true);
 
+    const restoredOutput = selectedGeneration.output_payload;
+    const restoredInput = selectedGeneration.input_payload || {};
+
+    const restoredSelectedPathwayIndex =
+      typeof restoredOutput?.selectedPathwayIndex === "number"
+        ? restoredOutput.selectedPathwayIndex
+        : typeof caseData.selected_pathway_index === "number"
+        ? caseData.selected_pathway_index
+        : 0;
+
+    const restoredDetailModules = {
+      ...(caseData.detail_modules || {}),
+      ...(restoredOutput?.clinicalDetailModules || {}),
+    };
+
     const { error } = await supabase
       .from("cases")
-      .update({
-        generated_output: selectedGeneration.output_payload,
-        current_generation_id: selectedGeneration.id,
-      })
-      .eq("id", caseData.id);
+.update({
+  title: restoredInput.title ?? caseData.title,
+  patient_profile: restoredInput.patient_profile ?? caseData.patient_profile,
+  functional_status: restoredInput.functional_status ?? caseData.functional_status,
+  goals_preferences: restoredInput.goals_preferences ?? caseData.goals_preferences,
+  client_info: restoredInput.client_info ?? caseData.client_info,
+  caregiver_info: restoredInput.caregiver_info ?? caseData.caregiver_info,
+  feasibility_context: restoredInput.feasibility_context ?? caseData.feasibility_context,
+  case_classification: restoredInput.case_classification ?? caseData.case_classification,
+  clinical_decision_input:
+    restoredInput.clinical_decision_input ?? caseData.clinical_decision_input,
+  clinical_decision_model:
+    restoredInput.clinical_decision_model ?? caseData.clinical_decision_model,
+  clinician_notes: restoredInput.clinician_notes ?? caseData.clinician_notes,
+  generated_output: restoredOutput,
+  selected_pathway_index: restoredSelectedPathwayIndex,
+  detail_modules: restoredDetailModules,
+  current_generation_id: selectedGeneration.id,
+})
 
-    if (error) {
-      throw error;
-    }
+setCaseData({
+  ...caseData,
+  title: restoredInput.title ?? caseData.title,
+  patient_profile: restoredInput.patient_profile ?? caseData.patient_profile,
+  functional_status: restoredInput.functional_status ?? caseData.functional_status,
+  goals_preferences: restoredInput.goals_preferences ?? caseData.goals_preferences,
+  client_info: restoredInput.client_info ?? caseData.client_info,
+  caregiver_info: restoredInput.caregiver_info ?? caseData.caregiver_info,
+  feasibility_context: restoredInput.feasibility_context ?? caseData.feasibility_context,
+  case_classification: restoredInput.case_classification ?? caseData.case_classification,
+  clinical_decision_input:
+    restoredInput.clinical_decision_input ?? caseData.clinical_decision_input,
+  clinical_decision_model:
+    restoredInput.clinical_decision_model ?? caseData.clinical_decision_model,
+  clinician_notes: restoredInput.clinician_notes ?? caseData.clinician_notes,
+  generated_output: restoredOutput,
+  selected_pathway_index: restoredSelectedPathwayIndex,
+  detail_modules: restoredDetailModules,
+  current_generation_id: selectedGeneration.id,
+});
 
-    setCaseData({
-      ...caseData,
-      generated_output: selectedGeneration.output_payload,
-      current_generation_id: selectedGeneration.id,
-    });
-
-    const savedModules =
-  selectedGeneration.output_payload?.clinicalDetailModules;
-
-setCaregiverScript(savedModules?.caregiverScript || null);
-setTransferDetails(savedModules?.transferDetails || null);
-setAdlPrivacy(savedModules?.adlPrivacy || null);
+    setCaregiverScript(restoredDetailModules.caregiverScript || null);
+    setTransferDetails(restoredDetailModules.transferDetails || null);
+    setAdlPrivacy(restoredDetailModules.adlPrivacy || null);
+    setEquipmentFeasibility(restoredDetailModules.equipmentFeasibility || null);
 
     setCurrentGenerationId(selectedGeneration.id);
     setSelectedGeneration(null);
@@ -1432,6 +1707,7 @@ const handleSaveSelectedPathway = async (index: number) => {
       .from("cases")
       .update({
         generated_output: updatedGeneratedOutput,
+        selected_pathway_index: index,
       })
       .eq("id", caseData.id);
 
@@ -1443,6 +1719,7 @@ const handleSaveSelectedPathway = async (index: number) => {
     setCaseData((prev: any) => ({
       ...prev,
       generated_output: updatedGeneratedOutput,
+      selected_pathway_index: index,
     }));
 
     console.log("Selected pathway saved:", index);
@@ -1466,24 +1743,17 @@ const handleClinicalFocusChange = async (focus: string) => {
       },
     };
 
-    const clinicalDecisionInput =
-      buildClinicalDecisionInputFromCase(updatedCasePayload);
+    const canonicalPayload = buildCanonicalCasePayload(updatedCasePayload);
 
-    const clinicalDecisionModel =
-      buildClinicalDecisionModel(clinicalDecisionInput);
-
-    const focusRegenerationPayload = {
-      ...updatedCasePayload,
-      clinical_decision_input: clinicalDecisionInput,
-      clinicalDecisionModel,
-    };
+    const clinicalDecisionInput = canonicalPayload.clinicalDecisionInput;
+    const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(focusRegenerationPayload),
+      body: JSON.stringify(canonicalPayload),
     });
 
     const aiData = await aiResponse.json();
@@ -1497,18 +1767,24 @@ const handleClinicalFocusChange = async (focus: string) => {
 
     const plan = aiData.plan;
 
+    const selectedPathwayIndex =
+      typeof caseData.selected_pathway_index === "number"
+        ? caseData.selected_pathway_index
+        : typeof caseData.generated_output?.selectedPathwayIndex === "number"
+        ? caseData.generated_output.selectedPathwayIndex
+        : 0;
+
     const { data: insertedGenerations, error: generationError } = await supabase
       .from("generations")
       .insert([
         {
           case_id: caseData.id,
           prompt_version: `v1-ai-${focus}`,
-          input_payload: focusRegenerationPayload,
+          input_payload: canonicalPayload,
           output_payload: plan,
         },
       ])
-      .select("id, created_at, prompt_version, output_payload");
-
+.select("id, created_at, prompt_version, input_payload, output_payload")
     if (generationError) throw generationError;
 
     const newGeneration = insertedGenerations?.[0];
@@ -1520,7 +1796,12 @@ const handleClinicalFocusChange = async (focus: string) => {
       .update({
         case_classification: updatedCasePayload.case_classification,
         clinical_decision_input: clinicalDecisionInput,
+        clinical_decision_model: clinicalDecisionModel,
         generated_output: plan,
+        selected_pathway_index: selectedPathwayIndex,
+        reasoning_stale: false,
+plan_stale: false,
+modules_stale: true,
         current_generation_id:
           newGeneration?.id || caseData.current_generation_id,
       })
@@ -1532,7 +1813,12 @@ const handleClinicalFocusChange = async (focus: string) => {
       ...prev,
       case_classification: updatedCasePayload.case_classification,
       clinical_decision_input: clinicalDecisionInput,
+      clinical_decision_model: clinicalDecisionModel,
       generated_output: plan,
+      selected_pathway_index: selectedPathwayIndex,
+      reasoning_stale: false,
+plan_stale: false,
+modules_stale: true,
       current_generation_id: newGeneration?.id || prev.current_generation_id,
     }));
 
@@ -1564,18 +1850,13 @@ const updatedCasePayload = {
   client_info: editableClientInfo,
   caregiver_info: editableCaregiverInfo,
   feasibility_context: editableFeasibility,
+  clinician_notes: clinicianNotes,
 };
 
-const clinicalDecisionInput =
-  buildClinicalDecisionInputFromCase(updatedCasePayload);
+const regenerationPayload = buildCanonicalCasePayload(updatedCasePayload);
 
-const clinicalDecisionModel = buildClinicalDecisionModel(clinicalDecisionInput);
-
-const regenerationPayload = {
-  ...updatedCasePayload,
-  clinical_decision_input: clinicalDecisionInput,
-  clinicalDecisionModel,
-};
+const clinicalDecisionInput = regenerationPayload.clinicalDecisionInput;
+const clinicalDecisionModel = regenerationPayload.clinicalDecisionModel;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
@@ -1604,8 +1885,7 @@ const regenerationPayload = {
           output_payload: plan,
         },
       ])
-      .select("id, created_at, prompt_version, output_payload");
-
+.select("id, created_at, prompt_version, input_payload, output_payload")
     if (generationError) throw generationError;
 
     const newGeneration = insertedGenerations?.[0];
@@ -1616,7 +1896,7 @@ const { error: caseUpdateError } = await supabase
     title: updatedCasePayload.title,
     client_info: updatedCasePayload.client_info,
     caregiver_info: updatedCasePayload.caregiver_info,
-    feasibility_context: updatedCasePayload.feasibility_context,
+    clinician_notes: clinicianNotes,
 
     clinical_decision_input: clinicalDecisionInput,
     
@@ -1634,6 +1914,7 @@ setCaseData({
   client_info: updatedCasePayload.client_info,
   caregiver_info: updatedCasePayload.caregiver_info,
   feasibility_context: updatedCasePayload.feasibility_context,
+  clinician_notes: clinicianNotes,
 
   clinical_decision_input: clinicalDecisionInput,
   
@@ -1662,14 +1943,25 @@ setCaseData({
   }
 }
 
+// ==============================
+// RENDER LAYER
+// JSX below should prefer displayCase, generated, selectedPathway
+// Do not use caseData here unless intentionally operating on live case state
+// ==============================
+
 return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
 
-        {/* CASE HEADER + BASIC DETAILS */}
 
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <div className="flex items-start justify-between gap-4 mb-4">
+{/* ==============================
+    RENDER: CASE HEADER / DETAILS
+============================== */}
+
+{/* CASE HEADER + BASIC DETAILS */}
+
+<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <div className="flex items-start justify-between gap-4 mb-4">
   
   {/* TITLE / EDIT TITLE */}
   <div>
@@ -1683,11 +1975,11 @@ return (
     />
   ) : (
     <h1 className="text-3xl font-bold mb-2">
-      {caseData.title || "Untitled Case"}
+      {displayCase.title || "Untitled Case"}
     </h1>
   )}
 
-    {isEditing && (
+  {isEditing && (
     <div className="mb-3 rounded-lg border border-orange-700 bg-orange-950/40 px-3 py-2 text-sm text-orange-200">
       Edit Mode Active — fields are not editable yet. Next step is wiring one safe input at a time.
     </div>
@@ -1695,480 +1987,321 @@ return (
 
   {/* FOCUS + SEVERITY BADGES */}
 
-<div className="mb-2 flex items-center gap-2">
-  {generated?.focusApplied && (
-    <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
-      Focus: {generated.focusApplied}
-    </span>
-  )}
+  <div className="mb-2 flex items-center gap-2">
+    {generated?.focusApplied && (
+      <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+        Focus: {generated.focusApplied}
+      </span>
+    )}
 
-  <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
-   Severity: {worstTransfer ? `${worstTransfer.value} (${worstTransfer.label})` : "—"}
-  </span>
-</div>
+    <span className="text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+      Severity: {worstTransfer ? `${worstTransfer.value} (${worstTransfer.label})` : "—"}
+    </span>
+  </div>
 
   <p className="text-sm text-gray-400">
-    Created: {new Date(caseData.created_at).toLocaleString()}
+    Created: {new Date(displayCase.created_at).toLocaleString()}
   </p>
 
   <p className="text-sm text-gray-400 mt-1">
     Clinical Focus:{" "}
     <span className="text-white font-medium">
-      {caseData.case_classification?.clinical_focus === "transfers_mobility"
+      {displayCase.case_classification?.clinical_focus === "transfers_mobility"
         ? "Transfers & Mobility"
-        : caseData.case_classification?.clinical_focus === "caregiver_training"
+        : displayCase.case_classification?.clinical_focus === "caregiver_training"
         ? "Caregiver Training"
         : "ADL / Home Safety"}
     </span>
   </p>
 
   {!isEditing && (
-  <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
-    <button
-      type="button"
-      onClick={() => setShowDecisionTransparency((prev) => !prev)}
-      className="flex w-full items-center justify-between text-left"
-    >
-      <h3 className="text-sm font-semibold text-blue-200">
-        Decision Engine Transparency
-      </h3>
+    <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
+      <button
+        type="button"
+        onClick={() => setShowDecisionTransparency((prev) => !prev)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <h3 className="text-sm font-semibold text-blue-200">
+          Decision Engine Transparency
+        </h3>
 
-      <span className="text-xs text-blue-300">
-        {showDecisionTransparency ? "Hide" : "Show"}
-      </span>
-    </button>
+        <span className="text-xs text-blue-300">
+          {showDecisionTransparency ? "Hide" : "Show"}
+        </span>
+      </button>
 
-    {showDecisionTransparency && (
-      <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
-        <div>
-          <p className="text-xs text-blue-300">Dominant Barrier</p>
-          <p className="text-white font-medium">
-            {liveClinicalDecisionModel.dominantBarrier || "—"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs text-blue-300">Secondary Barrier</p>
-          <p className="text-white font-medium">
-            {liveClinicalDecisionModel.secondaryBarrier || "None"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs text-blue-300">Safety Risk</p>
-          <p className="text-white font-medium">
-            {liveClinicalDecisionModel.safetyRiskLevel || "—"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs text-blue-300">Support Level</p>
-          <p className="text-white font-medium">
-            {liveClinicalDecisionModel.supportLevel || "—"}
-          </p>
-        </div>
-
-        <div className="md:col-span-2">
-          <p className="text-xs text-blue-300">Selected Strategies</p>
-          <p className="text-white font-medium">
-            {liveClinicalDecisionModel.selectedStrategies?.length
-              ? liveClinicalDecisionModel.selectedStrategies.join(", ")
-              : "—"}
-          </p>
-        </div>
-
-        <div className="md:col-span-2">
-          <p className="text-xs text-blue-300">Reasoning Summary</p>
-          <p className="text-gray-200 leading-relaxed">
-            {liveClinicalDecisionModel.reasoningSummary || "—"}
-          </p>
-        </div>
-      </div>
-    )}
-  </div>
-)} 
-
-</div>
-
- <div className="hidden">
-
-{copyMessage && (
-  <p className="text-sm text-gray-400 mt-3">{copyMessage}</p>
-)}
-</div>
-</div>
-
-          {/* CASE DETAIL SUMMARY */}
-          <div className="space-y-2 text-sm text-gray-300">
-            <p>
-              <strong>Age Range:</strong>{" "}
-              {caseData.patient_profile?.age_range || "—"}
+      {showDecisionTransparency && (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
+          <div>
+            <p className="text-xs text-blue-300">Dominant Barrier</p>
+            <p className="text-white font-medium">
+              {liveClinicalDecisionModel.dominantBarrier || "—"}
             </p>
-            <p>
-              <strong>Primary Diagnosis:</strong>{" "}
-              {caseData.patient_profile?.primary_diagnosis || "—"}
+          </div>
+
+          <div>
+            <p className="text-xs text-blue-300">Secondary Barrier</p>
+            <p className="text-white font-medium">
+              {liveClinicalDecisionModel.secondaryBarrier || "None"}
             </p>
-            <p>
-              <strong>Current Assistance Level:</strong>{" "}
-              {caseData.functional_status?.current_assistance_level || "—"}
+          </div>
+
+          <div>
+            <p className="text-xs text-blue-300">Safety Risk</p>
+            <p className="text-white font-medium">
+              {liveClinicalDecisionModel.safetyRiskLevel || "—"}
             </p>
-            <p>
-              <strong>Key Barriers:</strong>{" "}
-              {caseData.functional_status?.key_barriers?.length
-                ? caseData.functional_status.key_barriers.join(", ")
+          </div>
+
+          <div>
+            <p className="text-xs text-blue-300">Support Level</p>
+            <p className="text-white font-medium">
+              {liveClinicalDecisionModel.supportLevel || "—"}
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <p className="text-xs text-blue-300">Selected Strategies</p>
+            <p className="text-white font-medium">
+              {liveClinicalDecisionModel.selectedStrategies?.length
+                ? liveClinicalDecisionModel.selectedStrategies.join(", ")
                 : "—"}
             </p>
-            <p>
-              <strong>Primary Goal:</strong>{" "}
-              {caseData.goals_preferences?.primary_goal || "—"}
-            </p>
-{/* EDIT MODE: CLIENT / CAREGIVER / FEASIBILITY */}
-{isEditing ? (
-  <div className="grid gap-3 md:grid-cols-2">
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Client Name</label>
-      <input
-        type="text"
-        value={editableClientInfo.client_name}
-        onChange={(e) =>
-          setEditableClientInfo((prev) => ({
-            ...prev,
-            client_name: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
-      <input
-        type="text"
-        value={editableClientInfo.phone}
-        onChange={(e) =>
-          setEditableClientInfo((prev) => ({
-            ...prev,
-            phone: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Client Email</label>
-      <input
-        type="email"
-        value={editableClientInfo.email}
-        onChange={(e) =>
-          setEditableClientInfo((prev) => ({
-            ...prev,
-            email: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Client Address</label>
-      <input
-        type="text"
-        value={editableClientInfo.address}
-        onChange={(e) =>
-          setEditableClientInfo((prev) => ({
-            ...prev,
-            address: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Caregiver Name</label>
-      <input
-        type="text"
-        value={editableCaregiverInfo.caregiver_name}
-        onChange={(e) =>
-          setEditableCaregiverInfo((prev) => ({
-            ...prev,
-            caregiver_name: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Caregiver Relationship</label>
-      <input
-        type="text"
-        value={editableCaregiverInfo.relationship}
-        onChange={(e) =>
-          setEditableCaregiverInfo((prev) => ({
-            ...prev,
-            relationship: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">Caregiver Phone</label>
-      <input
-        type="text"
-        value={editableCaregiverInfo.phone}
-        onChange={(e) =>
-          setEditableCaregiverInfo((prev) => ({
-            ...prev,
-            phone: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      />
-    </div>
-
-{/* DECISION ENGINE SUMMARY */}
-<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
-  <h3 className="text-sm font-semibold text-gray-300 mb-3">
-    Decision Engine Summary
-  </h3>
-
-  <div className="grid gap-3 md:grid-cols-2 text-sm">
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Goal Category</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.goalCategory || "—"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Dominant Barrier</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.dominantBarrier || "—"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Barrier Severity</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.dominantBarrierSeverity || "—"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Safety Risk</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.safetyRiskLevel || "—"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Support Level</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.supportLevel || "—"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3">
-      <div className="text-gray-500 text-xs mb-1">Secondary Barrier</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.secondaryBarrier || "None"}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
-      <div className="text-gray-500 text-xs mb-1">Selected Strategies</div>
-      <div className="text-white">
-        {liveClinicalDecisionModel.selectedStrategies?.length
-          ? liveClinicalDecisionModel.selectedStrategies.join(", ")
-          : "—"}
-      </div>
-    </div>
-    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
-      <div className="text-gray-500 text-xs mb-2">Normalization Notes</div>
-          <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 md:col-span-2">
-      <div className="text-gray-500 text-xs mb-2">Barrier Scores</div>
-
-      <div className="grid gap-2 md:grid-cols-4">
-        {normalizationInsight.sortedScores.map(([barrier, score]) => (
-          <div
-            key={barrier}
-            className="rounded border border-gray-800 bg-gray-950 px-2 py-2"
-          >
-            <div className="text-xs text-gray-500">{barrier}</div>
-            <div className="text-sm font-semibold text-white">{score}</div>
           </div>
-        ))}
-      </div>
-    </div>
 
-      {normalizationInsight.notes.length > 0 ? (
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {normalizationInsight.notes.map((note, index) => (
-            <li key={index}>{note}</li>
-          ))}
-        </ul>
-      ) : (
-        <div className="text-gray-400">—</div>
-      )}
-    </div>
-  </div>
-</div>
-
-{/* FEASIBILITY CONTEXT */}
-<div className="md:col-span-2 mt-4 border-t border-gray-800 pt-4">
-  <h3 className="text-sm font-semibold text-gray-300 mb-3">
-    Real-World Constraints
-  </h3>
-
-  <div className="grid gap-3 md:grid-cols-3">
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Financial Constraint
-      </label>
-      <select
-        value={editableFeasibility.financial_constraint}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            financial_constraint: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="low">Low</option>
-        <option value="moderate">Moderate</option>
-        <option value="high">High</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Environmental Constraint
-      </label>
-      <select
-        value={editableFeasibility.environmental_constraint}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            environmental_constraint: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="flexible">Flexible</option>
-        <option value="moderate">Moderate</option>
-        <option value="severe">Severe</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="block text-xs text-gray-400 mb-1">
-        Equipment Access
-      </label>
-      <select
-        value={editableFeasibility.equipment_access}
-        onChange={(e) =>
-          setEditableFeasibility((prev) => ({
-            ...prev,
-            equipment_access: e.target.value,
-          }))
-        }
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-      >
-        <option value="unknown">Unknown</option>
-        <option value="out_of_pocket">Out of pocket</option>
-        <option value="insurance_dme">Insurance / DME</option>
-        <option value="borrowed">Borrowed</option>
-        <option value="mixed">Mixed</option>
-      </select>
-    </div>
-  </div>
-</div>
-
-  </div>
-
-) : (
-  <>
-  {/* DISPLAY MODE: CLIENT / CAREGIVER / FEASIBILITY */}
-    <p>
-      <strong>Client Name:</strong>{" "}
-      {caseData.client_info?.client_name || "—"}
-    </p>
-    <p>
-      <strong>Client Phone:</strong>{" "}
-      {caseData.client_info?.phone || "—"}
-    </p>
-    <p>
-      <strong>Client Email:</strong>{" "}
-      {caseData.client_info?.email || "—"}
-    </p>
-    <p>
-      <strong>Client Address:</strong>{" "}
-      {caseData.client_info?.address || "—"}
-    </p>
-    <p>
-      <strong>Caregiver Name:</strong>{" "}
-      {caseData.caregiver_info?.caregiver_name || "—"}
-    </p>
-    <p>
-      <strong>Caregiver Relationship:</strong>{" "}
-      {caseData.caregiver_info?.relationship || "—"}
-    </p>
-    <p>
-      <strong>Caregiver Phone:</strong>{" "}
-      {caseData.caregiver_info?.phone || "—"}
-    </p>
-{/* FEASIBILITY CONTEXT DISPLAY */}
-<div className="mt-4 border-t border-gray-800 pt-4">
-  <h3 className="text-sm font-semibold text-gray-300 mb-2">
-    Real-World Constraints
-  </h3>
-
-  <p>
-    <strong>Financial:</strong>{" "}
-    {caseData.feasibility_context?.financial_constraint || "—"}
-  </p>
-  <p>
-    <strong>Environment:</strong>{" "}
-    {caseData.feasibility_context?.environmental_constraint || "—"}
-  </p>
-  <p>
-    <strong>Equipment Access:</strong>{" "}
-    {caseData.feasibility_context?.equipment_access || "—"}
-  </p>
-</div>
-
-  </>
-)}
-<p>
-  <strong>Case Type:</strong>{" "}
-  {caseData.case_classification?.case_type || "—"}
-</p>
-
-<p>
-  <strong>Primary Goal:</strong>{" "}
-  {caseData.goals_preferences?.primary_goal || "—"}
-</p>
-
-<p>
-  <strong>Bathroom Type:</strong>{" "}
-  {caseData.environment?.bathroom_type || "—"}
-</p>
-<p>
-  <strong>Stairs Present:</strong>{" "}
-  {caseData.environment?.stairs_present || "—"}
-</p>
+          <div className="md:col-span-2">
+            <p className="text-xs text-blue-300">Reasoning Summary</p>
+            <p className="text-gray-200 leading-relaxed">
+              {liveClinicalDecisionModel.reasoningSummary || "—"}
+            </p>
           </div>
         </div>
+      )}
+    </div>
+  )} 
+
+  </div>
+
+  <div className="hidden">
+    {copyMessage && (
+      <p className="text-sm text-gray-400 mt-3">{copyMessage}</p>
+    )}
+  </div>
+  </div>
+
+{/* CASE DETAIL SUMMARY */}
+<div className="space-y-2 text-sm text-gray-300">
+  <p>
+    <strong>Age Range:</strong>{" "}
+    {displayCase.patient_profile?.age_range || "—"}
+  </p>
+  <p>
+    <strong>Primary Diagnosis:</strong>{" "}
+    {displayCase.patient_profile?.primary_diagnosis || "—"}
+  </p>
+  <p>
+    <strong>Current Assistance Level:</strong>{" "}
+    {displayCase.functional_status?.current_assistance_level || "—"}
+  </p>
+  <p>
+    <strong>Key Barriers:</strong>{" "}
+    {displayCase.functional_status?.key_barriers?.length
+      ? displayCase.functional_status.key_barriers.join(", ")
+      : "—"}
+  </p>
+  <p>
+    <strong>Primary Goal:</strong>{" "}
+    {displayCase.goals_preferences?.primary_goal || "—"}
+  </p>
+
+  {isEditing ? (
+    <div className="mt-4 grid gap-3 md:grid-cols-2 rounded-lg border border-blue-800 bg-blue-950/20 p-4">
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Client Name</label>
+        <input
+          type="text"
+          value={editableClientInfo.client_name}
+          onChange={(e) =>
+            setEditableClientInfo((prev) => ({
+              ...prev,
+              client_name: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
+        <input
+          type="text"
+          value={editableClientInfo.phone}
+          onChange={(e) =>
+            setEditableClientInfo((prev) => ({
+              ...prev,
+              phone: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Client Email</label>
+        <input
+          type="email"
+          value={editableClientInfo.email}
+          onChange={(e) =>
+            setEditableClientInfo((prev) => ({
+              ...prev,
+              email: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Client Address</label>
+        <input
+          type="text"
+          value={editableClientInfo.address}
+          onChange={(e) =>
+            setEditableClientInfo((prev) => ({
+              ...prev,
+              address: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Caregiver Name</label>
+        <input
+          type="text"
+          value={editableCaregiverInfo.caregiver_name}
+          onChange={(e) =>
+            setEditableCaregiverInfo((prev) => ({
+              ...prev,
+              caregiver_name: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">
+          Caregiver Relationship
+        </label>
+        <input
+          type="text"
+          value={editableCaregiverInfo.relationship}
+          onChange={(e) =>
+            setEditableCaregiverInfo((prev) => ({
+              ...prev,
+              relationship: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Caregiver Phone</label>
+        <input
+          type="text"
+          value={editableCaregiverInfo.phone}
+          onChange={(e) =>
+            setEditableCaregiverInfo((prev) => ({
+              ...prev,
+              phone: e.target.value,
+            }))
+          }
+          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+        />
+      </div>
+
+      <div className="md:col-span-2 flex gap-2 pt-2">
+        <button
+          type="button"
+          onClick={handleSaveCaseEdits}
+          className="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
+        >
+          Save Changes
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsEditing(false)}
+          className="rounded bg-gray-700 px-3 py-2 text-sm font-medium text-white hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : (
+    <>
+      <p><strong>Client Name:</strong> {displayCase.client_info?.client_name || "—"}</p>
+      <p><strong>Client Phone:</strong> {displayCase.client_info?.phone || "—"}</p>
+      <p><strong>Client Email:</strong> {displayCase.client_info?.email || "—"}</p>
+      <p><strong>Client Address:</strong> {displayCase.client_info?.address || "—"}</p>
+      <p><strong>Caregiver Name:</strong> {displayCase.caregiver_info?.caregiver_name || "—"}</p>
+      <p><strong>Caregiver Relationship:</strong> {displayCase.caregiver_info?.relationship || "—"}</p>
+      <p><strong>Caregiver Phone:</strong> {displayCase.caregiver_info?.phone || "—"}</p>
+
+      <button
+  type="button"
+  disabled={isViewingHistoricalVersion}
+  onClick={() => setIsEditing(true)}
+  className="mt-4 rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {isViewingHistoricalVersion ? "Historical Snapshot" : "Edit Case Info"}
+</button>
+    </>
+  )}
+
+  <div className="mt-4 border-t border-gray-800 pt-4">
+    <h3 className="text-sm font-semibold text-gray-300 mb-2">
+      Real-World Constraints
+    </h3>
+
+    <p><strong>Financial:</strong> {displayCase.feasibility_context?.financial_constraint || "—"}</p>
+    <p><strong>Environment:</strong> {displayCase.feasibility_context?.environmental_constraint || "—"}</p>
+    <p><strong>Equipment Access:</strong> {displayCase.feasibility_context?.equipment_access || "—"}</p>
+  </div>
+
+  <p><strong>Case Type:</strong> {displayCase.case_classification?.case_type || "—"}</p>
+  <p><strong>Bathroom Type:</strong> {displayCase.environment?.bathroom_type || "—"}</p>
+  <p><strong>Stairs Present:</strong> {displayCase.environment?.stairs_present || "—"}</p>
+
+  <div className="mt-4 border-t border-gray-800 pt-4">
+    <h3 className="text-sm font-semibold text-gray-300 mb-2">
+      Clinician Notes
+    </h3>
+
+    {isEditing ? (
+      <textarea
+        value={clinicianNotes}
+        onChange={(e) => setClinicianNotes(e.target.value)}
+        rows={5}
+        placeholder="Add observations, visit context, caregiver concerns, patient response, or follow-up reminders..."
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white"
+      />
+    ) : (
+      <p className="whitespace-pre-wrap text-gray-300">
+        {displayCase.clinician_notes || "—"}
+      </p>
+    )}
+  </div>
+</div>
+
+</div>
+
+{/* ==============================
+    RENDER: CLINICAL FOCUS / WARNINGS
+============================== */}
 
 {/* CLINICAL FOCUS CONTROLS */}
 
@@ -2210,6 +2343,39 @@ return (
     ))}
   </div>
 </div>      
+
+{(displayCase?.reasoning_stale ||
+  displayCase?.plan_stale ||
+  displayCase?.modules_stale) && (
+  <div className="rounded-xl border border-amber-700 bg-amber-950/30 p-4 mb-6">
+    <div className="flex flex-col gap-2 text-sm text-amber-200">
+
+      {displayCase?.reasoning_stale && (
+        <div>
+          • Clinical reasoning may be outdated relative to the latest structured case data.
+        </div>
+      )}
+
+      {displayCase?.plan_stale && (
+        <div>
+          • Workflow plan may require regeneration to reflect recent case updates.
+        </div>
+      )}
+
+      {displayCase?.modules_stale && (
+        <div>
+          • Detail modules may no longer match the current workflow plan.
+        </div>
+      )}
+
+    </div>
+  </div>
+)}
+
+{/* ==============================
+    RENDER: GENERATED PLAN
+============================== */}
+
 {/* EXECUTIVE BRIEFING */}
 
 <div className="rounded-xl border border-cyan-800 bg-gray-900 p-6">
@@ -2297,6 +2463,10 @@ return (
   </div>
 </div>
 
+{/* ==============================
+    RENDER: ACTIVE PATHWAY
+============================== */}
+
 {/* ACTIVE OPERATIONAL PATHWAY */}
 
 <div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
@@ -2315,13 +2485,21 @@ return (
           "This approach represents the primary operational direction for treatment emphasis."}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-  <button className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition">
-    View Clinical Summary
-  </button>
+<button
+  type="button"
+  onClick={() => setShowClinicalSummary(true)}
+  className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
+>
+  View Clinical Summary
+</button>
 
-  <button className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition">
-    Copy Summary
-  </button>
+<button
+  type="button"
+  onClick={handleCopyRecommendedSummary}
+  className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition"
+>
+  Copy Summary
+</button>
 </div>
     </div>
 
@@ -2448,6 +2626,10 @@ return (
   </div>
 )}
 
+{/* ==============================
+    RENDER: STRUCTURED PLAN DETAILS
+============================== */}
+
 {/* STRUCTURED PLAN DETAILS */}
 
 {generated?.patientSnapshot && (
@@ -2472,7 +2654,9 @@ return (
   </details>
 )}
 
-
+{/* ==============================
+    RENDER: DETAIL MODULES
+============================== */}
 
      {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
 
@@ -2911,12 +3095,14 @@ return (
   )}
 </div>
 
-
+{/* ==============================
+    RENDER: VERSION HISTORY
+============================== */}
 
         {/* VERSION HISTORY */}
 
        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-  <h3 className="text-xl font-semibold mb-3">Version History</h3>
+  <h3 className="text-xl font-semibold mb-3">Clinical Plan History</h3>
   <button
   type="button"
   onClick={() => setShowAllVersions(prev => !prev)}
@@ -2925,21 +3111,21 @@ return (
   {showAllVersions ? "Show fewer versions" : "Show all versions"}
 </button>
   <p className="text-xs text-gray-500 mb-4">
-  Showing the 5 most recent saved versions.
+ Showing the 5 most recent saved clinical snapshots.
 </p>
 
  {generations.length === 0 ? (
-  <p className="text-sm text-gray-400">No prior generations found.</p>
+  <p className="text-sm text-gray-400">No saved clinical snapshots yet.</p>
 ) : (
   <ul className="space-y-3 text-sm text-gray-300">
   {visibleGenerations.map((generation) => (
       <li
         key={generation.id}
 className={`rounded-lg px-4 py-3 transition ${
-  currentGenerationId === generation.id
-    ? "border border-green-600 bg-green-900/20"
+currentGenerationId === generation.id
+  ? "border-2 border-green-500 bg-green-900/30 shadow-[0_0_0_1px_rgba(34,197,94,0.35)]"
     : selectedGeneration?.id === generation.id
-    ? "border border-blue-500 bg-blue-950/30"
+  ? "border-2 border-blue-400 bg-blue-950/40"
     : "border border-gray-800 hover:border-blue-500"
 }`}
       >
@@ -2953,10 +3139,10 @@ className={`rounded-lg px-4 py-3 transition ${
               <strong>Version {getVersionNumber(generation.id)}:</strong>
 
               {currentGenerationId === generation.id && (
-                <span className="rounded-full border border-green-700 bg-green-900/30 px-2 py-0.5 text-xs text-green-300">
-                  Current
-                </span>
-              )}
+  <span className="rounded-full border border-green-400 bg-green-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+    Active Plan
+  </span>
+)}
 
               {selectedGeneration?.id === generation.id && (
                 <span className="rounded-full border border-blue-700 bg-blue-900/30 px-2 py-0.5 text-xs text-blue-300">
@@ -2965,7 +3151,7 @@ className={`rounded-lg px-4 py-3 transition ${
               )}
 
               <span>
-                {generation.prompt_version || "Unknown prompt version"}
+                 {getSnapshotTypeLabel(generation.prompt_version)}
               </span>
 
               <span className="text-xs text-gray-500">
@@ -2978,10 +3164,28 @@ className={`rounded-lg px-4 py-3 transition ${
                   : ""}
               </span>
             </p>
-
+<p className="mt-2 text-xs text-gray-500">
+  {getSnapshotReasonLabel(generation.prompt_version)}
+</p>
             <p className="text-gray-400">
               {new Date(generation.created_at).toLocaleString()}
             </p>
+            <div className="mt-2 space-y-1 text-xs text-gray-400">
+  <p>
+    <strong>Client:</strong>{" "}
+    {generation.input_payload?.client_info?.client_name || "—"}
+  </p>
+
+  <p>
+    <strong>Caregiver:</strong>{" "}
+    {generation.input_payload?.caregiver_info?.caregiver_name || "—"}
+  </p>
+
+  <p className="line-clamp-2">
+    <strong>Notes:</strong>{" "}
+    {generation.input_payload?.clinician_notes || "—"}
+  </p>
+</div>
           </button>
 
 <button
@@ -3007,12 +3211,14 @@ className={`rounded-lg px-4 py-3 transition ${
     <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-xl font-semibold">
-            Viewing Version {getVersionNumber(selectedGeneration.id)}
-          </h3>
-          <p className="text-xs text-gray-500 mt-1">
-            Previewing the full saved plan for this version.
-          </p>
+<h2 className="text-2xl font-semibold">
+  Previewing Prior Clinical Plan
+</h2>
+
+<p className="text-sm text-gray-400 mt-1">
+  This is a read-only saved snapshot from{" "}
+  {new Date(selectedGeneration.created_at).toLocaleString()}.
+</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -3022,7 +3228,7 @@ className={`rounded-lg px-4 py-3 transition ${
             disabled={isRestoringVersion}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
           >
-            {isRestoringVersion ? "Restoring..." : "Restore this version"}
+            {isRestoringVersion ? "Restoring..." : "Make Current Plan"}
           </button>
 
           <button
@@ -3036,341 +3242,31 @@ className={`rounded-lg px-4 py-3 transition ${
       </div>
 
       <p className="text-xs text-gray-500">
-        Restoring this version will replace the current live plan with this saved version.
+        Making this version the current plan will replace the live plan with this saved version.
       </p>
     </div>
-
-    {selectedGeneration.output_payload.patientSnapshot && (
-      <div className="rounded-xl border border-green-800 bg-gray-900 p-6">
-        <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
-        <p className="text-gray-300">
-          {selectedGeneration.output_payload.patientSnapshot}
-        </p>
-      </div>
-    )}
-
-    {selectedGeneration.output_payload.summary && (
-      <div className="rounded-xl border border-yellow-700 bg-gray-900 p-6">
-        <h3 className="text-xl font-semibold mb-4">Plan Overview</h3>
-
-        <p className="text-xs text-gray-500 mb-2">
-          Overview of selected plan. See pathway below for full details.
-        </p>
-
-        <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-300">
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Risk Level</p>
-            <span className="inline-block rounded-md bg-red-600 px-3 py-1 text-xs font-semibold uppercase text-white">
-              {selectedGeneration.output_payload.summary.safetyLevel || "—"}
-            </span>
-          </div>
-
-          <div className="md:col-span-2">
-            <p className="text-xs text-gray-400 mb-1">Plan</p>
-            <p className="text-base text-white leading-relaxed">
-              {selectedGeneration.output_payload.summary.planSummary || "—"}
-            </p>
-          </div>
-
-          {(selectedGeneration.output_payload.summary.topRisks ?? []).length > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Top Risks</p>
-              <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-                {(selectedGeneration.output_payload.summary.topRisks ?? []).map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {(selectedGeneration.output_payload.summary.caregiverExpectations ?? []).length > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Caregiver Expectations</p>
-              <ul className="list-disc pl-5 mt-1 space-y-1 text-sm leading-snug">
-                {(selectedGeneration.output_payload.summary.caregiverExpectations ?? []).map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {selectedGeneration.output_payload.pathways &&
-          selectedGeneration.output_payload.pathways.length > 0 && (
-            <div className="mt-6">
-              <p className="text-xs text-gray-400 mb-2">Treatment Approaches</p>
-
-              <div className="space-y-4">
-                {selectedGeneration.output_payload.pathways.map((pathway, index) => (
-                  <div
-                    key={`${pathway.type}-${index}`}
-                   className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-80"
-                  >
-                    <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
-                      {String(pathway.type).replaceAll("_", " ")}
-                    </p>
-
-                    <h4 className="text-sm font-semibold mb-2">
-                      {pathway.title}
-                    </h4>
-
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
-                      {(pathway.interventions ?? []).map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-
-                    <p className="text-xs text-gray-400">
-                      <strong>Timeline:</strong> {pathway.timeline}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      <strong>Upside:</strong> {pathway.upside}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      <strong>Tradeoff:</strong> {pathway.tradeoff}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-      </div>
-    )}
-
-    <div className="rounded-xl border border-purple-800 bg-gray-950 p-6">
-      <h3 className="text-lg font-semibold mb-4">
-        Family / Caregiver Script
-      </h3>
-
-      {selectedGeneration.output_payload.clinicalDetailModules?.caregiverScript ? (
-        <div className="space-y-4 text-sm text-gray-300">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              Conversation Goal
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.conversationGoal || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              Before Task Script
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.beforeTaskScript || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              During Task Script
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.duringTaskScript || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              If Patient Struggles
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.ifPatientStruggles || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              If Patient Resists
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.ifPatientResists || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              Reassurance Language
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.reassuranceLanguage || "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-purple-400 mb-1">
-              When to Be Firm
-            </p>
-            <p>{selectedGeneration.output_payload.clinicalDetailModules.caregiverScript.whenToBeFirm || "—"}</p>
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500">No script saved for this version.</p>
-      )}
-    </div>
-
-    <div className="grid gap-6">
-      <div className="rounded-xl border border-blue-800 bg-gray-950 p-6">
-        <h3 className="text-lg font-semibold mb-4">Transfer & Mobility Details</h3>
-
-        {selectedGeneration.output_payload.clinicalDetailModules?.transferDetails ? (
-          <div className="space-y-4 text-sm text-gray-300">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Setup Adjustments</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.setupAdjustments ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Transfer Cues</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.transferCues ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Surface Variations</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.surfaceVariations ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">Stop Rules</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.transferDetails.stopRules ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No transfer details saved for this version.</p>
-        )}
-      </div>
-
-      <div className="rounded-xl border border-emerald-800 bg-gray-950 p-6">
-        <h3 className="text-lg font-semibold mb-4">ADL Privacy & Dignity Support</h3>
-
-        {selectedGeneration.output_payload.clinicalDetailModules?.adlPrivacy ? (
-          <div className="space-y-4 text-sm text-gray-300">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Privacy Setup</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.privacySetup ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Respectful Cueing</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.respectfulCueing ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step In</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.whenToStepIn ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">When to Step Back</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.whenToStepBack ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-emerald-400 mb-1">Dignity Warnings</p>
-              <ul className="list-disc pl-5 space-y-1">
-                {(selectedGeneration.output_payload.clinicalDetailModules.adlPrivacy.dignityWarnings ?? []).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No ADL privacy support saved for this version.</p>
-        )}
-      </div>
-    </div>
-
-    {selectedGeneration.output_payload.functionalProblemAreas &&
-      selectedGeneration.output_payload.functionalProblemAreas.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <h3 className="text-xl font-semibold mb-3">Functional Problem Areas</h3>
-          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.functionalProblemAreas.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-    {selectedGeneration.output_payload.taskBreakdown &&
-      selectedGeneration.output_payload.taskBreakdown.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <h3 className="text-xl font-semibold mb-3">Task Breakdown</h3>
-          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.taskBreakdown.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-    {selectedGeneration.output_payload.clinicalConsiderations &&
-      selectedGeneration.output_payload.clinicalConsiderations.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <h3 className="text-xl font-semibold mb-3">Clinical Considerations</h3>
-          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.clinicalConsiderations.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-    {selectedGeneration.output_payload.firstSessionPriorities &&
-      selectedGeneration.output_payload.firstSessionPriorities.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <h3 className="text-xl font-semibold mb-3">First Session Priorities</h3>
-          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-            {selectedGeneration.output_payload.firstSessionPriorities.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
   </div>
 )}
-
-      </div>
+</div>
         {/* CASE ACTION BUTTONS */}
    <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur"> 
 
 <button
   type="button"
   onClick={handleRegenerateCurrentPlan}
-  disabled={isRegeneratingPlan}
+  disabled={isRegeneratingPlan || isViewingHistoricalVersion}
   className="min-w-[96px] rounded-lg bg-purple-700 px-3 py-2 text-xs font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
 >
- {isRegeneratingPlan ? "Generating..." : "Regenerate"}
+  {isRegeneratingPlan ? "Generating..." : "Regenerate"}
 </button>
 
 <button
   type="button"
-  onClick={handleSaveCurrentVersion}
-  disabled={isSavingCurrentVersion}
+  onClick={handleSaveCaseEdits}
+  disabled={isViewingHistoricalVersion}
   className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
 >
-  {isSavingCurrentVersion ? "Saving..." : "Save"}
+  Save
 </button>
 
 <button
@@ -3390,6 +3286,46 @@ className={`rounded-lg px-4 py-3 transition ${
 </button>
 
 </div>
+
+{showClinicalSummary && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+    <div className="w-full max-w-3xl rounded-xl border border-gray-700 bg-gray-950 p-6 shadow-xl">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white">
+            Clinical Summary
+          </h2>
+          <p className="mt-1 text-sm text-gray-400">
+            Recommended approach summary for quick review or sharing.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowClinicalSummary(false)}
+          className="rounded-lg border border-gray-700 px-3 py-1 text-sm text-gray-300 hover:bg-gray-800"
+        >
+          Close
+        </button>
+      </div>
+
+      <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-lg border border-gray-800 bg-black/30 p-4 text-sm leading-relaxed text-gray-200">
+        {buildRecommendedApproachSummary()}
+      </pre>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={handleCopyRecommendedSummary}
+          className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
+        >
+          Copy Summary
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </main>
   );
 }
