@@ -1984,7 +1984,7 @@ setCaseData({
 
 return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
-<div className="fixed left-0 right-0 top-[56px] z-30 border-b border-gray-800 bg-gray-950/95 px-6 py-3 backdrop-blur">
+<div className="fixed left-0 right-0 top-[64px] z-40 border-b border-gray-800 bg-gray-950/95 px-4 py-3 backdrop-blur sm:top-[56px] sm:px-6">
     <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">
@@ -2005,7 +2005,7 @@ return (
     </div>
   </div>
 
-<div className="max-w-5xl mx-auto space-y-6 pt-20">
+<div className="max-w-5xl mx-auto space-y-6 pt-24 sm:pt-20">
 
 
 {/* ==============================
