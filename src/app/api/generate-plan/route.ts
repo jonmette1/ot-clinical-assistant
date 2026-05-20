@@ -432,12 +432,6 @@ selectedPathwaySummary must:
 - identify the dominant operational tradeoff
 - remain concise, operational, and decisive
 
-Do NOT describe what alternative pathways "follow" or contribute later.
-
-The summary should focus almost entirely on:
-- why the selected pathway won
-- what operational tradeoff it accepts
-
 Do NOT:
 - summarize all pathways
 - praise all pathways equally
