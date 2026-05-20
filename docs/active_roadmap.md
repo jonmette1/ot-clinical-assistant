@@ -343,27 +343,122 @@ Favor:
 
 ## Planned Progression Components
 
-### Phase 3A — Progression Foundations
+### Phase 3A — Longitudinal Progression Foundation
 
-Focus areas:
+Primary Objectives:
+- establish deterministic progression state architecture
+- define operational progression phase semantics
+- support continuity-aware reasoning
+- preserve cognitive compression during longitudinal expansion
+- support workflow-safe progression persistence
+- maintain explainable progression governance
+
+Core Focus Areas:
 - progression state architecture
+- progression phase modeling
 - milestone framework
-- advancement criteria
+- advancement readiness criteria
 - regression trigger logic
 - reassessment trigger structure
+- caregiver dependency progression logic
+- environmental progression logic
+- continuity summarization
+- progression semantic validation
 
-Status:
-PLANNED
+Current Status:
+IN PROGRESS
+
+Notes:
+The progression system is intentionally designed as:
+- deterministic
+- operational
+- explainable
+- continuity-aware
+
+The progression system is intentionally NOT:
+- predictive recovery modeling
+- AI-generated rehabilitation storytelling
+- autonomous clinical progression planning
+- trajectory forecasting
+- generalized care plan generation
+
+Progression phases are intended to function as:
+- operational bottleneck classifications
+- continuity orientation states
+- workflow prioritization contexts
+
+not:
+- recovery scores
+- motivational progress indicators
+- predictive rehabilitation stages
 
 ---
 
-### Phase 3B — Visit Continuity
+## Deferred Until Follow-Up Editing Exists
 
-Focus areas:
-- visit-to-visit progression persistence
-- milestone tracking
-- continuity summaries
-- operational change tracking
+Progression comparison logic is intentionally deferred until the UX supports structured visit-to-visit operational updates.
+
+The system should not infer:
+- improvement
+- stability
+- regression
+- longitudinal progression direction
+
+without explicit updated clinical inputs.
+
+Future structured reassessment inputs may include:
+- updated transfer assistance levels
+- updated ADL participation
+- updated caregiver availability/capacity
+- updated environmental modifications
+- new falls or safety events
+- clinician-entered visit notes
+- milestone achieved / blocked status
+- updated endurance/activity tolerance
+- updated sequencing/cognitive participation status
+
+Longitudinal comparison systems should remain:
+- deterministic
+- explainable
+- operationally grounded
+- continuity-safe
+
+The platform should avoid:
+- speculative progression inference
+- automated recovery forecasting
+- opaque longitudinal scoring
+- AI-generated rehabilitation trajectory narratives
+
+---
+
+### Phase 3B — Structured Follow-Up Workflow Foundation
+
+Primary Objectives:
+- support lightweight visit-to-visit operational reassessment
+- enable structured continuity-safe status updating
+- preserve immutable historical snapshots
+- reduce clinician reassessment burden
+- support future deterministic progression comparison systems
+
+Core Focus Areas:
+- follow-up workflow UX
+- structured reassessment workflows
+- selective operational state updating
+- continuity-safe editing architecture
+- operational delta tracking
+- longitudinal workflow cohesion
+- reassessment cognitive compression
+- continuity persistence governance
+
+The primary objective of Phase 3B is NOT:
+- longitudinal dashboards
+- timeline visualization systems
+- progression graphs
+- predictive analytics
+- automated comparison narratives
+
+The primary objective IS:
+- lightweight structured operational reassessment workflows
 
 Status:
 PLANNED
@@ -427,7 +522,6 @@ NOT:
 
 The following concepts are intentionally deferred until core workflow stability is achieved:
 
-- longitudinal progression systems
 - predictive analytics
 - adaptive learning systems
 - multi-user collaboration systems
@@ -456,3 +550,4 @@ If not:
 - simplify it
 - defer it
 - or reject it
+

@@ -11,7 +11,7 @@ import {
 } from "@/lib/buildClinicalDecisionInput";
 
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
-
+import { buildProgressionState } from "@/lib/buildProgressionState";
 // ==============================
 // TYPES
 // ==============================
@@ -87,6 +87,18 @@ type GeneratedOutput = {
   equipmentPlan?: EquipmentPlanItem[];
 selectedPathwaySummary?: string;
 selectedPathwayIndex?: number;
+
+progression_state?: {
+  currentPhase?: string;
+  advancementReadiness?: string;
+  activeMilestones: string[];
+  activeBarriers: string[];
+  regressionRisks: string[];
+  reassessmentTriggers: string[];
+  caregiverDependencyState?: string;
+  environmentalLimitationState?: string;
+  continuitySummary?: string;
+};
 
 clinicalDetailModules?: {
   caregiverInstructions?: string[];
@@ -1432,6 +1444,8 @@ const displayCase = selectedGeneration?.input_payload
 
 const generated = displayCase.generated_output as GeneratedOutput | null;
 
+const progressionState = generated?.progression_state;
+
 const liveClinicalDecisionInput = buildClinicalDecisionInputFromCase(displayCase);
 
 const liveClinicalDecisionModel =
@@ -1756,16 +1770,28 @@ const handleClinicalFocusChange = async (focus: string) => {
       body: JSON.stringify(canonicalPayload),
     });
 
-    const aiData = await aiResponse.json();
+const aiData = await aiResponse.json();
 
-    console.log("Clinical focus AI response:", aiData);
+console.log("Clinical focus AI response:", aiData);
 
-    if (!aiData.success || !aiData.plan) {
-      alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
-      return;
-    }
+if (!aiData.success || !aiData.plan) {
+  alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
+  return;
+}
 
-    const plan = aiData.plan;
+const progressionState = buildProgressionState({
+  canonicalCasePayload: canonicalPayload,
+});
+
+const planWithProgression = {
+  ...aiData.plan,
+  progression_state: progressionState,
+};
+
+console.log("progressionState", progressionState);
+console.log("planWithProgression", planWithProgression);
+
+    const plan = planWithProgression;
 
     const selectedPathwayIndex =
       typeof caseData.selected_pathway_index === "number"
@@ -1873,7 +1899,14 @@ const clinicalDecisionModel = regenerationPayload.clinicalDecisionModel;
       return;
     }
 
-    const plan = aiData.plan;
+const progressionState = buildProgressionState({
+  canonicalCasePayload: regenerationPayload,
+});
+
+const plan = {
+  ...aiData.plan,
+  progression_state: progressionState,
+};
 
     const { data: insertedGenerations, error: generationError } = await supabase
       .from("generations")
@@ -1950,8 +1983,29 @@ setCaseData({
 // ==============================
 
 return (
-    <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
-      <div className="max-w-5xl mx-auto space-y-6">
+<main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
+<div className="fixed left-0 right-0 top-[56px] z-30 border-b border-gray-800 bg-gray-950/95 px-6 py-3 backdrop-blur">
+    <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-white">
+          {displayCase.title || "Untitled Case"}
+        </p>
+
+        <p className="truncate text-xs text-gray-400">
+          {clinicalFocusLabel}
+          {progressionState?.currentPhase
+            ? ` • ${progressionState.currentPhase}`
+            : ""}
+        </p>
+      </div>
+
+      <span className="shrink-0 rounded-full border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-medium text-gray-300">
+        {isViewingHistoricalVersion ? "Historical Snapshot" : "Live Case"}
+      </span>
+    </div>
+  </div>
+
+<div className="max-w-5xl mx-auto space-y-6 pt-20">
 
 
 {/* ==============================
@@ -2223,23 +2277,6 @@ return (
         />
       </div>
 
-      <div className="md:col-span-2 flex gap-2 pt-2">
-        <button
-          type="button"
-          onClick={handleSaveCaseEdits}
-          className="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
-        >
-          Save Changes
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsEditing(false)}
-          className="rounded bg-gray-700 px-3 py-2 text-sm font-medium text-white hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-      </div>
     </div>
   ) : (
     <>
@@ -2251,14 +2288,7 @@ return (
       <p><strong>Caregiver Relationship:</strong> {displayCase.caregiver_info?.relationship || "—"}</p>
       <p><strong>Caregiver Phone:</strong> {displayCase.caregiver_info?.phone || "—"}</p>
 
-      <button
-  type="button"
-  disabled={isViewingHistoricalVersion}
-  onClick={() => setIsEditing(true)}
-  className="mt-4 rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {isViewingHistoricalVersion ? "Historical Snapshot" : "Edit Case Info"}
-</button>
+
     </>
   )}
 
@@ -3095,6 +3125,110 @@ return (
   )}
 </div>
 
+
+
+{progressionState && (
+  <section className="mt-6 rounded-lg border border-dashed border-purple-300 bg-purple-50 p-4">
+    <div className="mb-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-purple-700">
+        Dev Only — Progression State
+      </p>
+      <p className="mt-1 text-sm text-gray-700">
+        Temporary validation display for Phase 3 progression testing.
+      </p>
+    </div>
+
+    <div className="grid gap-3 text-sm md:grid-cols-2">
+      <div>
+        <p className="font-semibold text-gray-800">Current Phase</p>
+        <p className="text-gray-700">{progressionState.currentPhase || "—"}</p>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Advancement Readiness</p>
+        <p className="text-gray-700">
+          {progressionState.advancementReadiness || "—"}
+        </p>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Caregiver State</p>
+        <p className="text-gray-700">
+          {progressionState.caregiverDependencyState || "—"}
+        </p>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Environment State</p>
+        <p className="text-gray-700">
+          {progressionState.environmentalLimitationState || "—"}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-4">
+      <p className="font-semibold text-gray-800">Continuity Summary</p>
+      <p className="mt-1 text-sm text-gray-700">
+        {progressionState.continuitySummary || "—"}
+      </p>
+    </div>
+
+    <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
+      <div>
+        <p className="font-semibold text-gray-800">Active Barriers</p>
+        <ul className="mt-1 list-disc pl-5 text-gray-700">
+          {(progressionState.activeBarriers || []).length ? (
+            progressionState.activeBarriers.map((item: string, index: number) => (
+              <li key={`progression-barrier-${index}`}>{item}</li>
+            ))
+          ) : (
+            <li>—</li>
+          )}
+        </ul>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Active Milestones</p>
+        <ul className="mt-1 list-disc pl-5 text-gray-700">
+          {(progressionState.activeMilestones || []).length ? (
+            progressionState.activeMilestones.map((item: string, index: number) => (
+              <li key={`progression-milestone-${index}`}>{item}</li>
+            ))
+          ) : (
+            <li>—</li>
+          )}
+        </ul>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Regression Risks</p>
+        <ul className="mt-1 list-disc pl-5 text-gray-700">
+          {(progressionState.regressionRisks || []).length ? (
+            progressionState.regressionRisks.map((item: string, index: number) => (
+              <li key={`progression-risk-${index}`}>{item}</li>
+            ))
+          ) : (
+            <li>—</li>
+          )}
+        </ul>
+      </div>
+
+      <div>
+        <p className="font-semibold text-gray-800">Reassessment Triggers</p>
+        <ul className="mt-1 list-disc pl-5 text-gray-700">
+          {(progressionState.reassessmentTriggers || []).length ? (
+            progressionState.reassessmentTriggers.map((item: string, index: number) => (
+              <li key={`progression-trigger-${index}`}>{item}</li>
+            ))
+          ) : (
+            <li>—</li>
+          )}
+        </ul>
+      </div>
+    </div>
+  </section>
+)}
+
 {/* ==============================
     RENDER: VERSION HISTORY
 ============================== */}
@@ -3248,44 +3382,76 @@ currentGenerationId === generation.id
   </div>
 )}
 </div>
-        {/* CASE ACTION BUTTONS */}
-   <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur"> 
+{/* CASE ACTION BUTTONS */}
+<div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur">
 
+  {!isEditing ? (
+    <button
+      type="button"
+      disabled={isViewingHistoricalVersion}
+      onClick={() => setIsEditing(true)}
+      className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+    >
+      {isViewingHistoricalVersion ? "Historical Snapshot" : "Edit Case"}
+    </button>
+  ) : (
+    <>
+      <button
+        type="button"
+        onClick={handleSaveCaseEdits}
+        disabled={isViewingHistoricalVersion}
+        className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+      >
+        Save Changes
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setIsEditing(false)}
+        className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+      >
+        Cancel
+      </button>
+    </>
+  )}
+
+  <button
+    type="button"
+    onClick={handleRegenerateCurrentPlan}
+    disabled={isRegeneratingPlan || isViewingHistoricalVersion}
+    className="min-w-[96px] rounded-lg bg-purple-700 px-3 py-2 text-xs font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+  >
+    {isRegeneratingPlan ? "Generating..." : "Regenerate"}
+  </button>
 <button
   type="button"
-  onClick={handleRegenerateCurrentPlan}
-  disabled={isRegeneratingPlan || isViewingHistoricalVersion}
-  className="min-w-[96px] rounded-lg bg-purple-700 px-3 py-2 text-xs font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+  onClick={handleSaveCurrentVersion}
+  disabled={
+    isSavingCurrentVersion ||
+    isViewingHistoricalVersion ||
+    !caseData?.generated_output
+  }
+  className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
 >
-  {isRegeneratingPlan ? "Generating..." : "Regenerate"}
+  {isSavingCurrentVersion ? "Saving..." : "Save Snapshot"}
 </button>
+  <button
+    type="button"
+    onClick={handleCopySummary}
+    className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+  >
+    Copy
+  </button>
 
-<button
-  type="button"
-  onClick={handleSaveCaseEdits}
-  disabled={isViewingHistoricalVersion}
-  className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
->
-  Save
-</button>
-
-<button
-  type="button"
-  onClick={handleCopySummary}
-  className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
->
-  Copy
-</button>
-
-<button
-  type="button"
-  onClick={handleDownloadSummary}
-  className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
->
-  Download
-</button>
-
+  <button
+    type="button"
+    onClick={handleDownloadSummary}
+    className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+  >
+    Download
+  </button>
 </div>
+
 
 {showClinicalSummary && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">

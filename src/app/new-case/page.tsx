@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
 import { buildClinicalDecisionInputFromCase } from "@/lib/buildClinicalDecisionInput";
-
+import { buildProgressionState } from "@/lib/buildProgressionState";
 
 export default function NewCasePage() {
 
@@ -759,7 +759,22 @@ const clinicalDecisionModel = buildClinicalDecisionModel({
 
 casePayload.clinicalDecisionModel = clinicalDecisionModel;
 
+const canonicalPayloadForProgression = {
+  ...casePayload,
+  clinicalDecisionInput,
+  clinicalDecisionModel,
+  clinical_focus:
+    casePayload.case_classification?.clinical_focus || "adl_home_safety",
+  executionFocus:
+    casePayload.case_classification?.clinical_focus || "adl_home_safety",
+};
+
+const progressionState = buildProgressionState({
+  canonicalCasePayload: canonicalPayloadForProgression,
+});
+
 console.log("clinicalDecisionModel", clinicalDecisionModel);
+console.log("progressionState", progressionState);
 
 // ==============================
 // HELPERS: AI PLAN INPUT
@@ -833,7 +848,10 @@ body: JSON.stringify(planInput),
     return;
   }
 
-const plan = aiData.plan;
+const plan = {
+  ...aiData.plan,
+  progression_state: progressionState,
+};
 
 console.log("FULL AI PLAN:", plan);
 
