@@ -309,6 +309,10 @@ const [editableCaregiverInfo, setEditableCaregiverInfo] = useState({
   phone: "",
 });
 
+const [editableFunctionalStatus, setEditableFunctionalStatus] = useState({
+  current_assistance_level: "",
+  key_barriers: "",
+});
 
 // ==============================
 // STATE: FEASIBILITY (EDIT MODE)
@@ -393,6 +397,13 @@ if (error) {
     relationship: typedCase.caregiver_info?.relationship || "",
     phone: typedCase.caregiver_info?.phone || "",
   });
+
+  setEditableFunctionalStatus({
+  current_assistance_level:
+    typedCase.functional_status?.current_assistance_level || "",
+  key_barriers:
+    typedCase.functional_status?.key_barriers?.join(", ") || "",
+});
 
 setEditableFeasibility({
   financial_constraint:
@@ -585,14 +596,24 @@ async function handleSaveCaseEdits() {
   }
 
 
+const updatedFunctionalStatus = {
+  ...(caseData.functional_status || {}),
+  current_assistance_level: editableFunctionalStatus.current_assistance_level,
+  key_barriers: editableFunctionalStatus.key_barriers
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean),
+};
 
-  const updatedCaseData = {
+const updatedCaseData = {
   ...caseData,
   title: editableTitle,
   client_info: editableClientInfo,
   caregiver_info: editableCaregiverInfo,
   feasibility_context: editableFeasibility,
+  functional_status: updatedFunctionalStatus,
 };
+
 
 const canonicalPayload = buildCanonicalCasePayload(updatedCaseData);
 
@@ -607,6 +628,7 @@ const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
         client_info: editableClientInfo,
         caregiver_info: editableCaregiverInfo,
         feasibility_context: editableFeasibility,
+        functional_status: updatedFunctionalStatus,
         clinician_notes: clinicianNotes,
         clinical_decision_input: clinicalDecisionInput,
 clinical_decision_model: clinicalDecisionModel,
@@ -630,6 +652,7 @@ input_payload: {
   client_info: editableClientInfo,
   caregiver_info: editableCaregiverInfo,
   feasibility_context: editableFeasibility,
+  functional_status: updatedFunctionalStatus,
   clinician_notes: clinicianNotes,
   clinical_decision_input: clinicalDecisionInput,
   clinical_decision_model: clinicalDecisionModel,
@@ -659,6 +682,7 @@ if (savedGeneration) {
       client_info: editableClientInfo,
       caregiver_info: editableCaregiverInfo,
       feasibility_context: editableFeasibility,
+      functional_status: updatedFunctionalStatus,
       clinician_notes: clinicianNotes,
       clinical_decision_input: clinicalDecisionInput,
 clinical_decision_model: clinicalDecisionModel,
@@ -2337,12 +2361,27 @@ return (
       </p>
     </div>
 
-    <div>
-      <p className="mb-1 text-xs text-gray-500">Current Assistance Level</p>
-      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
-        {displayCase.functional_status?.current_assistance_level || "—"}
-      </p>
-    </div>
+   <div>
+  <p className="mb-1 text-xs text-gray-500">Current Assistance Level</p>
+
+  {isEditing ? (
+    <input
+      type="text"
+      value={editableFunctionalStatus.current_assistance_level}
+      onChange={(e) =>
+        setEditableFunctionalStatus((prev) => ({
+          ...prev,
+          current_assistance_level: e.target.value,
+        }))
+      }
+      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+    />
+  ) : (
+    <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+      {displayCase.functional_status?.current_assistance_level || "—"}
+    </p>
+  )}
+</div>
 
     <div>
       <p className="mb-1 text-xs text-gray-500">Primary Goal</p>
@@ -2606,6 +2645,73 @@ return (
         )}
       </div>
     </div>
+  </div>
+</div>
+
+{/* FOLLOW-UP STATUS */}
+
+<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <div className="mb-4 flex items-center justify-between gap-4">
+    <div>
+      <h2 className="text-lg font-semibold text-white">
+        Follow-Up Status
+      </h2>
+
+      <p className="mt-1 text-sm text-gray-400">
+        Structured operational continuity tracking
+      </p>
+    </div>
+
+    <span className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs font-medium text-gray-300">
+      Phase 3B Foundation
+    </span>
+  </div>
+
+  <div className="grid gap-4 md:grid-cols-2">
+
+    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+      <p className="mb-1 text-xs text-gray-500">
+        Current Progression State
+      </p>
+
+      <p className="text-sm font-medium text-white">
+        {progressionState?.currentPhase || "Not Established"}
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+      <p className="mb-1 text-xs text-gray-500">
+        Case Created
+      </p>
+
+      <p className="text-sm font-medium text-white">
+        {displayCase.created_at
+          ? new Date(displayCase.created_at).toLocaleDateString()
+          : "—"}
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4 md:col-span-2">
+      <p className="mb-2 text-xs text-gray-500">
+        Current Reassessment Signals
+      </p>
+
+      <ul className="space-y-1 text-sm text-gray-300">
+        <li>• caregiver/environment mismatch may persist</li>
+        <li>• reassessment recommended after functional changes</li>
+        <li>• operational continuity tracking enabled</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div className="mt-4 flex justify-end">
+    <button
+      type="button"
+      className="rounded-lg border border-blue-700 bg-blue-950/40 px-4 py-2 text-sm font-medium text-blue-200 hover:bg-blue-900/40"
+    >
+      Start Follow-Up Update
+    </button>
   </div>
 </div>
 
