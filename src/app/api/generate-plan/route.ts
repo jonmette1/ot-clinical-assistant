@@ -45,132 +45,85 @@ export async function POST(req: Request) {
 
     const client = new OpenAI({ apiKey });
 
-    const prompt = `
+   const prompt = `
 You are an experienced occupational therapist generating a structured clinical reasoning plan.
 
 This system uses a deterministic clinical decision engine.
 
 The AI is NOT the decision engine.
-The AI is the execution layer.
+The AI is the synthesis and workflow communication layer.
 
 ==================================================
-PRIMARY CONTROL LAYER — SELECTED STRATEGIES
+PRIMARY CONTROL LAYER — OPERATIONAL PRIORITIZATION
 ==================================================
 
-The following selectedStrategies are the PRIMARY authority for this plan:
+The system no longer generates competing treatment pathways.
+
+Do NOT generate:
+- pathways
+- selected pathways
+- alternative treatment approaches
+- competing plans
+- pathway recommendations
+- option A / option B / option C treatment models
+
+Instead, generate ONE current operational prioritization model.
+
+The core question is:
+
+What should dominate treatment attention right now?
+
+==================================================
+DETERMINISTIC REASONING SOURCE
+==================================================
+
+The following clinicalDecisionModel is the authoritative deterministic reasoning source:
+
+${JSON.stringify(clinicalDecisionModel || {}, null, 2)}
+
+Rules:
+- selectedStrategies define the intervention mechanisms.
+- primaryStrategy identifies the strongest strategy signal.
+- dominantBarrier and secondaryBarrier explain what is limiting function.
+- safetyRiskLevel controls urgency and risk language.
+- supportLevel shapes caregiver feasibility.
+- clinicalLens and environmentContext shape implementation.
+- AI must not override this model.
+
+==================================================
+SELECTED STRATEGIES
+==================================================
+
+Selected strategies:
 
 ${hasSelectedStrategies ? selectedStrategies.join(", ") : "No selectedStrategies provided."}
 
 Rules:
-- selectedStrategies define the intervention approach.
-- selectedStrategies control the structure of the 3 pathways.
-- Each pathway must clearly map to one or more selectedStrategies.
-- Do NOT default to ADL/home safety unless selectedStrategies are missing.
-- Do NOT let executionFocus, clinicalFocus, pathwayFocusRules, diagnosis, or legacy fields override selectedStrategies.
-
-If selectedStrategies are present, they are the boss.
+- selectedStrategies are not pathways.
+- selectedStrategies are intervention mechanisms.
+- The output should synthesize these into one currentOperationalEmphasis.
+- Do not create one plan per strategy.
+- Do not frame strategies as competing choices.
 
 ==================================================
-STRATEGY DEFINITIONS — ENFORCEMENT LAYER
-==================================================
-
-You MUST interpret selectedStrategies using the following definitions:
-
-Safety Containment:
-- Goal: Immediately reduce risk of harm
-- Includes:
-  - restricting unsafe actions
-  - blocking access to unsafe environments
-  - enforcing supervision
-  - simplifying or removing hazardous task components
-- DOES NOT include:
-  - skill training
-  - gradual progression
-  - optimization
-
-Compensation:
-- Goal: Work around physical limitations
-- Includes:
-  - modifying task setup
-  - using positioning, sequencing, or environmental adjustments
-  - reducing physical demand
-- DOES NOT include:
-  - caregiver-dependent solutions (unless paired with caregiver support)
-  - pure safety restriction without task completion
-
-Caregiver Support:
-- Goal: Enable task completion through caregiver involvement
-- Includes:
-  - physical assistance
-  - supervision
-  - cueing
-  - setup and breakdown
-- MUST reflect:
-  - supportLevel (e.g., intermittent = not constant presence)
-- DOES NOT include:
-  - fully independent solutions
-
-STRICT RULE:
-Every intervention must be consistent with one selectedStrategy mechanism, but the intervention sentence must NOT explain or name the mechanism.
-
-The mechanism should be evident from the action itself.
-
-Do NOT use phrases such as:
-- "applying Compensation by"
-- "implementing Caregiver Support through"
-- "directly enforcing Safety Containment"
-- "operationalizing"
-
-If the strategy mechanism is not evident from the action itself, rewrite the action to be more specific rather than adding explanatory language.
-
-==================================================
-EXECUTION FOCUS — OUTPUT ROUTING ONLY
+EXECUTION FOCUS
 ==================================================
 
 executionFocus:
 ${executionFocus}
 
 Rules:
-- executionFocus describes WHERE the selected strategies should be applied.
-- executionFocus may affect wording, examples, module emphasis, and output framing.
-- executionFocus does NOT choose the intervention strategy.
-- executionFocus does NOT override selectedStrategies.
-- ADL, bathing, dressing, toileting, transfers, mobility, caregiver training, and home safety are application contexts only.
-
-Example:
-If selectedStrategies = Compensation + Caregiver Support
-and executionFocus = adl_home_safety,
-then the plan should be Compensation + Caregiver Support applied to ADL/home safety.
-
-Do NOT create generic ADL pathways just because executionFocus references ADL.
+- executionFocus describes where the operational emphasis is being applied.
+- executionFocus may affect wording, examples, and detail emphasis.
+- executionFocus does not override the deterministic reasoning model.
 
 ==================================================
-CLINICAL DECISION MODEL
-==================================================
-
-${JSON.stringify(clinicalDecisionModel || {}, null, 2)}
-
-Use this model as the deterministic reasoning source.
-
-Important:
-- primaryStrategy matters.
-- selectedStrategies matter most.
-- dominantBarrier and secondaryBarrier explain why those strategies were selected.
-- clinicalLens and environmentContext shape how the strategies are applied.
-- safetyRiskLevel affects urgency and risk language.
-- scoringNotes may explain strategy selection but should not be repeated mechanically.
-
-==================================================
-LEGACY / CASE CLASSIFICATION CONTEXT
+CASE CLASSIFICATION CONTEXT
 ==================================================
 
 ${JSON.stringify(body?.case_classification || {}, null, 2)}
 
-Rules:
-- This is secondary context.
-- It may help explain patient population, setting, or risk.
-- It must not override selectedStrategies.
-- If this section contains ADL/home safety language, treat that as application context only.
+This is secondary context only.
 
 ==================================================
 CORE CLINICAL REASONING MODEL
@@ -186,300 +139,130 @@ Use:
 - environment context
 - caregiver context
 - assistance level
+- transfer status
 - safety risk
+- selected strategies
+- progression state if available
 
-But always organize pathways around selectedStrategies when present.
-
-The 3 pathways are NOT equally appropriate.
-
-One pathway must clearly emerge as the BEST operational fit based on:
-- safety risk
-- caregiver feasibility
-- environmental constraints
-- transfer instability
-- cognitive burden
-- realistic implementation feasibility
-
-The selected pathway should feel operationally superior for THIS patient under CURRENT conditions.
-
-Alternative pathways should remain clinically reasonable BUT should clearly contain:
-- greater operational limitations
-- greater implementation risk
-- weaker feasibility
-- slower stabilization
-- increased caregiver burden
-OR reduced effectiveness for the current presentation.
+The output should be concise, operational, and clinically useful.
 
 ==================================================
-PATHWAY STRUCTURE REQUIREMENTS
+OPERATIONAL PRIORITIZATION REQUIREMENTS
 ==================================================
 
-Generate exactly 3 coordinated treatment pathways.
+Generate one operational_prioritization object.
 
-They are NOT random treatment options.
-They are DIFFERENT OPERATIONAL PRIORITIZATION MODELS for the same patient presentation.
+It must include:
 
-One pathway must clearly emerge as the BEST operational fit based on:
-- safety risk
-- caregiver feasibility
-- environmental constraints
-- transfer instability
-- cognitive burden
-- realistic implementation feasibility
+- currentOperationalEmphasis
+- emphasisRationale
+- dominantBarriers
+- adjacentOperationalPriorities
+- reassessmentTriggers
+- continuitySummary
 
-The selected pathway should feel operationally superior for the CURRENT presentation.
+currentOperationalEmphasis:
+- one concise label
+- describes what should dominate treatment attention now
+- should not sound like a pathway title
+- should not describe a broad philosophy
+- should be specific enough to guide treatment
 
-Alternative pathways should remain clinically reasonable BUT should clearly contain:
-- greater operational limitations
-- weaker feasibility
-- slower stabilization
-- increased residual risk
-- greater caregiver dependence
-OR
-- weaker fit for current conditions
+Good examples:
+- Stabilize shower transfer safety and caregiver-supported bathing setup
+- Establish safe bathroom access before increasing ADL demand
+- Standardize caregiver-supported task setup for bathing participation
+- Reduce transfer risk through environmental setup and assisted sequencing
 
-==================================================
-PATHWAY DIFFERENTIATION RULES
-==================================================
+Bad examples:
+- Safety Pathway
+- Functional Participation Approach
+- Caregiver Support Plan
+- Alternative Treatment Option
 
-Pathway titles should contain 2-4 words maximum.
+emphasisRationale:
+- 2 to 4 concise reasons
+- explain why this emphasis dominates now
+- must reference actual barriers, risk, caregiver feasibility, or environment
 
-Titles should function like operational workflow labels.
+dominantBarriers:
+- 3 to 6 concise items
+- list the barriers most responsible for the current emphasis
 
-GOOD:
-- Safety Restriction
-- Adaptive Participation
-- Caregiver Support
-- Environmental Compensation
-- Guided Mobility
+adjacentOperationalPriorities:
+- 2 to 4 items
+- these are secondary or emerging priorities
+- they are NOT alternative plans
+- they are NOT selectable options
+- they should describe what to monitor, prepare, or address after the current emphasis is stabilized
 
-BAD:
-- Physical and Environmental Modifications for Safer Task Performance
-- Structured Caregiver Assistance and Supervision for ADL Safety
+Each adjacent priority must include:
+- label
+- rationale
+- monitorFor
 
-Pathways should differ primarily by:
-- treatment priority
-- sequencing philosophy
-- risk tolerance
-- caregiver dependency
-- environmental reliance
-- rehabilitation intensity
-- operational assumptions
+reassessmentTriggers:
+- 2 to 5 concise triggers
+- describe what should prompt review or change in treatment emphasis
 
-Pathways should NOT differ primarily by:
-- superficial wording changes
-- excessive narrative variation
-- completely unrelated interventions
-
-The same intervention category MAY appear across pathways IF:
-- operational priority changes
-- sequencing changes
-- supervision requirements change
-- environmental reliance changes
-- implementation emphasis changes
-- tradeoff structure changes
-
-If multiple pathways address the same clinical issue:
-- differentiate by implementation style and operational philosophy
-- avoid repeated intervention phrasing
-
-Pathway differentiation should be immediately obvious WITHOUT reading full intervention lists.
-
-Pathway titles should be:
-- short
-- operational
-- scan-friendly
-- strategy-oriented
-
-Avoid:
-- report-style titles
-- explanatory titles
-- long narrative labels
+continuitySummary:
+- 1 to 2 sentences maximum
+- operational language only
+- no recovery prediction
+- no motivational language
+- no week-by-week planning
 
 ==================================================
-PATHWAY HIERARCHY RULES
+STRUCTURED PLAN DETAILS
 ==================================================
 
-The selected pathway should feel:
-- safer
-- more operationally stable
-- more feasible
-- better matched to current patient risk
+Generate structured_plan_details anchored to the currentOperationalEmphasis.
 
-The selected pathway should feel decisively more operationally stable than alternative pathways for the CURRENT patient presentation.
+Do NOT anchor structured details to a pathway.
 
-Alternative pathways should feel:
-- conditionally appropriate
-- operationally weaker
-- less stable for the current presentation
+Include:
+- immediateActions
+- safetyConsiderations
+- caregiverConsiderations
+- environmentalConsiderations
+- treatmentExecutionNotes
 
-Alternative pathways should clearly communicate:
-- why they were not selected
-- what operational weaknesses exist
-- what limitations reduce suitability
-- what residual risks remain
-
-Do NOT make all pathways feel equally complete or equally optimal.
-
-==================================================
-INTERVENTION COMPRESSION RULES
-==================================================
-
-If selectedStrategies are present:
-- interventions MUST directly implement selectedStrategies
-- strategyUsed must actively drive intervention design
-- generic interventions are NOT allowed
-
-STRICT VALIDATION:
-If an intervention could exist in a generic OT plan without knowledge of the selectedStrategies:
-- REMOVE IT
-OR
-- REWRITE IT
-
-CRITICAL INTERVENTION COMPRESSION RULE:
-
-Interventions must be SHORT operational actions.
-
-Do NOT:
-- explain WHY the intervention works
-- explain WHICH strategy it represents
-- narrate clinical reasoning
-- describe implementation philosophy
-
-GOOD:
-- Block unsupervised shower access
-- Add anti-slip treads to entry steps
-- Schedule caregiver supervision during transfers
-
-BAD:
-- Block shower access to operationalize Safety Containment by reducing hazardous exposure
-
-Limit interventions to:
-- high-signal actions
-- operationally distinctive actions
-- sequencing-defining actions
-
-Avoid:
-- exhaustive intervention lists
-- generic OT filler
-- repeated safety language
-- repeated caregiver education language
-- long equipment lists
-- procedural checklists
-
-==================================================
-PATHWAY CONTENT REQUIREMENTS
-==================================================
-
-Each pathway must include:
-- selected
-- type
-- strategyUsed
-- title
-- primaryFocus
-- prioritizes
-- deprioritizes
-- bestFitFor
-- interventions
-- timeline
-- upside
-- tradeoff
-- operationalRisk
-
-ONLY the selected pathway may include:
-- selectionDrivers
-
-Alternative pathways must NOT include:
-- selectionDrivers
-
-Alternative pathways should instead emphasize:
-- notSelectedBecause
-- operationalRisk
-- tradeoff
-- weaker operational fit
-
-Tradeoffs must clearly describe:
-- what the pathway sacrifices
-- what operational limitation it accepts
-- what downside may occur because of the prioritization model
-
-Tradeoffs must feel:
-- clinically meaningful
-- operationally realistic
-
-==================================================
-SELECTED PATHWAY SUMMARY RULES
-==================================================
-
-HARD LIMIT:
-selectedPathwaySummary must remain between 40-80 words.
-
-If the summary exceeds 80 words:
-- rewrite and compress it.
-
-The summary should describe:
-- why the selected pathway won
-- the dominant operational tradeoff
-
-The summary should NOT:
-- explain all pathways
-- narrate progression sequencing
-- summarize the entire treatment model
-
-selectedPathwaySummary must:
-- remain under 80 words
-- explain WHY the selected pathway won
-- identify the dominant operational tradeoff
-- remain concise, operational, and decisive
-
-Do NOT:
-- summarize all pathways
-- praise all pathways equally
-- explain pathway hierarchy
-- narrate treatment progression
-- use academic synthesis language
-- restate all pathway titles
-- read like a comparison table in paragraph form
-
-The selected pathway summary should feel like:
-- a defensible operational recommendation
-NOT:
-- a balanced discussion of all options
-
-The clinician should be able to immediately understand:
-- why the selected pathway won
-- what it prioritizes
-- what tradeoff it accepts
-- why alternatives were weaker initial fits
-
-Avoid phrases such as:
-- "follow in the hierarchy"
-- "coordinated triad"
-- "enhance function"
-- "structured assistance"
-- "treatment progression"
-
-Use direct operational language instead.
+Rules:
+- actions should be short and operational
+- avoid long narrative explanations
+- avoid generic OT filler
+- avoid unsupported claims
+- avoid predictive recovery language
 
 ==================================================
 PATIENT SNAPSHOT
 ==================================================
 
+Generate a short patientSnapshot.
+
 Describe:
 - what is happening functionally
 - why performance is breaking down
-- how the selectedStrategies apply
-- how executionFocus frames the output context
+- how the operational emphasis applies
+- how caregiver/environment factors affect feasibility
+
+Limit to 2 to 4 sentences.
 
 ==================================================
-PLAN OVERVIEW
+PLAN SUMMARY
 ==================================================
 
-Include:
+Generate summary with:
 - planSummary
 - topRisks
 - caregiverExpectations
 - safetyLevel
+
+Rules:
+- planSummary should summarize the current operational emphasis, not a pathway.
+- topRisks should be concise.
+- caregiverExpectations should be practical and realistic.
+- safetyLevel must be low, medium, or high.
 
 ==================================================
 OUTPUT FORMAT — JSON ONLY
@@ -501,71 +284,32 @@ No explanation outside JSON.
     "secondaryBarrier": "string",
     "clinicalLens": [],
     "environmentContext": [],
-    "safetyRiskLevel": "string"
+    "safetyRiskLevel": "string",
+    "supportLevel": "string"
   },
   "patientSnapshot": "string",
-"patientSnapshot": "string",
-"pathways": [
-  {
-    "selected": true,
-    "selectionDrivers": ["string"],
-
-    "type": "Safety Stabilization",
-    "strategyUsed": ["string"],
-
-    "primaryFocus": "string",
-    "prioritizes": ["string"],
-    "deprioritizes": ["string"],
-    "bestFitFor": ["string"],
-    "notSelectedBecause": ["string"],
-    "operationalRisk": "string",
-
-    "title": "string",
-    "interventions": ["string"],
-    "timeline": "string",
-    "upside": "string",
-    "tradeoff": "string"
+  "operational_prioritization": {
+    "currentOperationalEmphasis": "string",
+    "emphasisRationale": ["string"],
+    "dominantBarriers": ["string"],
+    "adjacentOperationalPriorities": [
+      {
+        "label": "string",
+        "rationale": "string",
+        "monitorFor": "string"
+      }
+    ],
+    "reassessmentTriggers": ["string"],
+    "continuitySummary": "string"
   },
-  {
-    "selected": false,
-
-    "type": "Functional Participation",
-    "strategyUsed": ["string"],
-
-    "primaryFocus": "string",
-    "prioritizes": ["string"],
-    "deprioritizes": ["string"],
-    "bestFitFor": ["string"],
-    "notSelectedBecause": ["string"],
-    "operationalRisk": "string",
-
-    "title": "string",
-    "interventions": ["string"],
-    "timeline": "string",
-    "upside": "string",
-    "tradeoff": "string"
+  "structured_plan_details": {
+    "immediateActions": ["string"],
+    "safetyConsiderations": ["string"],
+    "caregiverConsiderations": ["string"],
+    "environmentalConsiderations": ["string"],
+    "treatmentExecutionNotes": ["string"]
   },
-  {
-    "selected": false,
-
-    "type": "Caregiver-Guided Support",
-    "strategyUsed": ["string"],
-
-    "primaryFocus": "string",
-    "prioritizes": ["string"],
-    "deprioritizes": ["string"],
-    "bestFitFor": ["string"],
-    "notSelectedBecause": ["string"],
-    "operationalRisk": "string",
-
-    "title": "string",
-    "interventions": ["string"],
-    "timeline": "string",
-    "upside": "string",
-    "tradeoff": "string"
-  }
-],
-"selectedPathwaySummary": "string",
+  "caregiverGuidance": ["string"],
   "summary": {
     "topRisks": ["string"],
     "planSummary": "string",

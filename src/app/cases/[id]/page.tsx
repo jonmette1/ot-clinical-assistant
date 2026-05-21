@@ -80,6 +80,27 @@ type GeneratedOutput = {
   functionalProblemAreas?: string[];
   clinicalPriorities?: string[];
   caregiverFocus?: string[];
+  operational_prioritization?: {
+    currentOperationalEmphasis?: string;
+    emphasisRationale?: string[];
+    dominantBarriers?: string[];
+    adjacentOperationalPriorities?: {
+      label?: string;
+      rationale?: string;
+      monitorFor?: string;
+    }[];
+    reassessmentTriggers?: string[];
+    continuitySummary?: string;
+  };
+
+  structured_plan_details?: {
+    immediateActions?: string[];
+    safetyConsiderations?: string[];
+    caregiverConsiderations?: string[];
+    environmentalConsiderations?: string[];
+    treatmentExecutionNotes?: string[];
+  };
+
   pathways?: Pathway[];
   clinicalConsiderations?: string[];
   firstSessionPriorities?: string[];
@@ -951,45 +972,49 @@ ${liveClinicalDecisionModel.reasoningSummary || "—"}
 
 function buildRecommendedApproachSummary() {
   return `
-RECOMMENDED TREATMENT APPROACH
-------------------------------
-${selectedPathway?.type || selectedPathway?.title || "—"}
+CURRENT OPERATIONAL EMPHASIS
+----------------------------
+${currentOperationalEmphasis || "—"}
 
-SUMMARY
--------
-${generated?.selectedPathwaySummary || "—"}
+CONTINUITY SUMMARY
+------------------
+${operationalContinuitySummary || "—"}
 
-WHY THIS WAS SELECTED
+WHY THIS MATTERS NOW
+--------------------
+${
+  emphasisRationale.length
+    ? emphasisRationale.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+DOMINANT BARRIERS
+-----------------
+${
+  dominantBarriers.length
+    ? dominantBarriers.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
+
+IMMEDIATE OPERATIONAL ACTIONS
+-----------------------------
+${
+  structuredPlanDetails?.immediateActions?.length
+    ? structuredPlanDetails.immediateActions
+        .map((i) => `• ${i}`)
+        .join("\n")
+    : "—"
+}
+
+REASSESSMENT TRIGGERS
 ---------------------
 ${
-  selectedPathway?.selectionDrivers?.length
-    ? selectedPathway.selectionDrivers.map((i) => `• ${i}`).join("\n")
+  operationalReassessmentTriggers.length
+    ? operationalReassessmentTriggers
+        .map((i) => `• ${i}`)
+        .join("\n")
     : "—"
 }
-
-PRIORITIZES
------------
-${
-  selectedPathway?.prioritizes?.length
-    ? selectedPathway.prioritizes.map((i) => `• ${i}`).join("\n")
-    : "—"
-}
-
-OPERATIONAL ACTIONS
--------------------
-${
-  selectedPathway?.interventions?.length
-    ? selectedPathway.interventions.map((i) => `• ${i}`).join("\n")
-    : "—"
-}
-
-PRIMARY TRADEOFF
-----------------
-${selectedPathway?.tradeoff || "—"}
-
-OPERATIONAL RISK
-----------------
-${selectedPathway?.operationalRisk || "—"}
 `.trim();
 }
 
@@ -1497,6 +1522,30 @@ const worstTransfer =
 
  console.log("Generated summary:", generated?.summary);
 
+const operationalPrioritization = generated?.operational_prioritization;
+
+const structuredPlanDetails = generated?.structured_plan_details;
+
+const currentOperationalEmphasis =
+  operationalPrioritization?.currentOperationalEmphasis ||
+  "No operational emphasis generated";
+
+const emphasisRationale: string[] =
+  operationalPrioritization?.emphasisRationale || [];
+
+const dominantBarriers: string[] =
+  operationalPrioritization?.dominantBarriers || [];
+
+const adjacentOperationalPriorities =
+  operationalPrioritization?.adjacentOperationalPriorities || [];
+
+const operationalReassessmentTriggers: string[] =
+  operationalPrioritization?.reassessmentTriggers || [];
+
+const operationalContinuitySummary =
+  operationalPrioritization?.continuitySummary || "";
+
+// TEMP LEGACY FALLBACK — keep until render/export is fully migrated
 const selectedPathwayIndex =
   typeof generated?.selectedPathwayIndex === "number"
     ? generated.selectedPathwayIndex
@@ -1510,7 +1559,7 @@ const selectedPathway =
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
     ? generated.caregiverGuidance
-    : selectedPathway?.interventions ?? [];
+    : structuredPlanDetails?.caregiverConsiderations || [];
 
 const clinicalFocusLabel =
   displayCase.case_classification?.clinical_focus === "transfers_mobility"
@@ -1588,68 +1637,89 @@ const selectedPlanForExport = {
 };
 const executiveBriefing = (() => {
   const risks: string[] = generated?.summary?.topRisks || [];
-  const pathwayInterventions: string[] = selectedPathway?.interventions || [];
+
   const caregiverItems: string[] =
     generated?.summary?.caregiverExpectations || [];
 
-  const selectedDrivers: string[] = selectedPathway?.selectionDrivers || [];
-  const pathwayPriorities: string[] = selectedPathway?.prioritizes || [];
-  const pathwayTradeoffs: string[] = selectedPathway?.tradeoff
-    ? [selectedPathway.tradeoff]
-    : [];
-  const pathwayRisks: string[] = selectedPathway?.operationalRisk
-    ? [selectedPathway.operationalRisk]
-    : [];
+  const immediateActions: string[] =
+    structuredPlanDetails?.immediateActions || [];
 
-  const matches = (item: string, terms: string[]) =>
-    terms.some((term) => item.toLowerCase().includes(term));
+  const safetyConsiderations: string[] =
+    structuredPlanDetails?.safetyConsiderations || [];
 
-  const unique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
+  const caregiverConsiderations: string[] =
+    structuredPlanDetails?.caregiverConsiderations || [];
+
+  const environmentalConsiderations: string[] =
+    structuredPlanDetails?.environmentalConsiderations || [];
+
+  const unique = (items: string[]) =>
+    Array.from(new Set(items.filter(Boolean)));
 
   if (briefingLens === "transfers_mobility") {
     return {
       title: "Transfers & Mobility Briefing",
+
       priorities: unique([
-        ...pathwayInterventions.filter((item) =>
-          matches(item, ["transfer", "mobility", "balance", "position", "stair", "step", "shower"])
-        ),
-        ...pathwayPriorities.filter((item) =>
-          matches(item, ["transfer", "mobility", "balance", "position", "stair", "step", "shower"])
+        ...immediateActions.filter((item) =>
+          item.toLowerCase().match(
+            /(transfer|mobility|balance|position|walker|shower|toilet|sit|stand|step)/
+          )
         ),
       ]),
+
       risks: unique(
         risks.filter((item) =>
-          matches(item, ["fall", "transfer", "mobility", "stair", "step", "night", "bathroom"])
+          item.toLowerCase().match(
+            /(fall|transfer|mobility|bathroom|instability|unsafe)/
+          )
         )
       ),
-      considerations: unique([...pathwayTradeoffs, ...pathwayRisks]),
+
+      considerations: unique([
+        ...environmentalConsiderations,
+        ...caregiverConsiderations,
+      ]),
     };
   }
 
   if (briefingLens === "caregiver_training") {
     return {
       title: "Caregiver Training Briefing",
-      priorities: unique([...caregiverGuidance, ...caregiverItems]),
-      risks: unique([
-        ...pathwayRisks,
-        ...risks.filter((item) =>
-          matches(item, ["cognitive", "cue", "supervision", "caregiver", "unsafe", "anxiety", "freezing"])
-        ),
+
+      priorities: unique([
+        ...caregiverGuidance,
+        ...caregiverItems,
       ]),
+
+      risks: unique(
+        risks.filter((item) =>
+          item.toLowerCase().match(
+            /(caregiver|cueing|supervision|unsafe|support|fatigue)/
+          )
+        )
+      ),
+
       considerations: unique([
-        ...pathwayTradeoffs,
-        ...selectedDrivers.filter((item) =>
-          matches(item, ["caregiver", "cognitive", "supervision", "unsafe"])
-        ),
+        ...caregiverConsiderations,
       ]),
     };
   }
 
   return {
-    title: "ADL / Home Safety Briefing",
-    priorities: unique([...selectedDrivers, ...pathwayInterventions]),
+    title: "Operational Briefing",
+
+    priorities: unique([
+      ...emphasisRationale,
+      ...immediateActions,
+    ]),
+
     risks: unique(risks),
-    considerations: unique([...pathwayTradeoffs, ...caregiverItems]),
+
+    considerations: unique([
+      ...environmentalConsiderations,
+      ...caregiverItems,
+    ]),
   };
 })();
 
@@ -2716,117 +2786,140 @@ return (
 </div>
 
 {/* ==============================
-    RENDER: ACTIVE PATHWAY
+    RENDER: CURRENT OPERATIONAL EMPHASIS
 ============================== */}
-
-{/* ACTIVE OPERATIONAL PATHWAY */}
 
 <div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div>
       <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">
-        Recommended Treatment Approach
+        Current Operational Emphasis
       </div>
 
       <h2 className="text-2xl font-semibold text-white">
-        {selectedPathway?.type || selectedPathway?.title || "No pathway selected"}
+        {currentOperationalEmphasis}
       </h2>
 
       <p className="mt-2 text-sm text-emerald-100/80 max-w-3xl">
-        {generated?.selectedPathwaySummary ||
-          "This approach represents the primary operational direction for treatment emphasis."}
+        {operationalContinuitySummary ||
+          generated?.summary?.planSummary ||
+          "This emphasis represents what should dominate treatment attention right now."}
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-<button
-  type="button"
-  onClick={() => setShowClinicalSummary(true)}
-  className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
->
-  View Clinical Summary
-</button>
 
-<button
-  type="button"
-  onClick={handleCopyRecommendedSummary}
-  className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition"
->
-  Copy Summary
-</button>
-</div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setShowClinicalSummary(true)}
+          className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
+        >
+          View Clinical Summary
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCopyRecommendedSummary}
+          className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition"
+        >
+          Copy Summary
+        </button>
+      </div>
     </div>
 
     <div className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-200 border border-emerald-700">
-      Recommended
+      Active Focus
     </div>
   </div>
 
   <div className="mt-6 grid gap-4 md:grid-cols-3">
     <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Why This Was Selected
+        Why This Matters Now
       </h3>
 
       <ul className="space-y-2 text-sm text-gray-200">
-        {(selectedPathway?.selectionDrivers || []).slice(0, 3).map((item, index) => (
-          <li key={index}>• {item}</li>
-        ))}
+        {emphasisRationale.length > 0 ? (
+          emphasisRationale.slice(0, 3).map((item: string, index: number) => (
+            <li key={index}>• {item}</li>
+          ))
+        ) : (
+          <li>• No emphasis rationale generated.</li>
+        )}
       </ul>
     </div>
 
     <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Prioritizes
+        Dominant Barriers
       </h3>
 
       <ul className="space-y-2 text-sm text-gray-200">
-        {(selectedPathway?.prioritizes || []).slice(0, 3).map((item, index) => (
-          <li key={index}>• {item}</li>
-        ))}
+        {dominantBarriers.length > 0 ? (
+          dominantBarriers.slice(0, 3).map((item: string, index: number) => (
+            <li key={index}>• {item}</li>
+          ))
+        ) : (
+          <li>• No dominant barriers generated.</li>
+        )}
       </ul>
     </div>
 
     <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
       <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Main Tradeoff
+        Reassessment Triggers
       </h3>
 
-      <p className="text-sm text-gray-200">
-        {selectedPathway?.tradeoff || "No tradeoff identified."}
-      </p>
+      <ul className="space-y-2 text-sm text-gray-200">
+        {operationalReassessmentTriggers.length > 0 ? (
+          operationalReassessmentTriggers
+            .slice(0, 3)
+            .map((item: string, index: number) => (
+              <li key={index}>• {item}</li>
+            ))
+        ) : (
+          <li>• No reassessment triggers generated.</li>
+        )}
+      </ul>
     </div>
   </div>
 
   <div className="mt-6">
     <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-      Operational Actions
+      Immediate Operational Actions
     </h3>
 
     <ul className="grid gap-2 md:grid-cols-2 text-sm text-gray-200">
-      {(selectedPathway?.interventions || []).map((item, index) => (
-        <li
-          key={index}
-          className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
-        >
-          {item}
+      {(structuredPlanDetails?.immediateActions || []).length > 0 ? (
+        structuredPlanDetails?.immediateActions?.map(
+          (item: string, index: number) => (
+            <li
+              key={index}
+              className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
+            >
+              {item}
+            </li>
+          )
+        )
+      ) : (
+        <li className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2">
+          No immediate actions generated.
         </li>
-      ))}
+      )}
     </ul>
   </div>
 </div>
 
-{/* Alternative Treatment Approaches */}
+{/* Adjacent Operational Priorities */}
 
-{generated?.pathways && generated.pathways.length > 0 && (
+{adjacentOperationalPriorities.length > 0 && (
   <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-
     <div className="flex items-center justify-between mb-4">
       <div>
         <h3 className="text-xl font-semibold text-gray-300">
-          Alternative Treatment Approaches
+          Adjacent Operational Priorities
         </h3>
 
         <p className="text-sm text-gray-500 mt-1">
-          Other viable treatment directions generated from the same authoritative plan.
+          Secondary priorities to monitor without treating them as competing plans.
         </p>
       </div>
 
@@ -2841,38 +2934,38 @@ return (
 
     {showAlternativeApproaches && (
       <div className="space-y-4">
-        {generated.pathways.map((pathway, index) => (
-          <div
-            key={`${pathway.type}-${index}`}
-            className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-80"
-          >
-            <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
-              {String(pathway.type).replaceAll("_", " ")}
-            </p>
+        {adjacentOperationalPriorities.map(
+          (
+            priority: {
+              label?: string;
+              rationale?: string;
+              monitorFor?: string;
+            },
+            index: number
+          ) => (
+            <div
+              key={`${priority.label || "priority"}-${index}`}
+              className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-90"
+            >
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
+                Adjacent Priority
+              </p>
 
-            <h4 className="text-sm font-semibold mb-2">
-              {pathway.title}
-            </h4>
+              <h4 className="text-sm font-semibold mb-2">
+                {priority.label || "Unnamed priority"}
+              </h4>
 
-            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300 mb-3">
-              {pathway.interventions.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
+              <p className="text-sm text-gray-300 mb-3">
+                {priority.rationale || "No rationale provided."}
+              </p>
 
-            <p className="text-xs text-gray-400">
-              <strong>Timeline:</strong> {pathway.timeline}
-            </p>
-
-            <p className="text-xs text-gray-400">
-              <strong>Upside:</strong> {pathway.upside}
-            </p>
-
-            <p className="text-xs text-gray-500">
-              <strong>Tradeoff:</strong> {pathway.tradeoff}
-            </p>
-          </div>
-        ))}
+              <p className="text-xs text-gray-400">
+                <strong>Monitor for:</strong>{" "}
+                {priority.monitorFor || "No monitoring cue provided."}
+              </p>
+            </div>
+          )
+        )}
       </div>
     )}
   </div>
@@ -2882,15 +2975,13 @@ return (
     RENDER: STRUCTURED PLAN DETAILS
 ============================== */}
 
-{/* STRUCTURED PLAN DETAILS */}
-
 {generated?.patientSnapshot && (
   <details className="rounded-xl border border-green-800 bg-gray-900 p-6">
     <summary className="flex cursor-pointer items-center justify-between">
       <div>
         <h2 className="text-xl font-semibold">Structured Plan Details</h2>
         <p className="mt-1 text-sm text-gray-400">
-          Reference detail for deeper review when needed.
+          Implementation details anchored to the current operational emphasis.
         </p>
       </div>
 
@@ -2903,6 +2994,58 @@ return (
       <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
       <p className="text-gray-300">{generated.patientSnapshot}</p>
     </div>
+
+    {structuredPlanDetails?.safetyConsiderations?.length ? (
+      <div className="mt-6 border-t border-gray-800 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Safety Considerations</h3>
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {structuredPlanDetails.safetyConsiderations.map(
+            (item: string, index: number) => (
+              <li key={index}>{item}</li>
+            )
+          )}
+        </ul>
+      </div>
+    ) : null}
+
+    {structuredPlanDetails?.caregiverConsiderations?.length ? (
+      <div className="mt-6 border-t border-gray-800 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Caregiver Considerations</h3>
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {structuredPlanDetails.caregiverConsiderations.map(
+            (item: string, index: number) => (
+              <li key={index}>{item}</li>
+            )
+          )}
+        </ul>
+      </div>
+    ) : null}
+
+    {structuredPlanDetails?.environmentalConsiderations?.length ? (
+      <div className="mt-6 border-t border-gray-800 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Environmental Considerations</h3>
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {structuredPlanDetails.environmentalConsiderations.map(
+            (item: string, index: number) => (
+              <li key={index}>{item}</li>
+            )
+          )}
+        </ul>
+      </div>
+    ) : null}
+
+    {structuredPlanDetails?.treatmentExecutionNotes?.length ? (
+      <div className="mt-6 border-t border-gray-800 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Treatment Execution Notes</h3>
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {structuredPlanDetails.treatmentExecutionNotes.map(
+            (item: string, index: number) => (
+              <li key={index}>{item}</li>
+            )
+          )}
+        </ul>
+      </div>
+    ) : null}
   </details>
 )}
 
