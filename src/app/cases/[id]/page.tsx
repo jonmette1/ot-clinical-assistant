@@ -2168,129 +2168,167 @@ return (
     {displayCase.goals_preferences?.primary_goal || "—"}
   </p>
 
-  {isEditing ? (
-    <div className="mt-4 grid gap-3 md:grid-cols-2 rounded-lg border border-blue-800 bg-blue-950/20 p-4">
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Client Name</label>
-        <input
-          type="text"
-          value={editableClientInfo.client_name}
-          onChange={(e) =>
-            setEditableClientInfo((prev) => ({
-              ...prev,
-              client_name: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Client Phone</label>
-        <input
-          type="text"
-          value={editableClientInfo.phone}
-          onChange={(e) =>
-            setEditableClientInfo((prev) => ({
-              ...prev,
-              phone: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Client Email</label>
-        <input
-          type="email"
-          value={editableClientInfo.email}
-          onChange={(e) =>
-            setEditableClientInfo((prev) => ({
-              ...prev,
-              email: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Client Address</label>
-        <input
-          type="text"
-          value={editableClientInfo.address}
-          onChange={(e) =>
-            setEditableClientInfo((prev) => ({
-              ...prev,
-              address: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Caregiver Name</label>
-        <input
-          type="text"
-          value={editableCaregiverInfo.caregiver_name}
-          onChange={(e) =>
-            setEditableCaregiverInfo((prev) => ({
-              ...prev,
-              caregiver_name: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">
-          Caregiver Relationship
-        </label>
-        <input
-          type="text"
-          value={editableCaregiverInfo.relationship}
-          onChange={(e) =>
-            setEditableCaregiverInfo((prev) => ({
-              ...prev,
-              relationship: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Caregiver Phone</label>
-        <input
-          type="text"
-          value={editableCaregiverInfo.phone}
-          onChange={(e) =>
-            setEditableCaregiverInfo((prev) => ({
-              ...prev,
-              phone: e.target.value,
-            }))
-          }
-          className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
-        />
-      </div>
-
+ {isEditing ? (
+  <div className="mt-4 grid gap-3 rounded-lg border border-blue-800 bg-blue-950/20 p-4 md:grid-cols-2">
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Client Name</label>
+      <input
+        type="text"
+        value={editableClientInfo.client_name}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            client_name: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
     </div>
-  ) : (
-    <>
-      <p><strong>Client Name:</strong> {displayCase.client_info?.client_name || "—"}</p>
-      <p><strong>Client Phone:</strong> {displayCase.client_info?.phone || "—"}</p>
-      <p><strong>Client Email:</strong> {displayCase.client_info?.email || "—"}</p>
-      <p><strong>Client Address:</strong> {displayCase.client_info?.address || "—"}</p>
-      <p><strong>Caregiver Name:</strong> {displayCase.caregiver_info?.caregiver_name || "—"}</p>
-      <p><strong>Caregiver Relationship:</strong> {displayCase.caregiver_info?.relationship || "—"}</p>
-      <p><strong>Caregiver Phone:</strong> {displayCase.caregiver_info?.phone || "—"}</p>
 
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Client Phone</label>
+      <input
+        type="text"
+        value={editableClientInfo.phone}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            phone: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
 
-    </>
-  )}
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Client Email</label>
+      <input
+        type="email"
+        value={editableClientInfo.email}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            email: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Client Address</label>
+      <input
+        type="text"
+        value={editableClientInfo.address}
+        onChange={(e) =>
+          setEditableClientInfo((prev) => ({
+            ...prev,
+            address: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Caregiver Name</label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.caregiver_name}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            caregiver_name: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">
+        Caregiver Relationship
+      </label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.relationship}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            relationship: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-xs text-gray-400">Caregiver Phone</label>
+      <input
+        type="text"
+        value={editableCaregiverInfo.phone}
+        onChange={(e) =>
+          setEditableCaregiverInfo((prev) => ({
+            ...prev,
+            phone: e.target.value,
+          }))
+        }
+        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+      />
+    </div>
+  </div>
+) : (
+  <div className="mt-4 grid gap-3 rounded-lg border border-gray-800 bg-gray-950/40 p-4 md:grid-cols-2">
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Client Name</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.client_info?.client_name || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Client Phone</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.client_info?.phone || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Client Email</p>
+      <p className="break-all rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.client_info?.email || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Client Address</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.client_info?.address || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Caregiver Name</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.caregiver_info?.caregiver_name || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Caregiver Relationship</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.caregiver_info?.relationship || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Caregiver Phone</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.caregiver_info?.phone || "—"}
+      </p>
+    </div>
+  </div>
+)}
 
   <div className="mt-4 border-t border-gray-800 pt-4">
     <h3 className="text-sm font-semibold text-gray-300 mb-2">
