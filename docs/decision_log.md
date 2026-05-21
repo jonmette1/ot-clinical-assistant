@@ -3,7 +3,6 @@
 ---
 
 # Purpose
-
 This document records finalized architectural, workflow, UX, and product decisions.
 
 The goal is to:
@@ -17,14 +16,11 @@ Only finalized decisions belong here.
 ---
 
 # Decision Format
-
 Each decision should include:
 - decision
 - rationale
 - tradeoff
 - status
-
----
 
 ---
 
@@ -118,20 +114,29 @@ ACTIVE
 # DECISION 004
 
 ## Decision
-The current product phase prioritizes workflow stabilization before longitudinal expansion.
+The product will transition from a multi-pathway recommendation architecture to a continuity-aware operational prioritization architecture.
 
 ---
 
 ## Rationale
-Core workflow usability and reasoning consistency must stabilize before introducing:
-- progression systems
-- continuity tracking
-- longitudinal intelligence
+The current generated “pathways” are no longer functioning as true competing treatment plans.
+
+They are functioning as:
+- operational emphasis states
+- continuity-sensitive intervention priorities
+- progression-adjacent weighting states
+
+Continuing to frame them as alternative treatment approaches creates:
+- authority conflicts
+- false clinician choice architecture
+- duplicated semantics
+- progression phase vs recommended pathway mismatches
+- incorrect longitudinal implications
 
 ---
 
 ## Tradeoff
-Some future-facing capabilities are intentionally delayed.
+This reduces the apparent breadth of AI-generated options, but improves clinical coherence, workflow clarity, and architectural honesty.
 
 ---
 
@@ -143,242 +148,184 @@ ACTIVE
 # DECISION 005
 
 ## Decision
-AI outputs should remain operationally concise and avoid excessive narrative density.
+The live operational case state is the authoritative source of current truth.
+
+Historical generations remain immutable continuity snapshots.
 
 ---
 
 ## Rationale
-Clinicians require:
-- rapid orientation
-- scanability
-- workflow clarity
-- actionable synthesis
+The platform needs a clear source of authority as reassessment and follow-up workflows mature.
 
-Large narrative blocks increase cognitive burden.
+The live case owns:
+- current structured data
+- current generated output
+- current progression state
+- current operational emphasis
+- stale-state flags
+- clinician-edited operational updates
 
----
-
-## Tradeoff
-Some contextual richness may be reduced.
-
----
-
-## Status
-ACTIVE
-
-# Decision — Phase 2.75 Workflow Stabilization Complete
-
-## Status
-APPROVED
-
-## Context
-
-The platform has now completed a major workflow stabilization pass focused on operational continuity, version safety, and editable live-case architecture.
-
-The prior workflow lacked sufficient separation between:
-- live operational state
-- historical continuity state
-- rendered display state
-- regeneration-safe state
-
-This created instability risk for future longitudinal progression systems.
-
----
-
-## Decisions
-
-### 1. Live Operational Case Architecture
-The platform will maintain a single editable live operational case state.
-
-The live case is:
-- editable
-- regeneratable
-- operationally authoritative
-- continuity-aware
-
----
-
-### 2. Historical Snapshot Architecture
-Historical generations are treated as immutable continuity snapshots.
-
-Historical snapshots are:
+Historical generations are:
 - reviewable
 - restorable
-- non-operational
 - continuity references
 
-Historical snapshots should not function as directly editable operational states.
+They are not:
+- automatically evolving states
+- active editing environments
+- independent current clinical authorities
 
 ---
 
-### 3. Render vs Operational State Separation
-The platform now separates:
-- rendered display state (`displayCase`)
-from:
-- authoritative operational state (`caseData`)
-
-This supports:
-- historical review workflows
-- continuity-safe rendering
-- deterministic restoration
-- future longitudinal comparison systems
+## Tradeoff
+Requires careful handling of restore workflows and historical display so users understand when they are viewing a snapshot versus the current operational state.
 
 ---
-
-### 4. Continuity-Safe Regeneration
-Regeneration workflows now preserve:
-- structured case inputs
-- clinical reasoning inputs
-- selected pathway continuity
-- version-aware restoration capability
-
-This establishes foundational support for:
-- longitudinal progression
-- treatment trajectory analysis
-- continuity-aware reasoning systems
-
----
-
-## Result
-
-The workflow architecture is now considered sufficiently stable to begin:
-
-# Phase 3 — Longitudinal Progression Foundation
 
 ## Status
 ACTIVE
 
 ---
 
+# DECISION 006
+
 ## Decision
-
-The platform will evolve toward a deterministic longitudinal progression framework focused on:
-
-- operational continuity
-- functional progression context
-- continuity-aware reasoning
-- structured reassessment workflows
-- progression-aware clinical orientation
-
-The progression system will function as:
-
-> an operational progression and continuity framework
-
-rather than:
-
-> a predictive rehabilitation engine
-
-Progression states are intended to represent:
-- operational bottleneck classifications
-- continuity orientation contexts
-- workflow prioritization states
-
-not:
-- recovery scores
-- predictive recovery stages
-- motivational progression indicators
-- autonomous rehabilitation trajectories
+Current operational emphasis will replace selected pathway semantics as the primary treatment direction authority.
 
 ---
 
-## Architectural Direction
+## Rationale
+Selected pathway semantics imply that the clinician is choosing among competing AI-generated plans.
 
-The progression framework prioritizes:
-- deterministic reasoning governance
-- explainable progression logic
-- cognitively lightweight continuity states
-- operational workflow realism
-- contextual progression interpretation
-- caregiver/environment integration
-- continuity-safe progression persistence
+The system’s actual behavior is closer to deterministic operational prioritization.
 
-The progression system intentionally avoids:
-- speculative recovery forecasting
-- AI-generated rehabilitation storytelling
-- opaque progression scoring
-- automated trajectory prediction
-- narrative-heavy longitudinal outputs
+The appropriate primary question is:
 
----
+What should dominate treatment attention right now?
 
-## Current Phase 3A Outcomes
+Not:
 
-Validated progression semantics now include:
-- stabilization
-- foundational participation
-- supported functional execution
-- environmental optimization
-- reduced dependency
-
-Progression states are now behaving as:
-- operational context classifications
-rather than:
-- severity labels alone
-
-Examples include:
-- preserved independence resisting unnecessary stabilization
-- environmental barriers functioning as progression bottlenecks
-- participation inconsistency emerging as foundational participation
-- transfer instability appropriately triggering stabilization
-
-The progression engine now supports:
-- contextual barrier interpretation
-- contextual milestone generation
-- caregiver-aware progression logic
-- environmental progression logic
-- continuity summarization
-- reassessment trigger generation
-
-while preserving:
-- cognitive compression
-- workflow clarity
-- deterministic explainability
-- continuity-safe regeneration
-
----
-
-## Deferred Direction
-
-Progression comparison systems are intentionally deferred until structured follow-up reassessment workflows exist.
-
-The platform should not infer:
-- improvement
-- regression
-- longitudinal directionality
-
-without explicit updated operational inputs.
-
-Future longitudinal comparison infrastructure will depend on:
-- structured visit reassessment workflows
-- operational delta updating
-- continuity-safe editing architecture
-- immutable historical continuity persistence
+Which competing treatment pathway should the clinician select?
 
 ---
 
 ## Tradeoff
+Existing implementation may temporarily need to preserve `selectedPathwayIndex` for backward compatibility while the new operational emphasis model is introduced.
 
-The platform intentionally favors:
-- operational clarity
-- explainable continuity reasoning
-- lightweight longitudinal workflows
-- clinician orientation
-- continuity-safe architecture
+---
 
-over:
-- highly technical progression analytics
-- predictive rehabilitation modeling
-- timeline-heavy visualization systems
-- large longitudinal dashboards
-- automated progression interpretation systems
+## Status
+APPROVED FOR MIGRATION
 
-This preserves:
-- clinician trust
-- workflow usability
-- cognitive compression
-- operational realism
+---
 
-while enabling future structured longitudinal evolution.
+# DECISION 007
+
+## Decision
+`selectedPathwayIndex` should be deprecated eventually, but not removed immediately.
+
+---
+
+## Rationale
+Existing case rendering, historical generations, copy/export workflows, and caregiver guidance may still depend on pathway-indexed structures.
+
+Immediate removal could break stored cases or destabilize continuity workflows.
+
+The migration should introduce explicit operational prioritization fields first, then reduce dependency on pathway index semantics.
+
+---
+
+## Tradeoff
+The codebase will temporarily carry transitional semantic debt.
+
+This is acceptable if the migration path is explicit and bounded.
+
+---
+
+## Status
+APPROVED FOR PHASED DEPRECATION
+
+---
+
+# DECISION 008
+
+## Decision
+“Alternative Treatment Approaches” should be replaced by “Adjacent Operational Priorities.”
+
+---
+
+## Rationale
+The current alternatives are not true alternatives.
+
+They are better understood as:
+- nearby emphasis areas
+- secondary operational concerns
+- emerging readiness areas
+- priority shifts to monitor
+- possible next emphasis candidates after reassessment
+
+This framing supports continuity without undermining the current operational evaluation.
+
+---
+
+## Tradeoff
+Clinicians lose a simple “option A / option B / option C” framing, but gain a more clinically honest representation of continuity-aware treatment prioritization.
+
+---
+
+## Status
+ACTIVE
+
+---
+
+# DECISION 009
+
+## Decision
+Progression state and operational emphasis are related but distinct.
+
+---
+
+## Rationale
+Progression state describes the client’s current operational continuity condition.
+
+Operational emphasis describes the dominant intervention priority right now.
+
+A client may be in “foundational participation” while the current operational emphasis is “caregiver-supported task setup” or “transfer control and sequencing.”
+
+Forcing a one-to-one mapping would recreate the same authority conflicts the pathway model created.
+
+---
+
+## Tradeoff
+Requires clearer UI language and deterministic derivation rules.
+
+---
+
+## Status
+ACTIVE
+
+---
+
+# DECISION 010
+
+## Decision
+Phase 3B reassessment workflows should update operational emphasis through deterministic continuity logic, not through pathway reselection.
+
+---
+
+## Rationale
+Reassessment should answer:
+- what changed?
+- what remains limiting?
+- what now dominates treatment attention?
+- what requires review before continuing?
+
+It should not imply that the clinician is choosing from newly generated competing plans.
+
+---
+
+## Tradeoff
+Requires tighter integration between follow-up status, stale-state flags, progression state, and operational prioritization output.
 
 ---
 

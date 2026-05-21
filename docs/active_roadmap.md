@@ -4,85 +4,137 @@
 
 # Current Product Phase
 
-## Phase 2.5 — Cognitive Compression & Workflow Hierarchy
+## Phase 3B — Continuity-Aware Operational Prioritization Foundation
 
 ### Primary Objective
-Improve scanability, prioritization clarity, and operational usability while reducing clinician cognitive load.
+Re-align the product from a pathway-selection model toward a continuity-aware operational prioritization model.
 
-The current focus is not expanding reasoning complexity.
+The current focus is not expanding AI autonomy or adding longitudinal dashboards.
 
 The current focus is:
-- workflow usability
+- workflow continuity
+- operational emphasis clarity
+- deterministic prioritization
+- reassessment readiness
 - clinician orientation speed
-- output hierarchy
 - cognitive compression
-- operational clarity
+- semantic cleanup of pathway-era architecture
+
+---
+
+# Recently Completed Foundation Work
+The platform has completed substantial stabilization work, including:
+- persistent operational workflow controls
+- persistent case identity header
+- unified view/edit operational layout
+- operational input grouping
+- editable live operational state foundation
+- continuity-safe mutation architecture
+- Follow-Up Status continuity scaffolding
+- Phase 3B reassessment workflow foundation planning
+
+These improvements make it reasonable to begin replacing pathway-centered semantics with operational prioritization semantics.
+
+---
+
+# Architecture Transition
+
+## From
+Multi-pathway recommendation engine
+
+## To
+Continuity-aware operational prioritization engine
+
+The system should no longer treat generated treatment direction as multiple competing pathways.
+
+The system should instead organize reasoning around:
+- current progression state
+- current operational emphasis
+- dominant barriers
+- adjacent operational priorities
+- reassessment triggers
+- continuity-safe plan updates
 
 ---
 
 # Current Product Priorities
 
-## Priority 1 — Workflow Clarity
-Improve:
-- scanability
-- output hierarchy
-- prioritization visibility
-- treatment sequencing clarity
+## Priority 1 — Operational Emphasis Authority
+Establish current operational emphasis as the primary treatment direction model.
 
-Current focus areas:
-- collapsible sections
-- pathway hierarchy refinement
-- visual prioritization structure
-- reduced narrative density
+Focus areas:
+- define operational emphasis schema
+- reduce dependency on selected pathway semantics
+- clarify deterministic derivation rules
+- ensure caregiver guidance anchors to current emphasis instead of pathway selection
 
 Status:
 ACTIVE
 
 ---
 
-## Priority 2 — Cognitive Compression
+## Priority 2 — Continuity-Aware Prioritization
+Improve how live case changes, follow-up status, and reassessment signals influence prioritization.
+
+Focus areas:
+- stale-state interpretation
+- follow-up status integration
+- reassessment trigger visibility
+- continuity-safe mutation handling
+- live case state authority
+
+Status:
+ACTIVE
+
+---
+
+## Priority 3 — Cognitive Compression
 Reduce:
 - redundant outputs
 - narrative overload
 - excessive cognitive processing
+- duplicated pathway/progression semantics
 
-Current focus areas:
-- executive summaries
-- structured synthesis
-- concise workflow framing
-- operational language refinement
+Focus areas:
+- concise operational summaries
+- clear current emphasis explanation
+- reduced alternative-plan framing
+- scan-friendly barrier and priority display
 
 Status:
 ACTIVE
 
 ---
 
-## Priority 3 — Environmental Realism
+## Priority 4 — Environmental Realism
 Improve:
 - transfer surface interpretation
 - environmental prioritization
 - feasibility-aware recommendations
-- caregiver realism
-
-Current focus areas:
-- transfer weighting refinement
-- environment-based prioritization logic
 - safety interpretation consistency
+
+Focus areas:
+- environment-based priority weighting
+- home constraint visibility
+- equipment and access realism
+- environmental limitation state
 
 Status:
 ACTIVE
 
 ---
 
-## Priority 4 — Caregiver Integration
+## Priority 5 — Caregiver Integration
 Improve:
 - caregiver feasibility interpretation
 - caregiver-guided workflows
 - realistic carryover expectations
+- caregiver dependency state
 
-Current focus areas:
+Focus areas:
 - caregiver mismatch warnings
-- caregiver-guided pathway summaries
+- caregiver-supported operational emphasis
+- caregiver training readiness
 - caregiver burden interpretation
 
 Status:
@@ -90,12 +142,29 @@ ACTIVE
 
 ---
 
-# Current UX Goals
+## Priority 6 — Reassessment Workflow Foundation
+Build Phase 3B reassessment workflows around operational continuity, not pathway reselection.
 
+Focus areas:
+- follow-up status review
+- structured change capture
+- reassessment trigger rules
+- current emphasis recalculation
+- adjacent priority updates
+
+Status:
+ACTIVE
+
+---
+
+# Current UX Goals
 The system should allow clinicians to:
 - orient rapidly
-- identify priorities quickly
-- understand safety risks immediately
+- identify the current operational emphasis
+- understand why that emphasis dominates now
+- identify safety risks immediately
+- understand what barriers are blocking progression
+- see adjacent priorities without mistaking them for competing plans
 - execute workflows efficiently
 
 The UX should feel:
@@ -103,433 +172,75 @@ The UX should feel:
 - structured
 - operational
 - low friction
+- continuity-aware
 
 ---
 
 # Current Bottlenecks
 
-## 1. Narrative Density
+## 1. Pathway-Era Semantic Debt
+Some outputs and UI labels still imply competing treatment pathways or alternative plans.
+
+---
+
+## 2. Authority Conflicts
+Progression phase, recommended pathway, selected pathway, and structured plan details can conflict or duplicate meaning.
+
+---
+
+## 3. Alternative Approach Framing
+Alternative approaches are increasingly functioning as operational emphasis states, not true alternatives.
+
+---
+
+## 4. Longitudinal Interpretation Risk
+The system must support continuity without implying predictive recovery modeling or autonomous progression planning.
+
+---
+
+## 5. Narrative Density
 Some outputs remain too verbose and cognitively heavy.
-
----
-
-## 2. Workflow Fragmentation
-Some sections still feel disconnected instead of operationally unified.
-
----
-
-## 3. Prioritization Visibility
-Critical issues are not always surfaced prominently enough.
-
----
-
-## 4. Pathway Selection Clarity
-Users may not immediately understand:
-- pathway differences
-- why one pathway is preferred
-- how pathways operationally differ
 
 ---
 
 # Near-Term Development Focus
 
 ## Immediate Goals
-- improve pathway scanability
-- improve executive synthesis
-- improve prioritization visibility
-- reduce redundant narrative output
-- improve workflow cohesion
+- rename and restructure pathway-era concepts
+- define current operational emphasis schema
+- define adjacent operational priorities
+- map progression state to operational emphasis without forcing one-to-one equivalence
+- plan deprecation path for selectedPathwayIndex
+- ensure historical generations remain readable
+- update caregiver guidance anchor logic
+- prepare Phase 3B reassessment workflow integration
 
 ---
 
-## Recently Completed — Clinical Plan History UX Refinement
+# Explicitly Deprecated Direction
+The roadmap should no longer prioritize:
+- improving pathway selection UX
+- expanding alternative treatment approaches
+- strengthening competing pathway comparison
+- treating pathway plurality as the primary architecture
+
+These concepts should be replaced or migrated.
 
-Completed targeted UX refinement of the historical snapshot and continuity workflow system.
-
-Primary improvements focused on:
-- operational state clarity
-- historical snapshot comprehension
-- continuity-safe workflow understanding
-- reduction of technical/engineering-oriented language
-- clearer active vs historical plan hierarchy
-
-Implemented improvements:
-- renamed “Version History” → “Clinical Plan History”
-- replaced internal prompt metadata labels with clinician-readable snapshot labels
-- added human-readable snapshot reasoning summaries
-- strengthened active plan visual hierarchy
-- strengthened historical snapshot preview hierarchy
-- clarified active vs historical operational states
-- replaced restore language with operationally safer terminology
-- improved continuity-oriented workflow framing
-- removed unnecessary duplicated historical preview messaging
-- improved read-only historical preview clarity
-
-The continuity workflow now more clearly communicates:
-- active operational plan state
-- historical snapshot state
-- continuity-safe restoration behavior
-- preserved historical reasoning progression
-
-The current implementation intentionally avoids:
-- complex diff systems
-- excessive timeline complexity
-- engineering-oriented workflow metaphors
-- high-friction continuity management
-
-Current direction favors:
-- operational clarity
-- low-friction continuity review
-- clinician trust
-- continuity-safe workflow restoration
-- cognitively lightweight longitudinal navigation
-
-# Phase 3 — Longitudinal Progression Foundation
-
----
-
-## Strategic Objective
-
-Introduce structured longitudinal progression support while preserving:
-- cognitive compression
-- workflow clarity
-- deterministic reasoning governance
-- operational usability
-- clinician trust
-
-The progression system should help clinicians understand:
-- current functional progression state
-- advancement readiness
-- regression risk
-- reassessment triggers
-- shifting operational priorities over time
-
-The system should NOT become:
-- a generic AI care planning platform
-- speculative recovery forecasting
-- autonomous rehabilitation planning
-- narrative-heavy longitudinal documentation
-- week-by-week treatment generation
-
----
-
-## Core Architectural Direction
-
-Progression systems will be:
-- deterministic
-- criteria-based
-- milestone-driven
-- operationally grounded
-- environmentally aware
-- caregiver-aware
-
-AI should support:
-- synthesis
-- organization
-- cognitive compression
-- workflow communication
-
-AI should NOT:
-- predict recovery
-- generate rehabilitation timelines
-- invent unsupported progression reasoning
-- override deterministic logic
-
----
-# Phase 3 — Longitudinal Progression Foundation
-
-## Status
-READY TO BEGIN
-
-## Objective
-Introduce structured longitudinal progression systems that support visit-to-visit clinical evolution while preserving:
-
-- workflow clarity
-- cognitive compression
-- deterministic reasoning governance
-- operational usability
-- clinician trust
-- continuity-safe regeneration
-
----
-
-## Current Architectural Readiness
-
-The platform now supports:
-
-- editable live operational case state
-- immutable historical snapshot versions
-- continuity-safe regeneration workflows
-- selected pathway persistence
-- stale-state awareness
-- deterministic restoration workflows
-- render-layer vs operational-state separation
-- structured clinical reasoning persistence
-- detail module persistence
-- continuity-aware display architecture
-
-The current workflow foundation is now considered stable enough to support progression-aware systems without introducing major architectural instability.
-
----
-
-## Primary Phase 3 Priorities
-
-### Longitudinal Continuity Model
-Design a structured framework for:
-- visit-to-visit progression
-- treatment continuity
-- functional evolution tracking
-- reasoning continuity
-- environmental adaptation over time
-
-### Functional Progression Tracking
-Introduce structured tracking for:
-- transfer progression
-- ADL progression
-- caregiver progression
-- environmental adaptation
-- safety stabilization
-- endurance and participation changes
-
-### Progression-Aware Clinical Reasoning
-Enable reasoning systems to:
-- compare prior vs current status
-- identify meaningful functional change
-- detect regression vs improvement
-- adapt treatment prioritization longitudinally
-- support continuity-aware recommendations
-
-### Longitudinal Summaries
-Develop compressed summaries that communicate:
-- progression trajectory
-- current barriers
-- prior interventions attempted
-- caregiver adaptation
-- evolving safety profile
-- next-step clinical priorities
-
----
-
-## Constraints
-
-Do NOT introduce:
-- autonomous treatment planning
-- predictive scoring systems
-- excessive narrative density
-- hidden AI reasoning
-- uncontrolled adaptive behavior
-- workflow fragmentation
-- excessive documentation burden
-
-Favor:
-- operational realism
-- explainable reasoning
-- deterministic systems
-- cognitive compression
-- rapid clinician orientation
-- continuity-safe workflows
-
----
-
-## Deferred Until Later Phases
-
-- predictive analytics
-- outcome forecasting
-- multi-user collaboration
-- organization-level reporting
-- autonomous recommendation systems
-- adaptive machine learning systems
-- payer optimization systems
-
-## Planned Progression Components
-
-### Phase 3A — Longitudinal Progression Foundation
-
-Primary Objectives:
-- establish deterministic progression state architecture
-- define operational progression phase semantics
-- support continuity-aware reasoning
-- preserve cognitive compression during longitudinal expansion
-- support workflow-safe progression persistence
-- maintain explainable progression governance
-
-Core Focus Areas:
-- progression state architecture
-- progression phase modeling
-- milestone framework
-- advancement readiness criteria
-- regression trigger logic
-- reassessment trigger structure
-- caregiver dependency progression logic
-- environmental progression logic
-- continuity summarization
-- progression semantic validation
-
-Current Status:
-IN PROGRESS
-
-Notes:
-The progression system is intentionally designed as:
-- deterministic
-- operational
-- explainable
-- continuity-aware
-
-The progression system is intentionally NOT:
-- predictive recovery modeling
-- AI-generated rehabilitation storytelling
-- autonomous clinical progression planning
-- trajectory forecasting
-- generalized care plan generation
-
-Progression phases are intended to function as:
-- operational bottleneck classifications
-- continuity orientation states
-- workflow prioritization contexts
-
-not:
-- recovery scores
-- motivational progress indicators
-- predictive rehabilitation stages
-
----
-
-## Deferred Until Follow-Up Editing Exists
-
-Progression comparison logic is intentionally deferred until the UX supports structured visit-to-visit operational updates.
-
-The system should not infer:
-- improvement
-- stability
-- regression
-- longitudinal progression direction
-
-without explicit updated clinical inputs.
-
-Future structured reassessment inputs may include:
-- updated transfer assistance levels
-- updated ADL participation
-- updated caregiver availability/capacity
-- updated environmental modifications
-- new falls or safety events
-- clinician-entered visit notes
-- milestone achieved / blocked status
-- updated endurance/activity tolerance
-- updated sequencing/cognitive participation status
-
-Longitudinal comparison systems should remain:
-- deterministic
-- explainable
-- operationally grounded
-- continuity-safe
-
-The platform should avoid:
-- speculative progression inference
-- automated recovery forecasting
-- opaque longitudinal scoring
-- AI-generated rehabilitation trajectory narratives
-
----
-
-### Phase 3B — Structured Follow-Up Workflow Foundation
-
-Primary Objectives:
-- support lightweight visit-to-visit operational reassessment
-- enable structured continuity-safe status updating
-- preserve immutable historical snapshots
-- reduce clinician reassessment burden
-- support future deterministic progression comparison systems
-
-Core Focus Areas:
-- follow-up workflow UX
-- structured reassessment workflows
-- selective operational state updating
-- continuity-safe editing architecture
-- operational delta tracking
-- longitudinal workflow cohesion
-- reassessment cognitive compression
-- continuity persistence governance
-
-The primary objective of Phase 3B is NOT:
-- longitudinal dashboards
-- timeline visualization systems
-- progression graphs
-- predictive analytics
-- automated comparison narratives
-
-The primary objective IS:
-- lightweight structured operational reassessment workflows
-
-Status:
-PLANNED
-
----
-
-### Phase 3C — Workflow Adaptation
-
-Focus areas:
-- progression-aware prioritization
-- dynamic workflow adjustment
-- pathway evolution support
-
-Status:
-PLANNED
-
----
-
-### Phase 3D — Longitudinal Compression
-
-Focus areas:
-- progression timeline UX
-- continuity compression
-- low-friction longitudinal visualization
-
-Status:
-PLANNED
-
----
-
-## Progression Governance Rules
-
-Progression systems must:
-- remain explainable
-- remain operationally lightweight
-- preserve scanability
-- preserve workflow cohesion
-- support rapid clinician orientation
-
-Avoid:
-- narrative expansion
-- speculative prediction
-- excessive historical detail
-- workflow fragmentation
-- cognitive overload
-
----
-
-## Current Strategic Constraint
-
-The platform should evolve into:
-
-> structured operational progression support
-
-NOT:
-
-> AI-generated rehabilitation journey management
 ---
 
 # Deferred / Parking Lot
-
-The following concepts are intentionally deferred until core workflow stability is achieved:
-
+The following concepts remain intentionally deferred:
 - predictive analytics
+- autonomous recommendation systems
+- timeline-heavy progression systems
+- large longitudinal dashboards
 - adaptive learning systems
 - multi-user collaboration systems
 - advanced reporting systems
-- autonomous recommendation systems
-- large-scale automation workflows
+- automated discharge prediction
+- cross-patient pattern intelligence
 
-These may be revisited later if they support:
+These may be revisited later only if they support:
 - workflow clarity
 - clinician trust
 - operational usefulness
@@ -541,13 +252,11 @@ without increasing:
 ---
 
 # Roadmap Governance Rule
-
 Before adding new features, ask:
 
-Does this improve clinician workflow clarity and reduce cognitive burden in real operational environments?
+Does this improve continuity-aware clinician workflow clarity and reduce cognitive burden in real operational environments?
 
 If not:
 - simplify it
 - defer it
 - or reject it
-
