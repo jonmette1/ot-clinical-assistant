@@ -2145,28 +2145,7 @@ return (
 
 {/* CASE DETAIL SUMMARY */}
 <div className="space-y-2 text-sm text-gray-300">
-  <p>
-    <strong>Age Range:</strong>{" "}
-    {displayCase.patient_profile?.age_range || "—"}
-  </p>
-  <p>
-    <strong>Primary Diagnosis:</strong>{" "}
-    {displayCase.patient_profile?.primary_diagnosis || "—"}
-  </p>
-  <p>
-    <strong>Current Assistance Level:</strong>{" "}
-    {displayCase.functional_status?.current_assistance_level || "—"}
-  </p>
-  <p>
-    <strong>Key Barriers:</strong>{" "}
-    {displayCase.functional_status?.key_barriers?.length
-      ? displayCase.functional_status.key_barriers.join(", ")
-      : "—"}
-  </p>
-  <p>
-    <strong>Primary Goal:</strong>{" "}
-    {displayCase.goals_preferences?.primary_goal || "—"}
-  </p>
+ 
 
  {isEditing ? (
   <div className="mt-4 grid gap-3 rounded-lg border border-blue-800 bg-blue-950/20 p-4 md:grid-cols-2">
@@ -2330,39 +2309,138 @@ return (
   </div>
 )}
 
-  <div className="mt-4 border-t border-gray-800 pt-4">
-    <h3 className="text-sm font-semibold text-gray-300 mb-2">
-      Real-World Constraints
+<div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+
+  <div className="mb-4 flex items-center justify-between">
+    <h3 className="text-sm font-semibold text-gray-200">
+      Operational Case Inputs
     </h3>
 
-    <p><strong>Financial:</strong> {displayCase.feasibility_context?.financial_constraint || "—"}</p>
-    <p><strong>Environment:</strong> {displayCase.feasibility_context?.environmental_constraint || "—"}</p>
-    <p><strong>Equipment Access:</strong> {displayCase.feasibility_context?.equipment_access || "—"}</p>
+    <span className="text-xs text-gray-500">
+      Structured reasoning inputs
+    </span>
   </div>
 
-  <p><strong>Case Type:</strong> {displayCase.case_classification?.case_type || "—"}</p>
-  <p><strong>Bathroom Type:</strong> {displayCase.environment?.bathroom_type || "—"}</p>
-  <p><strong>Stairs Present:</strong> {displayCase.environment?.stairs_present || "—"}</p>
+  <div className="grid gap-3 md:grid-cols-2">
 
-  <div className="mt-4 border-t border-gray-800 pt-4">
-    <h3 className="text-sm font-semibold text-gray-300 mb-2">
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Age Range</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.patient_profile?.age_range || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Primary Diagnosis</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.patient_profile?.primary_diagnosis || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Current Assistance Level</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.functional_status?.current_assistance_level || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Primary Goal</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.goals_preferences?.primary_goal || "—"}
+      </p>
+    </div>
+
+    <div className="md:col-span-2">
+      <p className="mb-1 text-xs text-gray-500">Key Barriers</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.functional_status?.key_barriers?.length
+          ? displayCase.functional_status.key_barriers.join(", ")
+          : "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Case Type</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.case_classification?.case_type || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Clinical Focus</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.case_classification?.clinical_focus || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Bathroom Type</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.environment?.bathroom_type || "—"}
+      </p>
+    </div>
+
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Stairs Present</p>
+      <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+        {displayCase.environment?.stairs_present || "—"}
+      </p>
+    </div>
+
+<div>
+  <p className="mb-1 text-xs text-gray-500">Financial Constraint</p>
+  <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+    {displayCase.feasibility_context?.financial_constraint || "—"}
+  </p>
+</div>
+
+<div>
+  <p className="mb-1 text-xs text-gray-500">Environmental Constraint</p>
+  <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+    {displayCase.feasibility_context?.environmental_constraint || "—"}
+  </p>
+</div>
+
+<div>
+  <p className="mb-1 text-xs text-gray-500">Equipment Access</p>
+  <p className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-white">
+    {displayCase.feasibility_context?.equipment_access || "—"}
+  </p>
+</div>
+
+  </div>
+</div>
+
+<div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+  <div className="mb-3 flex items-center justify-between">
+    <h3 className="text-sm font-semibold text-gray-200">
       Clinician Notes
     </h3>
 
-    {isEditing ? (
-      <textarea
-        value={clinicianNotes}
-        onChange={(e) => setClinicianNotes(e.target.value)}
-        rows={5}
-        placeholder="Add observations, visit context, caregiver concerns, patient response, or follow-up reminders..."
-        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white"
-      />
-    ) : (
-      <p className="whitespace-pre-wrap text-gray-300">
+    <span className="text-xs text-gray-500">
+      Operational context
+    </span>
+  </div>
+
+  {isEditing ? (
+    <textarea
+      value={clinicianNotes}
+      onChange={(e) => setClinicianNotes(e.target.value)}
+      rows={5}
+      placeholder="Add observations, visit context, caregiver concerns, patient response, or follow-up reminders..."
+      className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white"
+    />
+  ) : (
+    <div className="rounded-lg border border-gray-800 bg-gray-900 px-3 py-2">
+      <p className="whitespace-pre-wrap text-sm text-gray-300">
         {displayCase.clinician_notes || "—"}
       </p>
-    )}
-  </div>
+    </div>
+  )}
+</div> 
+
+
 </div>
 
 </div>
