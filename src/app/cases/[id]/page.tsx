@@ -93,13 +93,22 @@ type GeneratedOutput = {
     continuitySummary?: string;
   };
 
-  structured_plan_details?: {
-    immediateActions?: string[];
-    safetyConsiderations?: string[];
-    caregiverConsiderations?: string[];
-    environmentalConsiderations?: string[];
-    treatmentExecutionNotes?: string[];
-  };
+structured_plan_details?: {
+  immediateActions?: string[];
+
+  // Legacy render fields — keep until JSX is migrated
+  safetyConsiderations?: string[];
+  caregiverConsiderations?: string[];
+  environmentalConsiderations?: string[];
+  treatmentExecutionNotes?: string[];
+
+  // New operational instability fields
+  instabilityDrivers?: string[];
+  feasibilityConstraints?: string[];
+  environmentalPressures?: string[];
+  executionPressurePoints?: string[];
+  continuityRisks?: string[];
+};
 
   pathways?: Pathway[];
   clinicalConsiderations?: string[];
@@ -750,55 +759,59 @@ ${executiveBriefing.title}
 
 Priority Focus:
 ${
-  executiveBriefing.priorities.length
-    ? executiveBriefing.priorities.map((i) => `• ${i}`).join("\n")
+  executiveBriefing.instabilityDrivers.length
+    ? executiveBriefing.instabilityDrivers.map((i: string) => `• ${i}`).join("\n")
     : "—"
 }
 
 Dominant Risks:
 ${
-  executiveBriefing.risks.length
-    ? executiveBriefing.risks.map((i) => `• ${i}`).join("\n")
+  executiveBriefing.reassessmentSignals.length
+    ? executiveBriefing.reassessmentSignals.map((i: string) => `• ${i}`).join("\n")
     : "—"
 }
 
 Caregiver / Environment Considerations:
 ${
-  executiveBriefing.considerations.length
-    ? executiveBriefing.considerations.map((i) => `• ${i}`).join("\n")
+  executiveBriefing.feasibilityConstraints.length
+    ? executiveBriefing.feasibilityConstraints.map((i: string) => `• ${i}`).join("\n")
     : "—"
 }
 
-RECOMMENDED TREATMENT APPROACH
-------------------------------
-${selectedPathway?.type || selectedPathway?.title || "—"}
+CURRENT OPERATIONAL EMPHASIS
+----------------------------
+${currentOperationalEmphasis || "—"}
 
-Why This Was Selected:
+Continuity Summary:
+${operationalContinuitySummary || "—"}
+
+Why This Matters Now:
 ${
-  selectedPathway?.selectionDrivers?.length
-    ? selectedPathway.selectionDrivers.map((i) => `• ${i}`).join("\n")
+  emphasisRationale.length
+    ? emphasisRationale.map((i) => `• ${i}`).join("\n")
     : "—"
 }
 
-Prioritizes:
+Dominant Barriers:
 ${
-  selectedPathway?.prioritizes?.length
-    ? selectedPathway.prioritizes.map((i) => `• ${i}`).join("\n")
+  dominantBarriers.length
+    ? dominantBarriers.map((i) => `• ${i}`).join("\n")
     : "—"
 }
 
-Operational Actions:
+Immediate Operational Actions:
 ${
-  selectedPathway?.interventions?.length
-    ? selectedPathway.interventions.map((i) => `• ${i}`).join("\n")
+  structuredPlanDetails?.immediateActions?.length
+    ? structuredPlanDetails.immediateActions.map((i) => `• ${i}`).join("\n")
     : "—"
 }
 
-Primary Tradeoff:
-${selectedPathway?.tradeoff || "—"}
-
-Operational Risk:
-${selectedPathway?.operationalRisk || "—"}
+Reassessment Triggers:
+${
+  operationalReassessmentTriggers.length
+    ? operationalReassessmentTriggers.map((i) => `• ${i}`).join("\n")
+    : "—"
+}
 
 STRUCTURED PLAN DETAILS
 -----------------------
@@ -806,7 +819,7 @@ Patient Snapshot:
 ${generated?.patientSnapshot || "—"}
 
 Plan Overview:
-${generated?.summary?.planSummary || generated?.selectedPathwaySummary || "—"}
+${generated?.summary?.planSummary || operationalContinuitySummary || "—"}
 
 Risk Level:
 ${generated?.summary?.safetyLevel || "—"}
@@ -1479,7 +1492,7 @@ const isViewingHistoricalVersion =
 
 // ==============================
 // DERIVED DISPLAY MODEL
-// displayCase / generated / selectedPathway / executiveBriefing
+// displayCase / generated / executiveBriefing
 // ==============================
 
 const displayCase = selectedGeneration?.input_payload
@@ -1545,21 +1558,13 @@ const operationalReassessmentTriggers: string[] =
 const operationalContinuitySummary =
   operationalPrioritization?.continuitySummary || "";
 
-// TEMP LEGACY FALLBACK — keep until render/export is fully migrated
-const selectedPathwayIndex =
-  typeof generated?.selectedPathwayIndex === "number"
-    ? generated.selectedPathwayIndex
-    : 0;
-
-const selectedPathway =
-  generated?.pathways?.[selectedPathwayIndex] ??
-  generated?.pathways?.[0] ??
-  null;
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
     ? generated.caregiverGuidance
-    : structuredPlanDetails?.caregiverConsiderations || [];
+    : structuredPlanDetails?.feasibilityConstraints ||
+      structuredPlanDetails?.caregiverConsiderations ||
+      [];
 
 const clinicalFocusLabel =
   displayCase.case_classification?.clinical_focus === "transfers_mobility"
@@ -1629,97 +1634,63 @@ const getCostBadgeClass = (value?: string) => {
 const selectedPlanForExport = {
   title: displayCase.title || "Untitled Case",
   patientSnapshot: generated?.patientSnapshot || "",
-  selectedPathwayTitle: selectedPathway?.title || "",
-  selectedPathwayType: selectedPathway?.type || "",
-  interventions: selectedPathway?.interventions || [],
+  currentOperationalEmphasis,
+  immediateActions: structuredPlanDetails?.immediateActions || [],
   summary: generated?.summary || null,
   caregiverGuidance: caregiverGuidance || [],
 };
 const executiveBriefing = (() => {
+  const immediateActions: string[] =
+    structuredPlanDetails?.immediateActions || [];
+
+   const instabilityDrivers: string[] =
+    structuredPlanDetails?.instabilityDrivers ||
+    structuredPlanDetails?.safetyConsiderations ||
+    [];
+
+  const feasibilityConstraints: string[] =
+    structuredPlanDetails?.feasibilityConstraints ||
+    structuredPlanDetails?.caregiverConsiderations ||
+    [];
+
+  const environmentalPressures: string[] =
+    structuredPlanDetails?.environmentalPressures ||
+    structuredPlanDetails?.environmentalConsiderations ||
+    [];
+
+  const continuityRisks: string[] =
+    structuredPlanDetails?.continuityRisks || [];
+
   const risks: string[] = generated?.summary?.topRisks || [];
 
   const caregiverItems: string[] =
     generated?.summary?.caregiverExpectations || [];
 
-  const immediateActions: string[] =
-    structuredPlanDetails?.immediateActions || [];
-
-  const safetyConsiderations: string[] =
-    structuredPlanDetails?.safetyConsiderations || [];
-
-  const caregiverConsiderations: string[] =
-    structuredPlanDetails?.caregiverConsiderations || [];
-
-  const environmentalConsiderations: string[] =
-    structuredPlanDetails?.environmentalConsiderations || [];
-
   const unique = (items: string[]) =>
     Array.from(new Set(items.filter(Boolean)));
-
-  if (briefingLens === "transfers_mobility") {
-    return {
-      title: "Transfers & Mobility Briefing",
-
-      priorities: unique([
-        ...immediateActions.filter((item) =>
-          item.toLowerCase().match(
-            /(transfer|mobility|balance|position|walker|shower|toilet|sit|stand|step)/
-          )
-        ),
-      ]),
-
-      risks: unique(
-        risks.filter((item) =>
-          item.toLowerCase().match(
-            /(fall|transfer|mobility|bathroom|instability|unsafe)/
-          )
-        )
-      ),
-
-      considerations: unique([
-        ...environmentalConsiderations,
-        ...caregiverConsiderations,
-      ]),
-    };
-  }
-
-  if (briefingLens === "caregiver_training") {
-    return {
-      title: "Caregiver Training Briefing",
-
-      priorities: unique([
-        ...caregiverGuidance,
-        ...caregiverItems,
-      ]),
-
-      risks: unique(
-        risks.filter((item) =>
-          item.toLowerCase().match(
-            /(caregiver|cueing|supervision|unsafe|support|fatigue)/
-          )
-        )
-      ),
-
-      considerations: unique([
-        ...caregiverConsiderations,
-      ]),
-    };
-  }
 
   return {
     title: "Operational Briefing",
 
-    priorities: unique([
-      ...emphasisRationale,
-      ...immediateActions,
+    operationalState: currentOperationalEmphasis,
+
+    instabilityDrivers: unique([
+      ...dominantBarriers,
+      ...instabilityDrivers,
+      ...risks,
     ]),
 
-    risks: unique(risks),
-
-    considerations: unique([
-      ...environmentalConsiderations,
+    feasibilityConstraints: unique([
+      ...feasibilityConstraints,
+      ...environmentalPressures,
       ...caregiverItems,
     ]),
+
+    monitoringPressures: adjacentOperationalPriorities.map(
+      (priority) => priority.label || "Unnamed priority"
+    ),
+
+    reassessmentSignals: operationalReassessmentTriggers,
   };
 })();
 
@@ -1802,39 +1773,7 @@ setCaseData({
   }
 };
 
-const handleSaveSelectedPathway = async (index: number) => {
-  if (!caseData?.id) return;
 
-  try {
-    const updatedGeneratedOutput = {
-      ...(caseData.generated_output || {}),
-      selectedPathwayIndex: index,
-    };
-
-    const { error } = await supabase
-      .from("cases")
-      .update({
-        generated_output: updatedGeneratedOutput,
-        selected_pathway_index: index,
-      })
-      .eq("id", caseData.id);
-
-    if (error) {
-      console.error("Failed to save selected pathway:", error.message);
-      return;
-    }
-
-    setCaseData((prev: any) => ({
-      ...prev,
-      generated_output: updatedGeneratedOutput,
-      selected_pathway_index: index,
-    }));
-
-    console.log("Selected pathway saved:", index);
-  } catch (err) {
-    console.error("Unexpected save error:", err);
-  }
-};
 
 const handleClinicalFocusChange = async (focus: string) => {
   if (!caseData?.id || isRegeneratingFocus) return;
@@ -1887,12 +1826,6 @@ console.log("planWithProgression", planWithProgression);
 
     const plan = planWithProgression;
 
-    const selectedPathwayIndex =
-      typeof caseData.selected_pathway_index === "number"
-        ? caseData.selected_pathway_index
-        : typeof caseData.generated_output?.selectedPathwayIndex === "number"
-        ? caseData.generated_output.selectedPathwayIndex
-        : 0;
 
     const { data: insertedGenerations, error: generationError } = await supabase
       .from("generations")
@@ -1918,7 +1851,6 @@ console.log("planWithProgression", planWithProgression);
         clinical_decision_input: clinicalDecisionInput,
         clinical_decision_model: clinicalDecisionModel,
         generated_output: plan,
-        selected_pathway_index: selectedPathwayIndex,
         reasoning_stale: false,
 plan_stale: false,
 modules_stale: true,
@@ -1935,7 +1867,6 @@ modules_stale: true,
       clinical_decision_input: clinicalDecisionInput,
       clinical_decision_model: clinicalDecisionModel,
       generated_output: plan,
-      selected_pathway_index: selectedPathwayIndex,
       reasoning_stale: false,
 plan_stale: false,
 modules_stale: true,
@@ -2072,7 +2003,7 @@ setCaseData({
 
 // ==============================
 // RENDER LAYER
-// JSX below should prefer displayCase, generated, selectedPathway
+// JSX below should prefer displayCase, generated
 // Do not use caseData here unless intentionally operating on live case state
 // ==============================
 
@@ -2631,87 +2562,115 @@ return (
     RENDER: GENERATED PLAN
 ============================== */}
 
-{/* EXECUTIVE BRIEFING */}
+<div className="rounded-xl border border-cyan-900 bg-gray-900 p-6">
+  <div className="mb-4">
+    <h2 className="text-xl font-semibold text-white">
+      {executiveBriefing.title}
+    </h2>
+    <p className="mt-1 text-sm text-gray-400">
+      Current operational state and the pressures shaping treatment attention.
+    </p>
+  </div>
 
-<div className="rounded-xl border border-cyan-800 bg-gray-900 p-6">
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <h2 className="text-2xl font-semibold">
-        {executiveBriefing.title}
-      </h2>
+  <div className="grid gap-4 md:grid-cols-2">
+    <div className="rounded-lg border border-cyan-900/60 bg-gray-950/60 p-4 md:col-span-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
+        Operational State
+      </div>
 
-      <p className="text-sm text-gray-400 mt-1">
-        Focused briefing based on the selected clinical lens.
+      <p className="text-sm text-cyan-100">
+        {executiveBriefing.operationalState || "No operational state generated."}
       </p>
     </div>
 
-    <span className="text-xs tracking-wide text-cyan-400">
-      Briefing Lens
-    </span>
-  </div>
-
-  <div className="mt-4 grid gap-3 md:grid-cols-3">
-    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
-        Priority Focus
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.priorities.length > 0 ? (
-          executiveBriefing.priorities.slice(0, 4).map((item: string, index: number) => (
-            <div
-              key={index}
-              className="rounded-md bg-cyan-950/40 border border-cyan-900/60 px-2 py-1 text-xs text-cyan-100"
-            >
-              {item}
-            </div>
-          ))
-        ) : (
-          <div className="text-xs text-gray-500">No priorities identified.</div>
-        )}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+    <div className="rounded-lg border border-red-900/60 bg-gray-950/60 p-4">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
-        Dominant Risks
+        Instability Drivers
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {executiveBriefing.risks.length > 0 ? (
-          executiveBriefing.risks.slice(0, 4).map((item: string, index: number) => (
-            <div
-              key={index}
-              className="rounded-md bg-red-950/30 border border-red-900/50 px-2 py-1 text-xs text-red-100"
-            >
-              {item}
-            </div>
-          ))
+        {executiveBriefing.instabilityDrivers.length > 0 ? (
+          executiveBriefing.instabilityDrivers
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-red-950/30 border border-red-900/50 px-2 py-1 text-xs text-red-100"
+              >
+                {item}
+              </div>
+            ))
         ) : (
-          <div className="text-xs text-gray-500">No major risks identified.</div>
+          <div className="text-xs text-gray-500">No instability drivers identified.</div>
         )}
       </div>
     </div>
 
-    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+    <div className="rounded-lg border border-emerald-900/60 bg-gray-950/60 p-4">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">
-        Caregiver / Environment
+        Feasibility Constraints
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {executiveBriefing.considerations.length > 0 ? (
-          executiveBriefing.considerations.slice(0, 4).map((item: string, index: number) => (
-            <div
-              key={index}
-              className="rounded-md bg-emerald-950/30 border border-emerald-900/50 px-2 py-1 text-xs text-emerald-100"
-            >
-              {item}
-            </div>
-          ))
+        {executiveBriefing.feasibilityConstraints.length > 0 ? (
+          executiveBriefing.feasibilityConstraints
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-emerald-950/30 border border-emerald-900/50 px-2 py-1 text-xs text-emerald-100"
+              >
+                {item}
+              </div>
+            ))
         ) : (
-          <div className="text-xs text-gray-500">
-            No additional considerations identified.
-          </div>
+          <div className="text-xs text-gray-500">No feasibility constraints identified.</div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-blue-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-400 mb-2">
+        Monitoring Pressures
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.monitoringPressures.length > 0 ? (
+          executiveBriefing.monitoringPressures
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-blue-950/30 border border-blue-900/50 px-2 py-1 text-xs text-blue-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No monitoring pressures identified.</div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-yellow-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-yellow-400 mb-2">
+        Reassessment Signals
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.reassessmentSignals.length > 0 ? (
+          executiveBriefing.reassessmentSignals
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-yellow-950/30 border border-yellow-900/50 px-2 py-1 text-xs text-yellow-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No reassessment signals identified.</div>
         )}
       </div>
     </div>
@@ -2995,11 +2954,18 @@ return (
       <p className="text-gray-300">{generated.patientSnapshot}</p>
     </div>
 
-    {structuredPlanDetails?.safetyConsiderations?.length ? (
+    {(
+  structuredPlanDetails?.instabilityDrivers ||
+  structuredPlanDetails?.safetyConsiderations
+)?.length ? (
       <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Safety Considerations</h3>
+        <h3 className="text-lg font-semibold mb-2">Instability Drivers</h3>
         <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {structuredPlanDetails.safetyConsiderations.map(
+          {(
+  structuredPlanDetails.instabilityDrivers ||
+  structuredPlanDetails.safetyConsiderations ||
+  []
+).map(
             (item: string, index: number) => (
               <li key={index}>{item}</li>
             )
@@ -3008,11 +2974,18 @@ return (
       </div>
     ) : null}
 
-    {structuredPlanDetails?.caregiverConsiderations?.length ? (
+    {(
+  structuredPlanDetails?.feasibilityConstraints ||
+  structuredPlanDetails?.caregiverConsiderations
+)?.length ? (
       <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Caregiver Considerations</h3>
+        <h3 className="text-lg font-semibold mb-2">Feasibility Constraints</h3>
         <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {structuredPlanDetails.caregiverConsiderations.map(
+          {(
+  structuredPlanDetails.feasibilityConstraints ||
+  structuredPlanDetails.caregiverConsiderations ||
+  []
+).map(
             (item: string, index: number) => (
               <li key={index}>{item}</li>
             )
@@ -3021,11 +2994,18 @@ return (
       </div>
     ) : null}
 
-    {structuredPlanDetails?.environmentalConsiderations?.length ? (
+    {(
+  structuredPlanDetails?.environmentalPressures ||
+  structuredPlanDetails?.environmentalConsiderations
+)?.length ? (
       <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Environmental Considerations</h3>
+        <h3 className="text-lg font-semibold mb-2">Environmental Pressures</h3>
         <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {structuredPlanDetails.environmentalConsiderations.map(
+          {(
+  structuredPlanDetails.environmentalPressures ||
+  structuredPlanDetails.environmentalConsiderations ||
+  []
+).map(
             (item: string, index: number) => (
               <li key={index}>{item}</li>
             )
@@ -3034,11 +3014,18 @@ return (
       </div>
     ) : null}
 
-    {structuredPlanDetails?.treatmentExecutionNotes?.length ? (
+    {(
+  structuredPlanDetails?.executionPressurePoints ||
+  structuredPlanDetails?.treatmentExecutionNotes
+)?.length ? (
       <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Treatment Execution Notes</h3>
+        <h3 className="text-lg font-semibold mb-2">Execution Pressure Points</h3>
         <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {structuredPlanDetails.treatmentExecutionNotes.map(
+          {(
+  structuredPlanDetails.executionPressurePoints ||
+  structuredPlanDetails.treatmentExecutionNotes ||
+  []
+).map(
             (item: string, index: number) => (
               <li key={index}>{item}</li>
             )

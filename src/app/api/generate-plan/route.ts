@@ -162,23 +162,49 @@ It must include:
 - continuitySummary
 
 currentOperationalEmphasis:
-- one concise label
-- describes what should dominate treatment attention now
-- should not sound like a pathway title
-- should not describe a broad philosophy
-- should be specific enough to guide treatment
+- MUST describe the CURRENT unstable operational condition
+- MUST describe what is currently breaking down functionally
+- MUST describe why operational stability is fragile right now
+- MUST remain observational rather than prescriptive
+- MUST NOT read like a treatment plan
+- MUST NOT read like an intervention title
+- MUST NOT read like a pathway label
+- MUST NOT read like a recommendation header
 
-Good examples:
-- Stabilize shower transfer safety and caregiver-supported bathing setup
-- Establish safe bathroom access before increasing ADL demand
-- Standardize caregiver-supported task setup for bathing participation
-- Reduce transfer risk through environmental setup and assisted sequencing
+The emphasis should answer:
 
-Bad examples:
-- Safety Pathway
-- Functional Participation Approach
-- Caregiver Support Plan
-- Alternative Treatment Option
+"What operational condition is currently most unstable?"
+
+The emphasis should focus on:
+- transfer instability
+- environmental breakdown
+- caregiver feasibility strain
+- participation instability
+- endurance collapse
+- supervision dependence
+- safety instability
+- setup fragility
+- task sequencing failure
+- mobility inconsistency
+
+GOOD examples:
+- Bathroom transfer participation remains unsafe due to tub-entry instability and limited caregiver support capacity
+- Bathing participation is inconsistent because environmental constraints and transfer dependence remain unresolved
+- Caregiver-supported bathroom mobility remains fragile due to endurance limitations and unsafe transfer setup
+- Shower transfer stability remains limited by environmental hazards and reduced physical support availability
+
+BAD examples:
+- Stabilize bathroom transfer safety
+- Environmental compensation for bathing
+- Caregiver-assisted transfer support
+- Safety stabilization approach
+- Functional participation strategy
+- Bathroom safety pathway
+
+The operational emphasis should feel like:
+- current operational reality
+NOT:
+- a treatment recommendation
 
 emphasisRationale:
 - 2 to 4 concise reasons
@@ -216,23 +242,126 @@ continuitySummary:
 STRUCTURED PLAN DETAILS
 ==================================================
 
-Generate structured_plan_details anchored to the currentOperationalEmphasis.
+Generate structured_plan_details anchored to the current operational instability state.
 
-Do NOT anchor structured details to a pathway.
+The purpose of structured_plan_details is NOT documentation support.
+
+The purpose is:
+- explaining WHY instability persists
+- identifying what operationally constrains participation
+- clarifying why execution remains fragile
+- identifying continuity-sensitive pressure points
+
+Structured details should feel like:
+- operational evidence layers
+NOT:
+- generic OT documentation categories
 
 Include:
-- immediateActions
-- safetyConsiderations
-- caregiverConsiderations
-- environmentalConsiderations
-- treatmentExecutionNotes
+
+- instabilityDrivers
+- feasibilityConstraints
+- environmentalPressures
+- executionPressurePoints
+- continuityRisks
+
+Definitions:
+
+instabilityDrivers:
+- direct causes of operational instability
+- explain why participation is currently breaking down
+- should connect directly to the operational emphasis
+
+feasibilityConstraints:
+- caregiver limitations
+- environmental limitations
+- endurance limitations
+- supervision dependence
+- equipment limitations
+- implementation fragility
+
+environmentalPressures:
+- environmental conditions sustaining instability
+- access problems
+- transfer geometry issues
+- hazard persistence
+- setup complexity
+
+executionPressurePoints:
+- moments where participation commonly destabilizes
+- transfer transitions
+- setup failures
+- sequencing breakdown
+- endurance collapse
+- caregiver inconsistency
+- environmental negotiation
+
+continuityRisks:
+- factors likely to worsen instability over time
+- risks to carryover
+- escalation risks
+- participation regression risks
 
 Rules:
-- actions should be short and operational
-- avoid long narrative explanations
-- avoid generic OT filler
-- avoid unsupported claims
-- avoid predictive recovery language
+- ALL structured detail content MUST remain observational
+- describe operational instability
+- describe operational fragility
+- describe participation breakdown
+- describe environmental pressure
+- describe caregiver feasibility limitations
+- describe execution inconsistency
+- describe continuity-sensitive instability
+
+DO NOT:
+- give recommendations
+- give instructions
+- tell the clinician what to do
+- tell the caregiver what to do
+- prescribe interventions
+- use directive language
+- use command language
+- use educational language
+- use motivational language
+- use generic OT recommendation language
+- use checklist language
+- use "ensure"
+- use "encourage"
+- use "provide"
+- use "plan"
+- use "monitor"
+- use "assess"
+- use "use"
+- use "maintain"
+- use "avoid"
+
+The system is:
+- interpreting operational instability
+NOT:
+- generating recommendations
+
+All content should feel like:
+- operational interpretation
+- instability analysis
+- continuity-aware reasoning
+
+NOT:
+- treatment instructions
+- care planning directives
+- documentation recommendations
+
+GOOD examples:
+- Tub-entry transfer stability declines as fatigue increases during bathing progression
+- Caregiver support reliability is limited by reduced physical assist capacity
+- Narrow transfer geometry restricts safe positioning during bathroom mobility
+- Participation consistency decreases when sequencing demands increase during setup transitions
+
+BAD examples:
+- Provide caregiver training
+- Use direct supervision
+- Monitor fatigue
+- Plan installation of grab bars
+- Encourage communication
+- Maintain adequate lighting
 
 ==================================================
 PATIENT SNAPSHOT
