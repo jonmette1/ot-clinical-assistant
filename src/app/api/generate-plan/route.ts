@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { buildContinuityInterpretation } from "@/lib/buildContinuityInterpretation";
 
 export async function POST(req: Request) {
   try {
@@ -490,10 +491,23 @@ ${JSON.stringify(body, null, 2)}
       );
     }
 
+    const continuityInterpretation = buildContinuityInterpretation({
+      progression_state: body?.progression_state,
+      operational_prioritization: parsed?.operational_prioritization,
+      clinicalDecisionModel: body?.clinicalDecisionModel,
+      clinicalDecisionInput: body?.clinicalDecisionInput,
+      follow_up_status: body?.follow_up_status,
+      reasoning_stale: body?.reasoning_stale,
+      plan_stale: body?.plan_stale,
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
-        plan: parsed,
+        plan: {
+          ...parsed,
+          ...continuityInterpretation,
+        },
       }),
       { status: 200 }
     );
