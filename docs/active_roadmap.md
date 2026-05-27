@@ -2,229 +2,234 @@
 
 ---
 
-# Current Product Phase
-
-## Phase 3B — Continuity-Aware Operational Prioritization Foundation
-
-### Primary Objective
-Re-align the product from a pathway-selection model toward a continuity-aware operational prioritization model.
-
-The current focus is not expanding AI autonomy or adding longitudinal dashboards.
-
-The current focus is:
-- workflow continuity
-- operational emphasis clarity
-- deterministic prioritization
-- reassessment readiness
-- clinician orientation speed
-- cognitive compression
-- semantic cleanup of pathway-era architecture
+# ACTIVE ROADMAP — Longitudinal Operational Workflow Transition
 
 ---
 
-# Recently Completed Foundation Work
-The platform has completed substantial stabilization work, including:
+# Current Product State
+
+The platform has successfully transitioned away from:
+- pathway-oriented recommendation synthesis
+- competing treatment philosophy generation
+- pathway-selection workflows
+
+The platform is now operating as:
+- a continuity-aware operational prioritization system
+- an operational instability interpretation engine
+- a longitudinal workflow support architecture
+
+The current semantic authority model is now centered around:
+- current operational instability
+- progression-conditioned operational weighting
+- continuity-aware operational emphasis
+- feasibility constraints
+- environmental pressures
+- reassessment-sensitive operational mutation
+
+This represents a major architectural stabilization milestone.
+
+---
+
+# Completed Stabilization & Transition Work
+
+## Completed Architectural Transition
+
+Successfully completed:
+- removal of live selectedPathway authority
+- removal of pathway-centric rendering hierarchy
+- removal of visible competing treatment plans
+- operational prioritization restructuring
+- operational-state authority migration
+- continuity-oriented synthesis restructuring
+- executive briefing architecture replacement
+- instability-driver semantic migration
+- feasibility-constraint semantic migration
+- environmental-pressure semantic migration
+- execution-pressure-point semantic migration
+- recommendation-language suppression
+- directive-language suppression
+- operational observational-language enforcement
+
+---
+
+## Completed UX & Workflow Stabilization
+
+Previously completed:
 - persistent operational workflow controls
-- persistent case identity header
-- unified view/edit operational layout
+- continuity-safe generation handling
+- historical snapshot restoration
+- unified view/edit workflow structure
 - operational input grouping
-- editable live operational state foundation
-- continuity-safe mutation architecture
-- Follow-Up Status continuity scaffolding
-- Phase 3B reassessment workflow foundation planning
-
-These improvements make it reasonable to begin replacing pathway-centered semantics with operational prioritization semantics.
-
----
-
-# Architecture Transition
-
-## From
-Multi-pathway recommendation engine
-
-## To
-Continuity-aware operational prioritization engine
-
-The system should no longer treat generated treatment direction as multiple competing pathways.
-
-The system should instead organize reasoning around:
-- current progression state
-- current operational emphasis
-- dominant barriers
-- adjacent operational priorities
-- reassessment triggers
-- continuity-safe plan updates
+- progression state scaffolding
+- follow-up status scaffolding
+- operational prioritization rendering hierarchy
+- continuity-safe regeneration handling
+- historical continuity architecture foundation
 
 ---
 
-# Current Product Priorities
+# Current Product Identity
 
-## Priority 1 — Operational Emphasis Authority
-Establish current operational emphasis as the primary treatment direction model.
+The system is no longer attempting to answer:
 
-Focus areas:
-- define operational emphasis schema
-- reduce dependency on selected pathway semantics
-- clarify deterministic derivation rules
-- ensure caregiver guidance anchors to current emphasis instead of pathway selection
+> "Which treatment pathway should the clinician choose?"
 
-Status:
-ACTIVE
+The system is now attempting to answer:
 
----
+> "What operational condition is currently unstable, and what pressures are sustaining that instability?"
 
-## Priority 2 — Continuity-Aware Prioritization
-Improve how live case changes, follow-up status, and reassessment signals influence prioritization.
-
-Focus areas:
-- stale-state interpretation
-- follow-up status integration
-- reassessment trigger visibility
-- continuity-safe mutation handling
-- live case state authority
-
-Status:
-ACTIVE
-
----
-
-## Priority 3 — Cognitive Compression
-Reduce:
-- redundant outputs
-- narrative overload
-- excessive cognitive processing
-- duplicated pathway/progression semantics
-
-Focus areas:
-- concise operational summaries
-- clear current emphasis explanation
-- reduced alternative-plan framing
-- scan-friendly barrier and priority display
-
-Status:
-ACTIVE
-
----
-
-## Priority 4 — Environmental Realism
-Improve:
-- transfer surface interpretation
-- environmental prioritization
-- feasibility-aware recommendations
-- safety interpretation consistency
-
-Focus areas:
-- environment-based priority weighting
-- home constraint visibility
-- equipment and access realism
-- environmental limitation state
-
-Status:
-ACTIVE
-
----
-
-## Priority 5 — Caregiver Integration
-Improve:
+This operational framing now governs:
+- synthesis behavior
+- prioritization hierarchy
+- continuity interpretation
+- reassessment evolution
+- environmental feasibility interpretation
 - caregiver feasibility interpretation
-- caregiver-guided workflows
-- realistic carryover expectations
-- caregiver dependency state
+
+---
+
+# Current Architectural Model
+
+## Core Operational Hierarchy
+
+1. Current Progression State
+2. Current Operational Emphasis
+3. Instability Drivers
+4. Feasibility Constraints
+5. Environmental Pressures
+6. Execution Pressure Points
+7. Adjacent Operational Priorities
+8. Reassessment Signals
+9. Continuity Summary
+
+---
+
+# Current Focus
+
+# Phase 3B — Continuity Interpretation Foundation
+
+## Status
+COMPLETE
+
+---
+
+## Completed
+
+### Deterministic Continuity Interpretation Layer
+
+Implemented:
+
+src/lib/buildContinuityInterpretation.ts
+
+Capabilities now include:
+
+- continuity condition interpretation
+- reassessment pressure classification
+- operational instability interpretation
+- operational drift interpretation
+- continuity-sensitive workflow surfacing
+
+---
+
+### API Integration
+
+Continuity interpretation is now integrated into:
+
+src/app/api/generate-plan/route.ts
+
+and injected into generated operational plans.
+
+Progression state is now passed into the generation pipeline before continuity interpretation execution.
+
+---
+
+### Continuity-Sensitive UI Foundation
+
+Replaced:
+
+Follow-Up Status
+
+with:
+
+Continuity Status
+
+Current surfaced continuity workflow elements:
+
+- Current Continuity Condition
+- Operational Change Classification
+- Dominant Instability Drivers
+- Reassessment Pressure
+
+---
+
+### Interpretation Quality Improvements
+
+Implemented:
+
+- clinician-readable continuity wording
+- operational instability labeling
+- reassessment pressure calibration
+- operational drift wording improvements
+- operational classification refinement
+
+The continuity system now reads as:
+
+- operationally grounded
+- reassessment-aware
+- continuity-sensitive
+
+rather than:
+
+- engineering-oriented
+- AI-generated
+- pathway-centric
+
+---
+
+# Next Phase
+
+# Phase 4 — Continuity-Sensitive Reassessment Workflow
+
+Primary goals:
+
+- continuity-aware reassessment mutation
+- longitudinal continuity state evolution
+- operational emphasis adaptation
+- reassessment-sensitive continuity recalibration
+- continuity-safe generation persistence
 
 Focus areas:
-- caregiver mismatch warnings
-- caregiver-supported operational emphasis
-- caregiver training readiness
-- caregiver burden interpretation
 
-Status:
-ACTIVE
+- follow-up update workflows
+- continuity mutation architecture
+- stale-state recalibration
+- reassessment persistence
+- continuity-aware regeneration flows
 
----
+Avoid:
 
-## Priority 6 — Reassessment Workflow Foundation
-Build Phase 3B reassessment workflows around operational continuity, not pathway reselection.
-
-Focus areas:
-- follow-up status review
-- structured change capture
-- reassessment trigger rules
-- current emphasis recalculation
-- adjacent priority updates
-
-Status:
-ACTIVE
+- dashboard systems
+- timeline visualization
+- progression gamification
+- predictive longitudinal scoring
+- analytics-heavy UX expansion
 
 ---
 
-# Current UX Goals
-The system should allow clinicians to:
-- orient rapidly
-- identify the current operational emphasis
-- understand why that emphasis dominates now
-- identify safety risks immediately
-- understand what barriers are blocking progression
-- see adjacent priorities without mistaking them for competing plans
-- execute workflows efficiently
+# Architectural Priority
 
-The UX should feel:
-- calm
-- structured
-- operational
-- low friction
-- continuity-aware
+Future work should prioritize:
 
----
+- continuity-safe longitudinal workflows
+- operational reassessment evolution
+- deterministic continuity governance
+- reassessment-sensitive operational interpretation
 
-# Current Bottlenecks
+rather than:
 
-## 1. Pathway-Era Semantic Debt
-Some outputs and UI labels still imply competing treatment pathways or alternative plans.
-
----
-
-## 2. Authority Conflicts
-Progression phase, recommended pathway, selected pathway, and structured plan details can conflict or duplicate meaning.
-
----
-
-## 3. Alternative Approach Framing
-Alternative approaches are increasingly functioning as operational emphasis states, not true alternatives.
-
----
-
-## 4. Longitudinal Interpretation Risk
-The system must support continuity without implying predictive recovery modeling or autonomous progression planning.
-
----
-
-## 5. Narrative Density
-Some outputs remain too verbose and cognitively heavy.
-
----
-
-# Near-Term Development Focus
-
-## Immediate Goals
-- rename and restructure pathway-era concepts
-- define current operational emphasis schema
-- define adjacent operational priorities
-- map progression state to operational emphasis without forcing one-to-one equivalence
-- plan deprecation path for selectedPathwayIndex
-- ensure historical generations remain readable
-- update caregiver guidance anchor logic
-- prepare Phase 3B reassessment workflow integration
-
----
-
-# Explicitly Deprecated Direction
-The roadmap should no longer prioritize:
-- improving pathway selection UX
-- expanding alternative treatment approaches
-- strengthening competing pathway comparison
-- treating pathway plurality as the primary architecture
-
-These concepts should be replaced or migrated.
+- expanding UI complexity
+- adding additional pathway abstractions
+- speculative AI reasoning layers
 
 ---
 

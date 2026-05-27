@@ -823,6 +823,7 @@ const planInput = {
 
   caregiverSupport: casePayload.caregiverSupport,
   feasibility_context: casePayload.feasibility_context,
+  progression_state: progressionState,
 };
 
 console.log(

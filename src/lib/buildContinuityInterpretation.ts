@@ -82,46 +82,100 @@ export function buildContinuityInterpretation(
     caregiverSignals.push("caregiver carryover expectation mismatch");
   }
 
-  const dominantInstabilityDrivers = [
-    ...new Set([
-      ...barrierList.slice(0, 4),
-      ...regressionRisks.slice(0, 3),
-      ...caregiverSignals,
-    ]),
+ const dominantInstabilityDrivers = [
+    ...new Set(
+      [
+        ...barrierList.slice(0, 4),
+        ...regressionRisks.slice(0, 3),
+        ...caregiverSignals,
+      ]
+        .filter(Boolean)
+        .map((item) => {
+          if (item === "Physical") {
+            return "Physical execution instability";
+          }
+
+          if (item === "Cognitive") {
+            return "Cognitive execution variability";
+          }
+
+          if (item === "Behavioral") {
+            return "Behavioral participation disruption";
+          }
+
+          return item;
+        })
+    ),
   ].slice(0, 5);
 
-  const operationalChangeClassification: string[] = [];
-  if (phase === "stabilization" || regressionRisks.length >= 2 || safetyRiskLevel === "high") {
+ const operationalChangeClassification: string[] = [];
+
+  const hasEnvironmentalConstraint =
+    environmentState.includes("partially") ||
+    environmentState.includes("significantly") ||
+    environmentState.includes("limits");
+
+  const hasExecutionVariability =
+    barrierList.some((b) => b.toLowerCase().includes("sequencing")) ||
+    barrierList.some((b) => b.toLowerCase().includes("cognitive")) ||
+    barrierList.some((b) => b.toLowerCase().includes("instability"));
+
+  if (
+    phase === "stabilization" ||
+    regressionRisks.length >= 2 ||
+    safetyRiskLevel === "high"
+  ) {
     operationalChangeClassification.push("Escalating Instability");
   }
-  if (phase === "environmental_optimization" || environmentState.includes("limits")) {
-    operationalChangeClassification.push("Stable Limitation");
+
+  if (
+    hasEnvironmentalConstraint ||
+    phase === "environmental_optimization"
+  ) {
+    operationalChangeClassification.push("Environmental Constraint");
   }
-  if (phase === "reduced_dependency" && readiness !== "low") {
+
+  if (
+    phase === "reduced_dependency" &&
+    readiness !== "low" &&
+    regressionRisks.length === 0
+  ) {
     operationalChangeClassification.push("Reduced Dependency");
   }
-  if (environmentState.includes("partially") || environmentState.includes("supports")) {
-    operationalChangeClassification.push("Environmental Improvement");
-  }
-  if (
-    barrierList.some((b) => b.toLowerCase().includes("sequencing")) ||
-    barrierList.some((b) => b.toLowerCase().includes("cognitive"))
-  ) {
+
+  if (hasExecutionVariability) {
     operationalChangeClassification.push("Execution Variability");
   }
+
   if (combinedTriggers.length > 0 || input?.reasoning_stale || input?.plan_stale) {
     operationalChangeClassification.push("Reassessment Required");
   }
 
-  const operationalDriftSignals: string[] = [];
+  if (operationalChangeClassification.length === 0) {
+    operationalChangeClassification.push("Stable Operational Monitoring");
+  }
+
+const operationalDriftSignals: string[] = [];
+
   if (input?.reasoning_stale || input?.plan_stale) {
-    operationalDriftSignals.push("case reasoning and plan state are stale");
+    operationalDriftSignals.push(
+      "Current operational reasoning may no longer fully reflect present functional performance."
+    );
   }
+
   if (combinedTriggers.length > 0) {
-    operationalDriftSignals.push("reassessment triggers remain active");
+    operationalDriftSignals.push(
+      "Active reassessment triggers continue to influence operational stability."
+    );
   }
-  if (followUpLabel.includes("missed") || followUpLabel.includes("delayed")) {
-    operationalDriftSignals.push("follow-up status indicates execution delay");
+
+  if (
+    followUpLabel.includes("missed") ||
+    followUpLabel.includes("delayed")
+  ) {
+    operationalDriftSignals.push(
+      "Follow-up execution delays may increase continuity instability."
+    );
   }
 
   const continuityAlerts = [
@@ -132,22 +186,42 @@ export function buildContinuityInterpretation(
     ]),
   ].slice(0, 5);
 
-  let reassessmentPressureLevel: ReassessmentPressureLevel = "low";
-  if (
-    input?.reasoning_stale ||
-    input?.plan_stale ||
-    regressionRisks.length >= 2 ||
-    combinedTriggers.length >= 2
-  ) {
+let reassessmentPressureLevel: ReassessmentPressureLevel = "low";
+
+  const highPressureSignals =
+    Number(input?.reasoning_stale) +
+    Number(input?.plan_stale) +
+    Number(regressionRisks.length >= 2) +
+    Number(combinedTriggers.length >= 2) +
+    Number(safetyRiskLevel === "high");
+
+  const moderatePressureSignals =
+    Number(regressionRisks.length > 0) +
+    Number(combinedTriggers.length > 0) +
+    Number(safetyRiskLevel === "moderate") +
+    Number(barrierList.length >= 3);
+
+  if (highPressureSignals >= 2) {
     reassessmentPressureLevel = "high";
-  } else if (regressionRisks.length > 0 || combinedTriggers.length > 0) {
+  } else if (
+    highPressureSignals >= 1 ||
+    moderatePressureSignals >= 2
+  ) {
     reassessmentPressureLevel = "moderate";
   }
 
+  const phaseLabel = phase.replace(/_/g, " ");
+
   const currentContinuityCondition =
-    phase
-      ? `continuity operating in ${phase} phase with active constraint carryover`
-      : "continuity condition not yet deterministically classified";
+    phase === "stabilization"
+      ? "Functional participation remains unstable and requires active safety containment."
+      : phase === "environmental_optimization"
+      ? "Functional participation remains constrained by unresolved environmental pressures."
+      : phase === "reduced_dependency"
+      ? "Functional participation shows reduced dependency but remains sensitive to carryover conditions."
+      : phase
+      ? `Functional participation is operating in ${phaseLabel} with active continuity constraints.`
+      : "Functional execution remains variable with continuity constraints not fully classified.";
 
   const continuitySummary =
     reassessmentPressureLevel === "high"

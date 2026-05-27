@@ -91,6 +91,17 @@ type GeneratedOutput = {
     }[];
     reassessmentTriggers?: string[];
     continuitySummary?: string;
+    
+  };
+
+    continuity_interpretation?: {
+    currentContinuityCondition?: string;
+    operationalChangeClassification?: string[];
+    dominantInstabilityDrivers?: string[];
+    reassessmentPressureLevel?: "low" | "moderate" | "high";
+    operationalDriftSignals?: string[];
+    continuityAlerts?: string[];
+    continuitySummary?: string;
   };
 
 structured_plan_details?: {
@@ -1558,6 +1569,29 @@ const operationalReassessmentTriggers: string[] =
 const operationalContinuitySummary =
   operationalPrioritization?.continuitySummary || "";
 
+const continuityInterpretation =
+  generated?.continuity_interpretation || {};
+
+const currentContinuityCondition =
+  continuityInterpretation?.currentContinuityCondition ||
+  "Patient remains in an active stabilization state with ongoing operational variability.";
+
+const operationalChangeClassification: string[] =
+  continuityInterpretation?.operationalChangeClassification || [];
+
+const reassessmentPressureLevel =
+  continuityInterpretation?.reassessmentPressureLevel || "low";
+
+const reassessmentPressureLabel =
+  reassessmentPressureLevel === "high"
+    ? "High"
+    : reassessmentPressureLevel === "moderate"
+    ? "Moderate"
+    : "Low";
+
+const dominantInstabilityDrivers: string[] =
+  continuityInterpretation?.dominantInstabilityDrivers || [];
+
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -2677,61 +2711,76 @@ return (
   </div>
 </div>
 
-{/* FOLLOW-UP STATUS */}
+{/* CONTINUITY STATUS */}
 
 <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
   <div className="mb-4 flex items-center justify-between gap-4">
     <div>
       <h2 className="text-lg font-semibold text-white">
-        Follow-Up Status
+        Continuity Status
       </h2>
 
       <p className="mt-1 text-sm text-gray-400">
-        Structured operational continuity tracking
+        Operational continuity and reassessment pressure
       </p>
     </div>
 
     <span className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs font-medium text-gray-300">
-      Phase 3B Foundation
+      Reassessment Pressure: {reassessmentPressureLabel}
     </span>
   </div>
 
   <div className="grid gap-4 md:grid-cols-2">
-
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-      <p className="mb-1 text-xs text-gray-500">
-        Current Progression State
-      </p>
-
-      <p className="text-sm font-medium text-white">
-        {progressionState?.currentPhase || "Not Established"}
-      </p>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-      <p className="mb-1 text-xs text-gray-500">
-        Case Created
-      </p>
-
-      <p className="text-sm font-medium text-white">
-        {displayCase.created_at
-          ? new Date(displayCase.created_at).toLocaleDateString()
-          : "—"}
-      </p>
-    </div>
-
     <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4 md:col-span-2">
+      <p className="mb-1 text-xs text-gray-500">
+        Current Continuity Condition
+      </p>
+
+      <p className="text-sm font-medium text-white">
+        {currentContinuityCondition}
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
       <p className="mb-2 text-xs text-gray-500">
-        Current Reassessment Signals
+        Operational Change Classification
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {operationalChangeClassification.length > 0 ? (
+          operationalChangeClassification.map((item, index) => (
+            <span
+              key={index}
+              className="rounded-md border border-blue-900/60 bg-blue-950/30 px-2 py-1 text-xs text-blue-100"
+            >
+              {item}
+            </span>
+          ))
+        ) : (
+          <span className="text-xs text-gray-500">
+            No continuity classification available.
+          </span>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+      <p className="mb-2 text-xs text-gray-500">
+        Dominant Instability Drivers
       </p>
 
       <ul className="space-y-1 text-sm text-gray-300">
-        <li>• caregiver/environment mismatch may persist</li>
-        <li>• reassessment recommended after functional changes</li>
-        <li>• operational continuity tracking enabled</li>
+        {dominantInstabilityDrivers.length > 0 ? (
+          dominantInstabilityDrivers.slice(0, 4).map((item, index) => (
+            <li key={index}>• {item}</li>
+          ))
+        ) : (
+          <li className="text-xs text-gray-500">
+            No instability drivers identified.
+          </li>
+        )}
       </ul>
     </div>
-
   </div>
 
   <div className="mt-4 flex justify-end">
