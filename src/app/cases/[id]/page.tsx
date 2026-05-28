@@ -11,7 +11,13 @@ import {
 } from "@/lib/buildClinicalDecisionInput";
 
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
-import { buildProgressionState } from "@/lib/buildProgressionState";
+import { buildCanonicalContinuityState } from "@/lib/buildCanonicalContinuityState";
+import { CaregiverFeasibilityCard } from "./components/CaregiverFeasibilityCard";
+import { CurrentOperationalStatePanel } from "./components/CurrentOperationalStatePanel";
+import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCard";
+import { ProgressionContinuityRow } from "./components/ProgressionContinuityRow";
+import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
+import { TransferMobilityPressureCard } from "./components/TransferMobilityPressureCard";
 // ==============================
 // TYPES
 // ==============================
@@ -1592,6 +1598,11 @@ const reassessmentPressureLabel =
 const dominantInstabilityDrivers: string[] =
   continuityInterpretation?.dominantInstabilityDrivers || [];
 
+const operationalDriftSignals: string[] =
+  continuityInterpretation?.operationalDriftSignals || [];
+
+const continuityAlerts: string[] =
+  continuityInterpretation?.continuityAlerts || [];
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -1824,10 +1835,17 @@ const handleClinicalFocusChange = async (focus: string) => {
       },
     };
 
-    const canonicalPayload = buildCanonicalCasePayload(updatedCasePayload);
+    const continuityState = buildCanonicalContinuityState({
+      caseData: updatedCasePayload,
+      reasoning_stale: false,
+      plan_stale: false,
+      modules_stale: true,
+    });
 
-    const clinicalDecisionInput = canonicalPayload.clinicalDecisionInput;
-    const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
+    const canonicalPayload = continuityState.canonicalPayload;
+    const clinicalDecisionInput = continuityState.clinicalDecisionInput;
+    const clinicalDecisionModel = continuityState.clinicalDecisionModel;
+    const progressionState = continuityState.progressionState;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
@@ -1845,10 +1863,6 @@ if (!aiData.success || !aiData.plan) {
   alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
   return;
 }
-
-const progressionState = buildProgressionState({
-  canonicalCasePayload: canonicalPayload,
-});
 
 const planWithProgression = {
   ...aiData.plan,
@@ -1938,17 +1952,24 @@ const updatedCasePayload = {
   clinician_notes: clinicianNotes,
 };
 
-const regenerationPayload = buildCanonicalCasePayload(updatedCasePayload);
+const continuityState = buildCanonicalContinuityState({
+  caseData: updatedCasePayload,
+  reasoning_stale: false,
+  plan_stale: false,
+  modules_stale: true,
+});
 
-const clinicalDecisionInput = regenerationPayload.clinicalDecisionInput;
-const clinicalDecisionModel = regenerationPayload.clinicalDecisionModel;
+const canonicalPayload = continuityState.canonicalPayload;
+const clinicalDecisionInput = continuityState.clinicalDecisionInput;
+const clinicalDecisionModel = continuityState.clinicalDecisionModel;
+const progressionState = continuityState.progressionState;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-    body: JSON.stringify(regenerationPayload),
+    body: JSON.stringify(canonicalPayload),
     });
 
     const aiData = await aiResponse.json();
@@ -1957,10 +1978,6 @@ const clinicalDecisionModel = regenerationPayload.clinicalDecisionModel;
       alert(`AI generation failed: ${aiData.error || "Unknown error"}`);
       return;
     }
-
-const progressionState = buildProgressionState({
-  canonicalCasePayload: regenerationPayload,
-});
 
 const plan = {
   ...aiData.plan,
@@ -1973,7 +1990,7 @@ const plan = {
         {
           case_id: caseData.id,
           prompt_version: `v1-ai-${caseData.case_classification?.clinical_focus || "adl_home_safety"}-regenerated`,
-          input_payload: regenerationPayload,
+          input_payload: canonicalPayload,
           output_payload: plan,
         },
       ])
@@ -1991,9 +2008,11 @@ const { error: caseUpdateError } = await supabase
     clinician_notes: clinicianNotes,
 
     clinical_decision_input: clinicalDecisionInput,
-    
-
+    clinical_decision_model: clinicalDecisionModel,
     generated_output: plan,
+    reasoning_stale: false,
+    plan_stale: false,
+    modules_stale: true,
     current_generation_id: newGeneration?.id || caseData.current_generation_id,
   })
   .eq("id", caseData.id);
@@ -2009,9 +2028,11 @@ setCaseData({
   clinician_notes: clinicianNotes,
 
   clinical_decision_input: clinicalDecisionInput,
-  
-
+  clinical_decision_model: clinicalDecisionModel,
   generated_output: plan,
+  reasoning_stale: false,
+  plan_stale: false,
+  modules_stale: true,
   current_generation_id: newGeneration?.id || caseData.current_generation_id,
 });
     setCaregiverScript(null);
@@ -2043,29 +2064,299 @@ setCaseData({
 
 return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
-<div className="fixed left-0 right-0 top-[72px] z-[999] border-b border-gray-800 bg-gray-950/95 px-4 py-3 backdrop-blur sm:top-[56px] sm:px-6">
-    <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-white">
-          {displayCase.title || "Untitled Case"}
-        </p>
-
-        <p className="truncate text-xs text-gray-400">
-          {clinicalFocusLabel}
-          {progressionState?.currentPhase
-            ? ` • ${progressionState.currentPhase}`
-            : ""}
-        </p>
-      </div>
-
-      <span className="shrink-0 rounded-full border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-medium text-gray-300">
-        {isViewingHistoricalVersion ? "Historical Snapshot" : "Live Case"}
-      </span>
-    </div>
-  </div>
+<StickyOperationalHeader
+  title={displayCase.title}
+  clinicalFocusLabel={clinicalFocusLabel}
+  progressionPhase={progressionState?.currentPhase}
+  isViewingHistoricalVersion={isViewingHistoricalVersion}
+/>
 
 <div className="max-w-5xl mx-auto space-y-6 pt-28 sm:pt-20">
 
+
+{/* ==============================
+    RENDER: CURRENT OPERATIONAL EMPHASIS
+============================== */}
+
+<CurrentOperationalStatePanel
+  currentOperationalEmphasis={currentOperationalEmphasis}
+  operationalContinuitySummary={operationalContinuitySummary}
+  planSummary={generated?.summary?.planSummary}
+  emphasisRationale={emphasisRationale}
+  dominantBarriers={dominantBarriers}
+  operationalReassessmentTriggers={operationalReassessmentTriggers}
+  immediateActions={structuredPlanDetails?.immediateActions || []}
+  onShowClinicalSummary={() => setShowClinicalSummary(true)}
+  onCopyRecommendedSummary={handleCopyRecommendedSummary}
+/>
+
+{/* CONTINUITY STATUS */}
+
+<ProgressionContinuityRow
+  progressionPhase={progressionState?.currentPhase}
+  currentContinuityCondition={currentContinuityCondition}
+  reassessmentPressureLabel={reassessmentPressureLabel}
+  operationalChangeClassification={operationalChangeClassification}
+  dominantInstabilityDrivers={dominantInstabilityDrivers}
+  operationalDriftSignals={operationalDriftSignals}
+  continuityAlerts={continuityAlerts}
+/>
+
+    <CaregiverFeasibilityCard
+      caregiverGuidance={caregiverGuidance}
+      fallbackFeasibilityItems={
+        structuredPlanDetails?.feasibilityConstraints ||
+        structuredPlanDetails?.caregiverConsiderations ||
+        []
+      }
+    />
+
+    <EnvironmentalPressureCard
+      environmentalPressures={
+        structuredPlanDetails?.environmentalPressures ||
+        structuredPlanDetails?.environmentalConsiderations ||
+        []
+      }
+    />
+
+    <TransferMobilityPressureCard
+      worstTransfer={worstTransfer}
+      transferScores={transferScores}
+      executionPressurePoints={
+        structuredPlanDetails?.executionPressurePoints ||
+        structuredPlanDetails?.treatmentExecutionNotes ||
+        []
+      }
+    />
+
+{/* ==============================
+    RENDER: GENERATED PLAN
+============================== */}
+
+<div className="rounded-xl border border-cyan-900 bg-gray-900 p-6">
+  <div className="mb-4">
+    <h2 className="text-xl font-semibold text-white">
+      {executiveBriefing.title}
+    </h2>
+    <p className="mt-1 text-sm text-gray-400">
+      Current operational state and the pressures shaping treatment attention.
+    </p>
+  </div>
+
+  <div className="grid gap-4 md:grid-cols-2">
+    <div className="rounded-lg border border-cyan-900/60 bg-gray-950/60 p-4 md:col-span-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
+        Operational State
+      </div>
+
+      <p className="text-sm text-cyan-100">
+        {executiveBriefing.operationalState || "No operational state generated."}
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-red-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
+        Instability Drivers
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.instabilityDrivers.length > 0 ? (
+          executiveBriefing.instabilityDrivers
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-red-950/30 border border-red-900/50 px-2 py-1 text-xs text-red-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No instability drivers identified.</div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-emerald-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">
+        Feasibility Constraints
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.feasibilityConstraints.length > 0 ? (
+          executiveBriefing.feasibilityConstraints
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-emerald-950/30 border border-emerald-900/50 px-2 py-1 text-xs text-emerald-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No feasibility constraints identified.</div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-blue-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-400 mb-2">
+        Monitoring Pressures
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.monitoringPressures.length > 0 ? (
+          executiveBriefing.monitoringPressures
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-blue-950/30 border border-blue-900/50 px-2 py-1 text-xs text-blue-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No monitoring pressures identified.</div>
+        )}
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-yellow-900/60 bg-gray-950/60 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-yellow-400 mb-2">
+        Reassessment Signals
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {executiveBriefing.reassessmentSignals.length > 0 ? (
+          executiveBriefing.reassessmentSignals
+            .slice(0, 5)
+            .map((item: string, index: number) => (
+              <div
+                key={index}
+                className="rounded-md bg-yellow-950/30 border border-yellow-900/50 px-2 py-1 text-xs text-yellow-100"
+              >
+                {item}
+              </div>
+            ))
+        ) : (
+          <div className="text-xs text-gray-500">No reassessment signals identified.</div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Adjacent Operational Priorities */}
+
+{adjacentOperationalPriorities.length > 0 && (
+  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+    <div className="flex items-center justify-between mb-4">
+      <div>
+        <h3 className="text-xl font-semibold text-gray-300">
+          Adjacent Operational Priorities
+        </h3>
+
+        <p className="text-sm text-gray-500 mt-1">
+          Secondary priorities to monitor without treating them as competing plans.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAlternativeApproaches((prev) => !prev)}
+        className="text-sm text-blue-400 hover:text-blue-300 transition"
+      >
+        {showAlternativeApproaches ? "Hide" : "Show"}
+      </button>
+    </div>
+
+    {showAlternativeApproaches && (
+      <div className="space-y-4">
+        {adjacentOperationalPriorities.map(
+          (
+            priority: {
+              label?: string;
+              rationale?: string;
+              monitorFor?: string;
+            },
+            index: number
+          ) => (
+            <div
+              key={`${priority.label || "priority"}-${index}`}
+              className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-90"
+            >
+              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
+                Adjacent Priority
+              </p>
+
+              <h4 className="text-sm font-semibold mb-2">
+                {priority.label || "Unnamed priority"}
+              </h4>
+
+              <p className="text-sm text-gray-300 mb-3">
+                {priority.rationale || "No rationale provided."}
+              </p>
+
+              <p className="text-xs text-gray-400">
+                <strong>Monitor for:</strong>{" "}
+                {priority.monitorFor || "No monitoring cue provided."}
+              </p>
+            </div>
+          )
+        )}
+      </div>
+    )}
+  </div>
+)}
+
+{/* ==============================
+    RENDER: STRUCTURED PLAN DETAILS
+============================== */}
+
+{generated?.patientSnapshot && (
+  <details className="rounded-xl border border-green-800 bg-gray-900 p-6">
+    <summary className="flex cursor-pointer items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold">Structured Plan Details</h2>
+        <p className="mt-1 text-sm text-gray-400">
+          Implementation details anchored to the current operational emphasis.
+        </p>
+      </div>
+
+      <span className="text-xs tracking-wide text-green-400">
+        Show
+      </span>
+    </summary>
+
+    <div className="mt-6 border-t border-gray-800 pt-4">
+      <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
+      <p className="text-gray-300">{generated.patientSnapshot}</p>
+    </div>
+
+    {(
+  structuredPlanDetails?.instabilityDrivers ||
+  structuredPlanDetails?.safetyConsiderations
+)?.length ? (
+      <div className="mt-6 border-t border-gray-800 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Instability Drivers</h3>
+        <ul className="list-disc pl-5 space-y-1 text-gray-300">
+          {(
+  structuredPlanDetails.instabilityDrivers ||
+  structuredPlanDetails.safetyConsiderations ||
+  []
+).map(
+            (item: string, index: number) => (
+              <li key={index}>{item}</li>
+            )
+          )}
+        </ul>
+      </div>
+    ) : null}
+
+  </details>
+)}
 
 {/* ==============================
     RENDER: CASE HEADER / DETAILS
@@ -2590,499 +2881,6 @@ return (
 
     </div>
   </div>
-)}
-
-{/* ==============================
-    RENDER: GENERATED PLAN
-============================== */}
-
-<div className="rounded-xl border border-cyan-900 bg-gray-900 p-6">
-  <div className="mb-4">
-    <h2 className="text-xl font-semibold text-white">
-      {executiveBriefing.title}
-    </h2>
-    <p className="mt-1 text-sm text-gray-400">
-      Current operational state and the pressures shaping treatment attention.
-    </p>
-  </div>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-lg border border-cyan-900/60 bg-gray-950/60 p-4 md:col-span-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
-        Operational State
-      </div>
-
-      <p className="text-sm text-cyan-100">
-        {executiveBriefing.operationalState || "No operational state generated."}
-      </p>
-    </div>
-
-    <div className="rounded-lg border border-red-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
-        Instability Drivers
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.instabilityDrivers.length > 0 ? (
-          executiveBriefing.instabilityDrivers
-            .slice(0, 5)
-            .map((item: string, index: number) => (
-              <div
-                key={index}
-                className="rounded-md bg-red-950/30 border border-red-900/50 px-2 py-1 text-xs text-red-100"
-              >
-                {item}
-              </div>
-            ))
-        ) : (
-          <div className="text-xs text-gray-500">No instability drivers identified.</div>
-        )}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-emerald-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">
-        Feasibility Constraints
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.feasibilityConstraints.length > 0 ? (
-          executiveBriefing.feasibilityConstraints
-            .slice(0, 5)
-            .map((item: string, index: number) => (
-              <div
-                key={index}
-                className="rounded-md bg-emerald-950/30 border border-emerald-900/50 px-2 py-1 text-xs text-emerald-100"
-              >
-                {item}
-              </div>
-            ))
-        ) : (
-          <div className="text-xs text-gray-500">No feasibility constraints identified.</div>
-        )}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-blue-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-400 mb-2">
-        Monitoring Pressures
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.monitoringPressures.length > 0 ? (
-          executiveBriefing.monitoringPressures
-            .slice(0, 5)
-            .map((item: string, index: number) => (
-              <div
-                key={index}
-                className="rounded-md bg-blue-950/30 border border-blue-900/50 px-2 py-1 text-xs text-blue-100"
-              >
-                {item}
-              </div>
-            ))
-        ) : (
-          <div className="text-xs text-gray-500">No monitoring pressures identified.</div>
-        )}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-yellow-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-yellow-400 mb-2">
-        Reassessment Signals
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.reassessmentSignals.length > 0 ? (
-          executiveBriefing.reassessmentSignals
-            .slice(0, 5)
-            .map((item: string, index: number) => (
-              <div
-                key={index}
-                className="rounded-md bg-yellow-950/30 border border-yellow-900/50 px-2 py-1 text-xs text-yellow-100"
-              >
-                {item}
-              </div>
-            ))
-        ) : (
-          <div className="text-xs text-gray-500">No reassessment signals identified.</div>
-        )}
-      </div>
-    </div>
-  </div>
-</div>
-
-{/* CONTINUITY STATUS */}
-
-<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-  <div className="mb-4 flex items-center justify-between gap-4">
-    <div>
-      <h2 className="text-lg font-semibold text-white">
-        Continuity Status
-      </h2>
-
-      <p className="mt-1 text-sm text-gray-400">
-        Operational continuity and reassessment pressure
-      </p>
-    </div>
-
-    <span className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs font-medium text-gray-300">
-      Reassessment Pressure: {reassessmentPressureLabel}
-    </span>
-  </div>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4 md:col-span-2">
-      <p className="mb-1 text-xs text-gray-500">
-        Current Continuity Condition
-      </p>
-
-      <p className="text-sm font-medium text-white">
-        {currentContinuityCondition}
-      </p>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-      <p className="mb-2 text-xs text-gray-500">
-        Operational Change Classification
-      </p>
-
-      <div className="flex flex-wrap gap-2">
-        {operationalChangeClassification.length > 0 ? (
-          operationalChangeClassification.map((item, index) => (
-            <span
-              key={index}
-              className="rounded-md border border-blue-900/60 bg-blue-950/30 px-2 py-1 text-xs text-blue-100"
-            >
-              {item}
-            </span>
-          ))
-        ) : (
-          <span className="text-xs text-gray-500">
-            No continuity classification available.
-          </span>
-        )}
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-      <p className="mb-2 text-xs text-gray-500">
-        Dominant Instability Drivers
-      </p>
-
-      <ul className="space-y-1 text-sm text-gray-300">
-        {dominantInstabilityDrivers.length > 0 ? (
-          dominantInstabilityDrivers.slice(0, 4).map((item, index) => (
-            <li key={index}>• {item}</li>
-          ))
-        ) : (
-          <li className="text-xs text-gray-500">
-            No instability drivers identified.
-          </li>
-        )}
-      </ul>
-    </div>
-  </div>
-
-  <div className="mt-4 flex justify-end">
-    <button
-      type="button"
-      className="rounded-lg border border-blue-700 bg-blue-950/40 px-4 py-2 text-sm font-medium text-blue-200 hover:bg-blue-900/40"
-    >
-      Start Follow-Up Update
-    </button>
-  </div>
-</div>
-
-{/* ==============================
-    RENDER: CURRENT OPERATIONAL EMPHASIS
-============================== */}
-
-<div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
-  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div>
-      <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">
-        Current Operational Emphasis
-      </div>
-
-      <h2 className="text-2xl font-semibold text-white">
-        {currentOperationalEmphasis}
-      </h2>
-
-      <p className="mt-2 text-sm text-emerald-100/80 max-w-3xl">
-        {operationalContinuitySummary ||
-          generated?.summary?.planSummary ||
-          "This emphasis represents what should dominate treatment attention right now."}
-      </p>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setShowClinicalSummary(true)}
-          className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
-        >
-          View Clinical Summary
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopyRecommendedSummary}
-          className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition"
-        >
-          Copy Summary
-        </button>
-      </div>
-    </div>
-
-    <div className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-200 border border-emerald-700">
-      Active Focus
-    </div>
-  </div>
-
-  <div className="mt-6 grid gap-4 md:grid-cols-3">
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Why This Matters Now
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {emphasisRationale.length > 0 ? (
-          emphasisRationale.slice(0, 3).map((item: string, index: number) => (
-            <li key={index}>• {item}</li>
-          ))
-        ) : (
-          <li>• No emphasis rationale generated.</li>
-        )}
-      </ul>
-    </div>
-
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Dominant Barriers
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {dominantBarriers.length > 0 ? (
-          dominantBarriers.slice(0, 3).map((item: string, index: number) => (
-            <li key={index}>• {item}</li>
-          ))
-        ) : (
-          <li>• No dominant barriers generated.</li>
-        )}
-      </ul>
-    </div>
-
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Reassessment Triggers
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {operationalReassessmentTriggers.length > 0 ? (
-          operationalReassessmentTriggers
-            .slice(0, 3)
-            .map((item: string, index: number) => (
-              <li key={index}>• {item}</li>
-            ))
-        ) : (
-          <li>• No reassessment triggers generated.</li>
-        )}
-      </ul>
-    </div>
-  </div>
-
-  <div className="mt-6">
-    <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-      Immediate Operational Actions
-    </h3>
-
-    <ul className="grid gap-2 md:grid-cols-2 text-sm text-gray-200">
-      {(structuredPlanDetails?.immediateActions || []).length > 0 ? (
-        structuredPlanDetails?.immediateActions?.map(
-          (item: string, index: number) => (
-            <li
-              key={index}
-              className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
-            >
-              {item}
-            </li>
-          )
-        )
-      ) : (
-        <li className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2">
-          No immediate actions generated.
-        </li>
-      )}
-    </ul>
-  </div>
-</div>
-
-{/* Adjacent Operational Priorities */}
-
-{adjacentOperationalPriorities.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <h3 className="text-xl font-semibold text-gray-300">
-          Adjacent Operational Priorities
-        </h3>
-
-        <p className="text-sm text-gray-500 mt-1">
-          Secondary priorities to monitor without treating them as competing plans.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setShowAlternativeApproaches((prev) => !prev)}
-        className="text-sm text-blue-400 hover:text-blue-300 transition"
-      >
-        {showAlternativeApproaches ? "Hide" : "Show"}
-      </button>
-    </div>
-
-    {showAlternativeApproaches && (
-      <div className="space-y-4">
-        {adjacentOperationalPriorities.map(
-          (
-            priority: {
-              label?: string;
-              rationale?: string;
-              monitorFor?: string;
-            },
-            index: number
-          ) => (
-            <div
-              key={`${priority.label || "priority"}-${index}`}
-              className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-90"
-            >
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
-                Adjacent Priority
-              </p>
-
-              <h4 className="text-sm font-semibold mb-2">
-                {priority.label || "Unnamed priority"}
-              </h4>
-
-              <p className="text-sm text-gray-300 mb-3">
-                {priority.rationale || "No rationale provided."}
-              </p>
-
-              <p className="text-xs text-gray-400">
-                <strong>Monitor for:</strong>{" "}
-                {priority.monitorFor || "No monitoring cue provided."}
-              </p>
-            </div>
-          )
-        )}
-      </div>
-    )}
-  </div>
-)}
-
-{/* ==============================
-    RENDER: STRUCTURED PLAN DETAILS
-============================== */}
-
-{generated?.patientSnapshot && (
-  <details className="rounded-xl border border-green-800 bg-gray-900 p-6">
-    <summary className="flex cursor-pointer items-center justify-between">
-      <div>
-        <h2 className="text-xl font-semibold">Structured Plan Details</h2>
-        <p className="mt-1 text-sm text-gray-400">
-          Implementation details anchored to the current operational emphasis.
-        </p>
-      </div>
-
-      <span className="text-xs tracking-wide text-green-400">
-        Show
-      </span>
-    </summary>
-
-    <div className="mt-6 border-t border-gray-800 pt-4">
-      <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
-      <p className="text-gray-300">{generated.patientSnapshot}</p>
-    </div>
-
-    {(
-  structuredPlanDetails?.instabilityDrivers ||
-  structuredPlanDetails?.safetyConsiderations
-)?.length ? (
-      <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Instability Drivers</h3>
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {(
-  structuredPlanDetails.instabilityDrivers ||
-  structuredPlanDetails.safetyConsiderations ||
-  []
-).map(
-            (item: string, index: number) => (
-              <li key={index}>{item}</li>
-            )
-          )}
-        </ul>
-      </div>
-    ) : null}
-
-    {(
-  structuredPlanDetails?.feasibilityConstraints ||
-  structuredPlanDetails?.caregiverConsiderations
-)?.length ? (
-      <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Feasibility Constraints</h3>
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {(
-  structuredPlanDetails.feasibilityConstraints ||
-  structuredPlanDetails.caregiverConsiderations ||
-  []
-).map(
-            (item: string, index: number) => (
-              <li key={index}>{item}</li>
-            )
-          )}
-        </ul>
-      </div>
-    ) : null}
-
-    {(
-  structuredPlanDetails?.environmentalPressures ||
-  structuredPlanDetails?.environmentalConsiderations
-)?.length ? (
-      <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Environmental Pressures</h3>
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {(
-  structuredPlanDetails.environmentalPressures ||
-  structuredPlanDetails.environmentalConsiderations ||
-  []
-).map(
-            (item: string, index: number) => (
-              <li key={index}>{item}</li>
-            )
-          )}
-        </ul>
-      </div>
-    ) : null}
-
-    {(
-  structuredPlanDetails?.executionPressurePoints ||
-  structuredPlanDetails?.treatmentExecutionNotes
-)?.length ? (
-      <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Execution Pressure Points</h3>
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {(
-  structuredPlanDetails.executionPressurePoints ||
-  structuredPlanDetails.treatmentExecutionNotes ||
-  []
-).map(
-            (item: string, index: number) => (
-              <li key={index}>{item}</li>
-            )
-          )}
-        </ul>
-      </div>
-    ) : null}
-  </details>
 )}
 
 {/* ==============================
