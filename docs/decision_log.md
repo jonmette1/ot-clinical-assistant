@@ -331,3 +331,367 @@ Requires tighter integration between follow-up status, stale-state flags, progre
 
 ## Status
 ACTIVE
+
+# DECISION 011
+
+## Decision
+
+The platform will formally transition from pathway-oriented recommendation synthesis toward operational-state interpretation architecture.
+
+Operational authority is now centered on:
+
+- current operational instability
+- progression-conditioned prioritization
+- continuity-aware operational emphasis
+- feasibility constraints
+- environmental pressures
+- reassessment-sensitive instability tracking
+
+The system will no longer frame generated outputs as:
+
+- competing treatment philosophies
+- alternative treatment pathways
+- clinician pathway selection workflows
+
+Operational emphasis should describe:
+
+- what is currently unstable
+- why participation remains fragile
+- what operational pressures dominate
+- what continuity-sensitive constraints persist
+
+NOT:
+
+- what intervention should be selected
+- what treatment philosophy should dominate
+- what recommendation pathway should be chosen
+
+---
+
+## Rationale
+
+The prior pathway-oriented architecture created several structural conflicts:
+
+- progression state conflicted with pathway selection
+- alternative approaches behaved like adjacent progression conditions
+- pathway plurality implied competing treatment philosophies that did not actually exist
+- operational prioritization became obscured by recommendation-oriented semantics
+- continuity logic became difficult to reconcile with pathway reselection workflows
+
+The system was already functionally behaving as:
+
+- operational prioritization
+- instability weighting
+- continuity-sensitive emphasis shifting
+- environmental and caregiver feasibility interpretation
+
+The architecture has now been realigned to reflect the system’s actual operational behavior.
+
+The product is no longer attempting to answer:
+
+> "Which treatment pathway should the clinician choose?"
+
+The product is now attempting to answer:
+
+> "What operational condition is currently most unstable, and what pressures are sustaining that instability?"
+
+This creates substantially stronger alignment with:
+
+- real-world OT clinical reasoning
+- longitudinal continuity workflows
+- reassessment evolution
+- caregiver/environment feasibility interpretation
+- operational workflow support
+
+---
+
+## Implemented Changes
+
+Completed architectural changes include:
+
+- removal of live selectedPathway authority
+- removal of pathway-centric rendering hierarchy
+- migration toward operational prioritization rendering
+- replacement of recommendation-oriented operational emphasis phrasing
+- replacement of executive-summary bucket architecture
+- migration toward instability-driver synthesis
+- migration toward feasibility-constraint interpretation
+- migration toward environmental pressure interpretation
+- migration toward execution pressure-point interpretation
+- suppression of directive recommendation language
+- suppression of treatment-command phrasing
+- suppression of generalized OT recommendation semantics
+
+Structured detail generation now prioritizes:
+
+- observational operational language
+- instability interpretation
+- continuity-sensitive operational pressures
+- environmental grounding
+- caregiver feasibility realism
+- operational compression
+
+---
+
+## Tradeoff
+
+This transition requires:
+
+- temporary hybrid compatibility layers
+- continued support for legacy restore structures
+- phased deprecation of pathway-era fields
+- tighter semantic integration between progression state and operational emphasis
+- increased prompt governance complexity to maintain observational language consistency
+
+The architecture now depends more heavily on:
+
+- semantic precision
+- operational compression
+- continuity coherence
+- instability-state consistency
+
+rather than:
+
+- recommendation richness
+- pathway differentiation
+- narrative plan generation
+
+# DECISION 011
+
+## Decision
+
+Continuity mutation must be governed by deterministic authority rules before implementation.
+
+Any live case change that may affect progression state, operational prioritization, reassessment pressure, stale-state validity, caregiver feasibility, environmental limitation, or detail module usefulness must be treated as a continuity mutation.
+
+Continuity mutations must not be handled as simple UI edits or isolated regeneration events.
+
+---
+
+## Rationale
+
+The platform is now moving from single-plan generation toward longitudinal operational continuity.
+
+As cases evolve over time, changes may affect:
+- current operational emphasis
+- progression state
+- continuity interpretation
+- reassessment pressure
+- dominant instability drivers
+- stale-state flags
+- detail module validity
+- historical snapshot meaning
+
+Without mutation governance, the system risks creating multiple competing sources of truth across:
+- live case state
+- generated output
+- deterministic interpretation
+- AI synthesis
+- stale flags
+- detail modules
+- historical generations
+
+Continuity mutation governance ensures that every meaningful case change has a defined consequence.
+
+---
+
+## Governance Rules
+
+Continuity mutations must follow these rules:
+
+1. Structured case changes may make reasoning stale.
+2. Operational meaning changes may make the generated plan stale.
+3. Detail modules become stale when the core plan or continuity interpretation changes.
+4. Deterministic continuity interpretation must be recalculated through governed regeneration.
+5. AI may synthesize updated operational meaning but must not independently decide continuity authority.
+6. Historical generations remain immutable unless intentionally restored.
+7. Restore is a full snapshot restoration, not a partial continuity merge.
+8. Reassessment workflows must update continuity state through deterministic logic, not through pathway reselection.
+
+---
+
+## Tradeoff
+
+This adds architectural discipline before feature expansion.
+
+It may slow immediate implementation of reassessment workflows, but it prevents:
+- continuity drift
+- stale-state confusion
+- AI authority leakage
+- historical snapshot corruption
+- hidden conflicts between live and historical case states
+
+---
+
+## Status
+
+ACTIVE
+
+---
+
+
+## Next Phase
+
+Next work should focus on:
+
+### Progression-State UX Integration
+
+Primary goals:
+
+- clarify the relationship between progression condition and operational instability
+- visually communicate why operational emphasis changes over time
+- strengthen continuity-state orientation
+- support reassessment-sensitive prioritization evolution
+- improve continuity-aware workflow readability
+
+This phase should prioritize:
+
+- semantic continuity
+- operational scanability
+- instability-state visibility
+- reassessment-trigger clarity
+- continuity-aware weighting interpretation
+
+Avoid:
+
+- dashboard-heavy longitudinal systems
+- predictive recovery workflows
+- timeline-centric analytics
+- autonomous progression planning
+- generalized EHR visualization complexity
+
+---
+
+## Status
+
+ACTIVE
+
+# Decision — Deterministic Continuity Interpretation Layer
+
+## Status
+APPROVED
+
+---
+
+## Decision
+
+The platform will introduce a deterministic continuity interpretation layer positioned between:
+
+- progression interpretation
+- operational prioritization
+- longitudinal reassessment workflows
+
+The continuity interpretation layer is responsible for:
+
+- operational continuity condition interpretation
+- reassessment pressure classification
+- operational instability surfacing
+- continuity-sensitive workflow interpretation
+- operational drift interpretation
+
+The continuity layer is intentionally:
+
+- deterministic
+- explainable
+- continuity-oriented
+- operationally compressed
+- longitudinally extensible
+
+The continuity layer is intentionally NOT:
+
+- predictive analytics
+- autonomous longitudinal reasoning
+- trend forecasting
+- dashboard analytics
+- AI-generated progression scoring
+- patient trajectory prediction
+
+---
+
+## Architectural Structure
+
+The authoritative reasoning hierarchy is now:
+
+Structured Case Inputs
+→ Deterministic Clinical Decision Engine
+→ Progression Interpretation
+→ Continuity Interpretation
+→ AI Operational Synthesis
+→ UI Rendering
+
+Continuity interpretation is generated in:
+
+src/lib/buildContinuityInterpretation.ts
+
+and injected into generated plan output through:
+
+src/app/api/generate-plan/route.ts
+
+---
+
+## UI Direction
+
+Continuity interpretation is surfaced through a lightweight:
+
+Continuity Status
+
+workflow section rather than:
+
+- pathway selection systems
+- longitudinal dashboards
+- trend visualization systems
+- progression scoring displays
+
+Current surfaced continuity concepts include:
+
+- Current Continuity Condition
+- Operational Change Classification
+- Reassessment Pressure
+- Dominant Instability Drivers
+
+The UX direction prioritizes:
+
+- operational readability
+- cognitive compression
+- reassessment awareness
+- continuity-sensitive workflow orientation
+
+---
+
+## Rationale
+
+The previous multi-pathway architecture increasingly behaved like:
+
+- operational state interpretation
+- continuity-sensitive prioritization
+- reassessment-aware workflow weighting
+
+rather than:
+
+- truly competing treatment plans
+
+The continuity interpretation layer formalizes this architectural evolution while preserving:
+
+- deterministic authority
+- workflow stability
+- historical generation compatibility
+- continuity-safe progression expansion
+
+---
+
+## Important Constraints
+
+The continuity interpretation layer must remain:
+
+- deterministic
+- operational
+- explainable
+- longitudinally extensible
+
+The system should avoid introducing:
+
+- speculative AI continuity behavior
+- hidden reasoning mutation
+- opaque scoring systems
+- trajectory forecasting
+- clinician replacement behavior
