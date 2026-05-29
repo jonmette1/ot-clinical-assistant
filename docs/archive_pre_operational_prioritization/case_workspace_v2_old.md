@@ -91,20 +91,6 @@ Single unified card.
 
 One concise summary explaining the dominant treatment emphasis.
 
-Current Operational State is the primary output of the workspace and should be the most visually dominant element on the page.
-
-The workspace should immediately communicate:
-
-> What should treatment focus on right now?
-
-before communicating:
-
-- status
-- progression
-- demographics
-- supporting rationale
-- historical information
-
 ## Clinical Status
 
 Three clinician-facing states only:
@@ -124,45 +110,16 @@ Reassessment recommended.
 
 One sentence maximum.
 
-Clinical Status exists to answer:
-
-> Does the current plan remain appropriate?
-
-Clinical Status should be visually prominent but subordinate to Current Operational State.
-
 ## Why This Status?
 
 Collapsed by default.
 
-Purpose:
+May display:
+- primary instability driver
+- continuity trigger
+- reassessment rationale
 
-Increase clinician trust in the displayed Clinical Status.
-
-It does not exist to expose continuity architecture.
-
-Display format:
-
-### Primary Driver
-One sentence.
-
-### What Changed
-One sentence.
-
-### Why It Matters
-One sentence.
-
-Constraints:
-
-- maximum three statements
-- maximum one sentence per statement
-- no lists
-- no status classifications
-- no continuity terminology
-- no operational drift terminology
-- no instability classifications
-- no engine-specific language
-
-The clinician should understand the rationale without needing to understand how the continuity system functions.
+Translate system reasoning into clinician language.
 
 ## Top Priorities
 
@@ -186,12 +143,6 @@ Examples:
 - caregiver burden reduction
 - performance optimization
 
-Potential Enhancements are optional optimization opportunities.
-
-They are not urgent actions.
-
-They should never compete visually with Immediate Actions.
-
 ---
 
 # Operational Pressure Section
@@ -201,20 +152,13 @@ Always visible.
 Contains:
 
 ## Environment
-
 Environmental barriers impacting performance.
 
 ## Caregiver
-
 Caregiver capacity and support considerations.
 
 ## Transfer / Mobility
-
 Mobility limitations influencing treatment priorities.
-
-Operational Pressures provide the primary supporting context for the current operational emphasis.
-
-Environment, Caregiver, and Transfer / Mobility should be visually subordinate to the Command Center but more prominent than historical, transparency, or configuration content.
 
 ---
 
@@ -269,40 +213,6 @@ Instead expose:
 
 with plain-language explanations.
 
-The clinician should never need to understand internal continuity architecture in order to use the product effectively.
-
----
-
-# Workspace V2 Scope Protection
-
-Workspace V2 implementation is a hierarchy and presentation effort.
-
-Do not modify:
-
-- continuity architecture
-- progression architecture
-- operational prioritization architecture
-- reassessment architecture
-- mutation governance architecture
-
-Do not introduce:
-
-- new reasoning systems
-- new continuity models
-- new prioritization models
-- new progression models
-
-Implementation work should focus exclusively on:
-
-- hierarchy
-- scanability
-- information density
-- progressive disclosure
-- workflow clarity
-- cognitive load reduction
-
-The purpose of Workspace V2 is to improve clinician usability without changing underlying system behavior.
-
 ---
 
 # Success Criteria
@@ -315,15 +225,6 @@ A clinician should be able to answer:
 - Does the plan remain appropriate?
 
 within 10 seconds.
-
-The clinician should not need to:
-
-- open modules
-- review transparency
-- review history
-- understand continuity architecture
-
-to answer those questions.
 
 ---
 
