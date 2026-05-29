@@ -2089,8 +2089,6 @@ return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
 <StickyOperationalHeader
   title={displayCase.title}
-  clinicalFocusLabel={clinicalFocusLabel}
-  progressionPhase={progressionState?.currentPhase}
   isViewingHistoricalVersion={isViewingHistoricalVersion}
 />
 
