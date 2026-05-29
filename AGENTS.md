@@ -50,7 +50,26 @@ For longitudinal workflows also review:
 
 When conflicts exist:
 
-Decision Log takes precedence.
+When conflicts exist:
+
+1. Decision Log
+2. Active Roadmap
+3. System Architecture
+4. UX Documents
+
+# Longitudinal UX Rule
+
+The purpose of longitudinal UX is not to expose continuity architecture.
+
+The purpose of longitudinal UX is to help clinicians understand:
+
+- what changed
+- why it changed
+- what should be done differently
+- what progression transition is approaching
+- what treatment implications result
+
+Prefer clinician-facing decision support over system-facing status displays.
 
 ---
 
