@@ -12,6 +12,7 @@ import {
 
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
 import { buildProgressionState } from "@/lib/buildProgressionState";
+import { CurrentOperationalStatePanel } from "./components/CurrentOperationalStatePanel";
 // ==============================
 // TYPES
 // ==============================
@@ -1600,6 +1601,84 @@ const caregiverGuidance: string[] =
       structuredPlanDetails?.caregiverConsiderations ||
       [];
 
+const clinicalStatus =
+  displayCase.reasoning_stale ||
+  displayCase.plan_stale ||
+  reassessmentPressureLevel === "high"
+    ? "Needs Reassessment"
+    : displayCase.modules_stale || reassessmentPressureLevel === "moderate"
+    ? "Monitor Closely"
+    : "On Track";
+
+const clinicalStatusExplanation =
+  clinicalStatus === "Needs Reassessment"
+    ? "Current plan fit should be reviewed before relying on it for the next visit."
+    : clinicalStatus === "Monitor Closely"
+    ? "Current plan can be used, with close monitoring during treatment."
+    : "Current plan fit remains appropriate for the available case information.";
+
+const clinicalChangeDirection = (() => {
+  const readiness = progressionState?.advancementReadiness?.toLowerCase() || "";
+  const hasProgressMarker = Boolean(progressionState?.activeMilestones?.length);
+  const hasLimitingMarker = Boolean(
+    progressionState?.activeBarriers?.length || progressionState?.regressionRisks?.length
+  );
+
+  if (readiness.includes("declin") || readiness.includes("regress")) {
+    return "Declining";
+  }
+
+  if (readiness.includes("improv") || readiness.includes("ready")) {
+    return "Improving";
+  }
+
+  if (hasProgressMarker && hasLimitingMarker) {
+    return "Mixed";
+  }
+
+  return "Stable";
+})();
+
+const clinicalChangeBullets = [
+  progressionState?.continuitySummary || operationalContinuitySummary,
+  progressionState?.activeMilestones?.[0]
+    ? `Progress supported by ${progressionState.activeMilestones[0]}.`
+    : "",
+  progressionState?.activeBarriers?.[0]
+    ? `Still limited by ${progressionState.activeBarriers[0]}.`
+    : "",
+].filter(Boolean);
+
+const treatmentImplication =
+  clinicalStatus === "Needs Reassessment"
+    ? `Review plan fit before relying on the current visit plan${
+        operationalReassessmentTriggers[0] ? `: ${operationalReassessmentTriggers[0]}` : "."
+      }`
+    : clinicalStatus === "Monitor Closely"
+    ? `Use the current plan with close monitoring${
+        operationalReassessmentTriggers[0] ? `: ${operationalReassessmentTriggers[0]}` : "."
+      }`
+    : `Continue the current plan emphasis${
+        dominantBarriers[0] ? ` while addressing ${dominantBarriers[0]}.` : "."
+      }`;
+
+const progressionOutlookLabel =
+  progressionState?.advancementReadiness ||
+  progressionState?.currentPhase ||
+  "Progression outlook not available";
+
+const remainingProgressionRequirements = [
+  ...(progressionState?.activeBarriers || []),
+  ...(progressionState?.regressionRisks || []),
+  ...(operationalReassessmentTriggers || []),
+];
+
+const topCommandPriorities = dominantBarriers.length
+  ? dominantBarriers
+  : emphasisRationale.length
+  ? emphasisRationale
+  : operationalReassessmentTriggers;
+
 const clinicalFocusLabel =
   displayCase.case_classification?.clinical_focus === "transfers_mobility"
     ? "Transfers & Mobility"
@@ -2797,124 +2876,22 @@ return (
     RENDER: CURRENT OPERATIONAL EMPHASIS
 ============================== */}
 
-<div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
-  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div>
-      <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">
-        Current Operational Emphasis
-      </div>
-
-      <h2 className="text-2xl font-semibold text-white">
-        {currentOperationalEmphasis}
-      </h2>
-
-      <p className="mt-2 text-sm text-emerald-100/80 max-w-3xl">
-        {operationalContinuitySummary ||
-          generated?.summary?.planSummary ||
-          "This emphasis represents what should dominate treatment attention right now."}
-      </p>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setShowClinicalSummary(true)}
-          className="rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-800/40 transition"
-        >
-          View Clinical Summary
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopyRecommendedSummary}
-          className="rounded-lg border border-gray-700 bg-gray-900/40 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800/40 transition"
-        >
-          Copy Summary
-        </button>
-      </div>
-    </div>
-
-    <div className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-200 border border-emerald-700">
-      Active Focus
-    </div>
-  </div>
-
-  <div className="mt-6 grid gap-4 md:grid-cols-3">
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Why This Matters Now
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {emphasisRationale.length > 0 ? (
-          emphasisRationale.slice(0, 3).map((item: string, index: number) => (
-            <li key={index}>• {item}</li>
-          ))
-        ) : (
-          <li>• No emphasis rationale generated.</li>
-        )}
-      </ul>
-    </div>
-
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Dominant Barriers
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {dominantBarriers.length > 0 ? (
-          dominantBarriers.slice(0, 3).map((item: string, index: number) => (
-            <li key={index}>• {item}</li>
-          ))
-        ) : (
-          <li>• No dominant barriers generated.</li>
-        )}
-      </ul>
-    </div>
-
-    <div className="rounded-lg border border-emerald-900/60 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-        Reassessment Triggers
-      </h3>
-
-      <ul className="space-y-2 text-sm text-gray-200">
-        {operationalReassessmentTriggers.length > 0 ? (
-          operationalReassessmentTriggers
-            .slice(0, 3)
-            .map((item: string, index: number) => (
-              <li key={index}>• {item}</li>
-            ))
-        ) : (
-          <li>• No reassessment triggers generated.</li>
-        )}
-      </ul>
-    </div>
-  </div>
-
-  <div className="mt-6">
-    <h3 className="text-sm font-semibold text-emerald-300 mb-3">
-      Immediate Operational Actions
-    </h3>
-
-    <ul className="grid gap-2 md:grid-cols-2 text-sm text-gray-200">
-      {(structuredPlanDetails?.immediateActions || []).length > 0 ? (
-        structuredPlanDetails?.immediateActions?.map(
-          (item: string, index: number) => (
-            <li
-              key={index}
-              className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2"
-            >
-              {item}
-            </li>
-          )
-        )
-      ) : (
-        <li className="rounded-lg border border-emerald-900/60 bg-black/20 px-3 py-2">
-          No immediate actions generated.
-        </li>
-      )}
-    </ul>
-  </div>
-</div>
+<CurrentOperationalStatePanel
+  currentOperationalEmphasis={currentOperationalEmphasis}
+  clinicalStatus={clinicalStatus}
+  clinicalStatusExplanation={clinicalStatusExplanation}
+  clinicalChangeDirection={clinicalChangeDirection}
+  clinicalChangeBullets={clinicalChangeBullets}
+  treatmentImplication={treatmentImplication}
+  progressionOutlookLabel={progressionOutlookLabel}
+  remainingProgressionRequirements={remainingProgressionRequirements}
+  operationalContinuitySummary={operationalContinuitySummary}
+  planSummary={generated?.summary?.planSummary}
+  topPriorities={topCommandPriorities}
+  immediateActions={structuredPlanDetails?.immediateActions || []}
+  onShowClinicalSummary={() => setShowClinicalSummary(true)}
+  onCopyRecommendedSummary={handleCopyRecommendedSummary}
+/>
 
 {/* Adjacent Operational Priorities */}
 
