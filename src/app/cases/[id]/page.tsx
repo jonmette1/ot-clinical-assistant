@@ -1611,6 +1611,77 @@ const clinicalStatusExplanation =
     ? "The plan remains usable, but active pressures should be watched during the visit."
     : "The current plan appears appropriate for the available case information.";
 
+type ClinicalChangeDirection = "Improving" | "Stable" | "Declining" | "Mixed";
+
+const progressionReadinessText =
+  progressionState?.advancementReadiness?.toLowerCase() || "";
+const progressionSummaryText =
+  progressionState?.continuitySummary?.toLowerCase() || "";
+const operationalSummaryText = operationalContinuitySummary.toLowerCase();
+const combinedChangeText = `${progressionReadinessText} ${progressionSummaryText} ${operationalSummaryText}`;
+
+const hasImprovingChangeSignal =
+  (progressionState?.activeMilestones || []).length > 0 ||
+  /\b(improv|progress|advance|ready|gaining|increased|better)\b/.test(
+    combinedChangeText
+  );
+const hasDecliningChangeSignal =
+  displayCase.reasoning_stale ||
+  displayCase.plan_stale ||
+  (progressionState?.regressionRisks || []).length > 0 ||
+  operationalReassessmentTriggers.length > 0 ||
+  /\b(declin|regress|worsen|reassess|setback|reduced|less)\b/.test(
+    combinedChangeText
+  );
+
+const clinicalChangeDirection: ClinicalChangeDirection =
+  hasImprovingChangeSignal && hasDecliningChangeSignal
+    ? "Mixed"
+    : hasImprovingChangeSignal
+    ? "Improving"
+    : hasDecliningChangeSignal
+    ? "Declining"
+    : "Stable";
+
+const clinicalChangeBullets = [
+  operationalContinuitySummary || progressionState?.continuitySummary,
+  ...(progressionState?.activeMilestones || [])
+    .slice(0, 2)
+    .map((item) => `Progress noted: ${item}`),
+  ...(progressionState?.regressionRisks || [])
+    .slice(0, 2)
+    .map((item) => `Watch for setback: ${item}`),
+  ...(displayCase.reasoning_stale || displayCase.plan_stale
+    ? ["Recent case updates may change how the plan should be used today."]
+    : []),
+].filter(Boolean) as string[];
+
+const treatmentImplication =
+  clinicalStatus === "Needs Reassessment"
+    ? `Review the current plan before treatment, with attention to ${
+        operationalReassessmentTriggers[0] ||
+        dominantBarriers[0] ||
+        currentOperationalEmphasis
+      }.`
+    : clinicalStatus === "Monitor Closely"
+    ? `Proceed with the current focus while watching ${
+        dominantBarriers[0] ||
+        operationalReassessmentTriggers[0] ||
+        "today's highest-pressure area"
+      } during treatment.`
+    : `Continue the current focus on ${currentOperationalEmphasis}.`;
+
+const progressionOutlookLabel =
+  progressionState?.advancementReadiness ||
+  progressionState?.currentPhase ||
+  "Progression outlook not yet available";
+
+const remainingProgressionRequirements = [
+  ...(progressionState?.activeBarriers || []),
+  ...dominantBarriers,
+  ...operationalReassessmentTriggers,
+].filter(Boolean).slice(0, 4);
+
 const dominantInstabilityDrivers: string[] =
   continuityInterpretation?.dominantInstabilityDrivers || [];
 
@@ -2103,6 +2174,11 @@ return (
   currentOperationalEmphasis={currentOperationalEmphasis}
   clinicalStatus={clinicalStatus}
   clinicalStatusExplanation={clinicalStatusExplanation}
+  clinicalChangeDirection={clinicalChangeDirection}
+  clinicalChangeBullets={clinicalChangeBullets}
+  treatmentImplication={treatmentImplication}
+  progressionOutlookLabel={progressionOutlookLabel}
+  remainingProgressionRequirements={remainingProgressionRequirements}
   primaryDriver={primaryStatusDriver}
   whatChanged={statusChangeSummary}
   whyItMatters={statusImportanceSummary}
