@@ -8,10 +8,17 @@ type PotentialEnhancement = {
   monitorFor?: string;
 };
 
+type ClinicalChangeDirection = "Improving" | "Stable" | "Declining" | "Mixed";
+
 type CurrentOperationalStatePanelProps = {
   currentOperationalEmphasis: string;
   clinicalStatus: "On Track" | "Monitor Closely" | "Needs Reassessment";
   clinicalStatusExplanation: string;
+  clinicalChangeDirection: ClinicalChangeDirection;
+  clinicalChangeBullets: string[];
+  treatmentImplication: string;
+  progressionOutlookLabel: string;
+  remainingProgressionRequirements: string[];
   primaryDriver: string;
   whatChanged: string;
   whyItMatters: string;
@@ -30,10 +37,22 @@ const statusStyles = {
   "Needs Reassessment": "border-red-700 bg-red-900/30 text-red-100",
 };
 
+const changeStyles = {
+  Improving: "border-emerald-800/70 bg-emerald-950/30 text-emerald-100",
+  Stable: "border-sky-800/70 bg-sky-950/30 text-sky-100",
+  Declining: "border-red-800/70 bg-red-950/30 text-red-100",
+  Mixed: "border-amber-800/70 bg-amber-950/30 text-amber-100",
+};
+
 export function CurrentOperationalStatePanel({
   currentOperationalEmphasis,
   clinicalStatus,
   clinicalStatusExplanation,
+  clinicalChangeDirection,
+  clinicalChangeBullets,
+  treatmentImplication,
+  progressionOutlookLabel,
+  remainingProgressionRequirements,
   primaryDriver,
   whatChanged,
   whyItMatters,
@@ -78,22 +97,57 @@ export function CurrentOperationalStatePanel({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onShowClinicalSummary}
-          className="rounded-lg border border-emerald-600 bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
-        >
-          View Clinical Summary
-        </button>
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className={`rounded-xl border p-4 ${changeStyles[clinicalChangeDirection]}`}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-90">
+            Clinical Change Summary
+          </h2>
+          <p className="mt-2 text-2xl font-bold">{clinicalChangeDirection}</p>
+          <div className="mt-3 space-y-2">
+            {clinicalChangeBullets.length > 0 ? (
+              clinicalChangeBullets.slice(0, 3).map((item, index) => (
+                <p key={index} className="text-sm leading-relaxed opacity-90">
+                  {item}
+                </p>
+              ))
+            ) : (
+              <p className="text-sm leading-relaxed opacity-90">
+                No major change is highlighted for this visit.
+              </p>
+            )}
+          </div>
+        </div>
 
-        <button
-          type="button"
-          onClick={onCopyRecommendedSummary}
-          className="rounded-lg border border-gray-700 bg-gray-900/70 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-gray-800"
-        >
-          Copy Summary
-        </button>
+        <div className="rounded-xl border border-violet-800/70 bg-violet-950/25 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-violet-300">
+            Treatment Implication
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-violet-50/90">
+            {treatmentImplication}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-cyan-800/70 bg-cyan-950/25 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
+            Progression Outlook
+          </h2>
+          <p className="mt-2 text-lg font-semibold text-cyan-50">
+            {progressionOutlookLabel}
+          </p>
+          <div className="mt-3 space-y-2">
+            {remainingProgressionRequirements.length > 0 ? (
+              remainingProgressionRequirements.slice(0, 3).map((item, index) => (
+                <p key={index} className="text-sm leading-relaxed text-cyan-50/85">
+                  {item}
+                </p>
+              ))
+            ) : (
+              <p className="text-sm leading-relaxed text-cyan-50/85">
+                No additional progression requirements are highlighted.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
@@ -140,6 +194,24 @@ export function CurrentOperationalStatePanel({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onShowClinicalSummary}
+          className="rounded-lg border border-emerald-600 bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
+        >
+          View Clinical Summary
+        </button>
+
+        <button
+          type="button"
+          onClick={onCopyRecommendedSummary}
+          className="rounded-lg border border-gray-700 bg-gray-900/70 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-gray-800"
+        >
+          Copy Summary
+        </button>
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
