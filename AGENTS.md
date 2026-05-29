@@ -305,6 +305,34 @@ Preserve existing functionality whenever possible.
 
 ---
 
+# Implementation Bias Rule
+
+When documentation, architecture, and UX specifications already exist:
+
+Assume planning is complete.
+
+Do not generate additional recommendation phases unless explicitly requested.
+
+Do not pause implementation to:
+
+- revisit approved hierarchy
+- revisit approved UX decisions
+- revisit approved workflows
+- propose documentation updates
+- propose roadmap updates
+
+If an approved specification exists:
+
+implement it.
+
+Only stop implementation when:
+
+1. a technical conflict exists
+2. a documented decision conflict exists
+3. required information is missing
+
+Otherwise proceed directly to implementation planning.
+
 # Refactor Philosophy
 
 Avoid large refactors unless explicitly requested.
