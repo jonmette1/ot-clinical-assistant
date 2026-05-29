@@ -2089,6 +2089,8 @@ return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
 <StickyOperationalHeader
   title={displayCase.title}
+  clinicalFocusLabel={clinicalFocusLabel}
+  progressionPhase={progressionState?.currentPhase}
   isViewingHistoricalVersion={isViewingHistoricalVersion}
 />
 
@@ -2170,46 +2172,6 @@ return (
 
 {/* ==============================
     RENDER: GENERATED PLAN
-============================== */}
-
-<details className="rounded-xl border border-cyan-900 bg-gray-900 p-6">
-  <summary className="flex cursor-pointer items-center justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-semibold text-white">Generated Operational Briefing</h2>
-      <p className="mt-1 text-sm text-gray-400">Original generated briefing and monitoring details.</p>
-    </div>
-    <span className="text-xs tracking-wide text-cyan-300">Show</span>
-  </summary>
-
-<div className="mt-6 rounded-xl border border-cyan-900 bg-gray-900 p-6">
-  <div className="mb-4">
-    <h2 className="text-xl font-semibold text-white">
-      {executiveBriefing.title}
-    </h2>
-    <p className="mt-1 text-sm text-gray-400">
-      Current operational state and the pressures shaping treatment attention.
-    </p>
-  </div>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-lg border border-cyan-900/60 bg-gray-950/60 p-4 md:col-span-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
-        Operational State
-      </div>
-
-      <p className="text-sm text-cyan-100">
-        {executiveBriefing.operationalState || "No operational state generated."}
-      </p>
-    </div>
-
-    <div className="rounded-lg border border-red-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
-        Instability Drivers
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.instabilityDrivers.length > 0 ? (
-          executiveBriefing.instabilityDrivers
             .slice(0, 5)
             .map((item: string, index: number) => (
               <div
@@ -2880,85 +2842,6 @@ return (
 
 {/* ==============================
     RENDER: CLINICAL FOCUS / WARNINGS
-============================== */}
-
-{/* CLINICAL FOCUS CONTROLS */}
-
-<details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-  <summary className="flex cursor-pointer items-center justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-semibold text-white">Advanced Configuration</h2>
-      <p className="mt-1 text-sm text-gray-400">Clinical focus lens and plan freshness notices.</p>
-    </div>
-    <span className="text-xs tracking-wide text-gray-300">Show</span>
-  </summary>
-
-  <div className="mt-6 mb-4">
-    <h3 className="text-lg font-semibold">
-      Clinical Focus
-    </h3>
-
-    <p className="text-sm text-gray-400 mt-1">
-      Choose how the current plan is emphasized for review. This does not regenerate or change the treatment plan.
-    </p>
-  </div>
-
-  <div className="grid grid-cols-3 gap-2">
-    {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
-      <button
-        key={focus}
-        type="button"
-        disabled={briefingLens === focus}
-        onClick={() => {
-          console.log("Selected clinical focus:", focus);
-          setBriefingLens(
-            focus as "adl_home_safety" | "transfers_mobility" | "caregiver_training"
-          );
-        }}
-        className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-          briefingLens === focus
-            ? "bg-blue-600 text-white"
-            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-        }`}
-      >
-        {focus === "adl_home_safety"
-          ? "ADL / Home Safety"
-          : focus === "transfers_mobility"
-          ? "Transfers & Mobility"
-          : "Caregiver Training"}
-      </button>
-    ))}
-  </div>
-
-{(displayCase?.reasoning_stale ||
-  displayCase?.plan_stale ||
-  displayCase?.modules_stale) && (
-  <div className="rounded-xl border border-amber-700 bg-amber-950/30 p-4 mb-6">
-    <div className="flex flex-col gap-2 text-sm text-amber-200">
-
-      {displayCase?.reasoning_stale && (
-        <div>
-          • Clinical reasoning may be outdated relative to the latest structured case data.
-        </div>
-      )}
-
-      {displayCase?.plan_stale && (
-        <div>
-          • Workflow plan may require regeneration to reflect recent case updates.
-        </div>
-      )}
-
-      {displayCase?.modules_stale && (
-        <div>
-          • Detail modules may no longer match the current workflow plan.
-        </div>
-      )}
-
-    </div>
-  </div>
-)}
-</details>
-
 {/* ==============================
     RENDER: DETAIL MODULES
 ============================== */}
