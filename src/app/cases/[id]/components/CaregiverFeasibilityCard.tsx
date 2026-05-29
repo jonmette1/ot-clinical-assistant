@@ -16,13 +16,23 @@ export function CaregiverFeasibilityCard({
   if (feasibilityItems.length === 0) return null;
 
   return (
-    <div className="mt-6 border-t border-gray-800 pt-4">
-      <h3 className="text-lg font-semibold mb-2">Feasibility Constraints</h3>
-      <ul className="list-disc pl-5 space-y-1 text-gray-300">
-        {feasibilityItems.map((item, index) => (
-          <li key={index}>{item}</li>
+    <article className="rounded-xl border border-purple-800/70 bg-gray-900 p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+        Caregiver
+      </p>
+      <h3 className="mt-1 text-lg font-semibold text-white">
+        Support Feasibility
+      </h3>
+      <div className="mt-4 space-y-2">
+        {feasibilityItems.slice(0, 4).map((item, index) => (
+          <p
+            key={index}
+            className="rounded-lg border border-purple-900/50 bg-purple-950/20 px-3 py-2 text-sm text-gray-200"
+          >
+            {item}
+          </p>
         ))}
-      </ul>
-    </div>
+      </div>
+    </article>
   );
 }

@@ -11,7 +11,7 @@ import {
 } from "@/lib/buildClinicalDecisionInput";
 
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
-import { buildCanonicalContinuityState } from "@/lib/buildCanonicalContinuityState";
+import { buildProgressionState } from "@/lib/buildProgressionState";
 import { CaregiverFeasibilityCard } from "./components/CaregiverFeasibilityCard";
 import { CurrentOperationalStatePanel } from "./components/CurrentOperationalStatePanel";
 import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCard";
@@ -97,7 +97,7 @@ type GeneratedOutput = {
     }[];
     reassessmentTriggers?: string[];
     continuitySummary?: string;
-    
+
   };
 
     continuity_interpretation?: {
@@ -523,12 +523,12 @@ if (gens.length > 0) {
 
     loadCase();
   }, [params]);
-  
+
   // ==============================
 // OPERATIONAL HANDLERS
 // save / delete / restore / regenerate
 // ==============================
-  
+
   async function handleDeleteCase() {
   const confirmed = window.confirm(
     "Are you sure you want to delete this case? This cannot be undone."
@@ -636,7 +636,7 @@ async function handleSaveCurrentVersion() {
 }
 
 async function handleSaveCaseEdits() {
-  
+
 
   if (!caseData?.id) {
     return;
@@ -1595,6 +1595,22 @@ const reassessmentPressureLabel =
     ? "Moderate"
     : "Low";
 
+const clinicalStatus =
+  displayCase.reasoning_stale ||
+  displayCase.plan_stale ||
+  reassessmentPressureLevel === "high"
+    ? "Needs Reassessment"
+    : displayCase.modules_stale || reassessmentPressureLevel === "moderate"
+    ? "Monitor Closely"
+    : "On Track";
+
+const clinicalStatusExplanation =
+  clinicalStatus === "Needs Reassessment"
+    ? "Current case signals suggest the plan should be reviewed before relying on it."
+    : clinicalStatus === "Monitor Closely"
+    ? "The plan remains usable, but active pressures should be watched during the visit."
+    : "The current plan appears appropriate for the available case information.";
+
 const dominantInstabilityDrivers: string[] =
   continuityInterpretation?.dominantInstabilityDrivers || [];
 
@@ -1611,12 +1627,29 @@ const caregiverGuidance: string[] =
       structuredPlanDetails?.caregiverConsiderations ||
       [];
 
-const clinicalFocusLabel =
-  displayCase.case_classification?.clinical_focus === "transfers_mobility"
-    ? "Transfers & Mobility"
-    : displayCase.case_classification?.clinical_focus === "caregiver_training"
-    ? "Caregiver Training"
-    : "ADL / Home Safety";
+const topCommandPriorities = dominantBarriers.length
+  ? dominantBarriers
+  : emphasisRationale.length
+  ? emphasisRationale
+  : operationalReassessmentTriggers;
+
+const primaryStatusDriver =
+  dominantBarriers[0] ||
+  emphasisRationale[0] ||
+  structuredPlanDetails?.instabilityDrivers?.[0] ||
+  "Current structured case findings are guiding the plan status.";
+
+const statusChangeSummary =
+  displayCase.reasoning_stale || displayCase.plan_stale
+    ? "Structured case information has changed since the current plan was generated."
+    : operationalContinuitySummary ||
+      progressionState?.continuitySummary ||
+      "No major plan-changing update is currently highlighted.";
+
+const statusImportanceSummary =
+  operationalReassessmentTriggers[0] ||
+  structuredPlanDetails?.continuityRisks?.[0] ||
+  "This status helps determine whether to proceed, monitor closely, or reassess before treatment.";
 
     const getFocusLabel = (promptVersion?: string | null) => {
   if (promptVersion?.includes("transfers_mobility")) return "Transfers";
@@ -1835,17 +1868,12 @@ const handleClinicalFocusChange = async (focus: string) => {
       },
     };
 
-    const continuityState = buildCanonicalContinuityState({
-      caseData: updatedCasePayload,
-      reasoning_stale: false,
-      plan_stale: false,
-      modules_stale: true,
+    const canonicalPayload = buildCanonicalCasePayload(updatedCasePayload);
+    const clinicalDecisionInput = canonicalPayload.clinicalDecisionInput;
+    const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
+    const progressionState = buildProgressionState({
+      canonicalCasePayload: canonicalPayload,
     });
-
-    const canonicalPayload = continuityState.canonicalPayload;
-    const clinicalDecisionInput = continuityState.clinicalDecisionInput;
-    const clinicalDecisionModel = continuityState.clinicalDecisionModel;
-    const progressionState = continuityState.progressionState;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
@@ -1952,17 +1980,12 @@ const updatedCasePayload = {
   clinician_notes: clinicianNotes,
 };
 
-const continuityState = buildCanonicalContinuityState({
-  caseData: updatedCasePayload,
-  reasoning_stale: false,
-  plan_stale: false,
-  modules_stale: true,
+const canonicalPayload = buildCanonicalCasePayload(updatedCasePayload);
+const clinicalDecisionInput = canonicalPayload.clinicalDecisionInput;
+const clinicalDecisionModel = canonicalPayload.clinicalDecisionModel;
+const progressionState = buildProgressionState({
+  canonicalCasePayload: canonicalPayload,
 });
-
-const canonicalPayload = continuityState.canonicalPayload;
-const clinicalDecisionInput = continuityState.clinicalDecisionInput;
-const clinicalDecisionModel = continuityState.clinicalDecisionModel;
-const progressionState = continuityState.progressionState;
 
     const aiResponse = await fetch("/api/generate-plan", {
       method: "POST",
@@ -2080,28 +2103,31 @@ return (
 
 <CurrentOperationalStatePanel
   currentOperationalEmphasis={currentOperationalEmphasis}
+  clinicalStatus={clinicalStatus}
+  clinicalStatusExplanation={clinicalStatusExplanation}
+  primaryDriver={primaryStatusDriver}
+  whatChanged={statusChangeSummary}
+  whyItMatters={statusImportanceSummary}
   operationalContinuitySummary={operationalContinuitySummary}
   planSummary={generated?.summary?.planSummary}
-  emphasisRationale={emphasisRationale}
-  dominantBarriers={dominantBarriers}
-  operationalReassessmentTriggers={operationalReassessmentTriggers}
+  topPriorities={topCommandPriorities}
   immediateActions={structuredPlanDetails?.immediateActions || []}
+  potentialEnhancements={adjacentOperationalPriorities}
   onShowClinicalSummary={() => setShowClinicalSummary(true)}
   onCopyRecommendedSummary={handleCopyRecommendedSummary}
 />
 
-{/* CONTINUITY STATUS */}
+<section className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5">
+  <div className="mb-4">
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+      Operational Pressures
+    </p>
+    <h2 className="mt-1 text-xl font-semibold text-white">
+      Pressures shaping what can safely happen next
+    </h2>
+  </div>
 
-<ProgressionContinuityRow
-  progressionPhase={progressionState?.currentPhase}
-  currentContinuityCondition={currentContinuityCondition}
-  reassessmentPressureLabel={reassessmentPressureLabel}
-  operationalChangeClassification={operationalChangeClassification}
-  dominantInstabilityDrivers={dominantInstabilityDrivers}
-  operationalDriftSignals={operationalDriftSignals}
-  continuityAlerts={continuityAlerts}
-/>
-
+  <div className="grid gap-4 lg:grid-cols-3">
     <CaregiverFeasibilityCard
       caregiverGuidance={caregiverGuidance}
       fallbackFeasibilityItems={
@@ -2128,40 +2154,24 @@ return (
         []
       }
     />
+  </div>
+</section>
 
-{/* ==============================
-    RENDER: GENERATED PLAN
-============================== */}
-
-<div className="rounded-xl border border-cyan-900 bg-gray-900 p-6">
-  <div className="mb-4">
-    <h2 className="text-xl font-semibold text-white">
-      {executiveBriefing.title}
+<section className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5">
+  <div>
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+      Reference Workspace
+    </p>
+    <h2 className="mt-1 text-xl font-semibold text-white">
+      Collapsed supporting information
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Current operational state and the pressures shaping treatment attention.
+      Open these sections when you need case details, generated report content, modules, transparency, or history.
     </p>
   </div>
 
-  <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-lg border border-cyan-900/60 bg-gray-950/60 p-4 md:col-span-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-400 mb-2">
-        Operational State
-      </div>
-
-      <p className="text-sm text-cyan-100">
-        {executiveBriefing.operationalState || "No operational state generated."}
-      </p>
-    </div>
-
-    <div className="rounded-lg border border-red-900/60 bg-gray-950/60 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-red-400 mb-2">
-        Instability Drivers
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {executiveBriefing.instabilityDrivers.length > 0 ? (
-          executiveBriefing.instabilityDrivers
+{/* ==============================
+    RENDER: GENERATED PLAN
             .slice(0, 5)
             .map((item: string, index: number) => (
               <div
@@ -2247,11 +2257,20 @@ return (
     </div>
   </div>
 </div>
+</details>
 
 {/* Adjacent Operational Priorities */}
 
 {adjacentOperationalPriorities.length > 0 && (
-  <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+    <summary className="flex cursor-pointer items-center justify-between gap-4">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Potential Enhancements Reference</h2>
+        <p className="mt-1 text-sm text-gray-400">Additional monitoring priorities retained from the generated plan.</p>
+      </div>
+      <span className="text-xs tracking-wide text-blue-300">Show</span>
+    </summary>
+  <div className="mt-6">
     <div className="flex items-center justify-between mb-4">
       <div>
         <h3 className="text-xl font-semibold text-gray-300">
@@ -2309,6 +2328,7 @@ return (
       </div>
     )}
   </div>
+  </details>
 )}
 
 {/* ==============================
@@ -2364,9 +2384,18 @@ return (
 
 {/* CASE HEADER + BASIC DETAILS */}
 
-<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+<details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <summary className="flex cursor-pointer items-center justify-between gap-4">
+    <div>
+      <h2 className="text-xl font-semibold text-white">Case Details</h2>
+      <p className="mt-1 text-sm text-gray-400">Entered case information and editable structured fields.</p>
+    </div>
+    <span className="text-xs tracking-wide text-gray-300">Show</span>
+  </summary>
+
+<div className="mt-6">
   <div className="flex items-start justify-between gap-4 mb-4">
-  
+
   {/* TITLE / EDIT TITLE */}
   <div>
   {isEditing ? (
@@ -2482,7 +2511,7 @@ return (
         </div>
       )}
     </div>
-  )} 
+  )}
 
   </div>
 
@@ -2495,7 +2524,7 @@ return (
 
 {/* CASE DETAIL SUMMARY */}
 <div className="space-y-2 text-sm text-gray-300">
- 
+
 
  {isEditing ? (
   <div className="mt-4 grid gap-3 rounded-lg border border-blue-800 bg-blue-950/20 p-4 md:grid-cols-2">
@@ -2803,93 +2832,33 @@ return (
       </p>
     </div>
   )}
-</div> 
+</div>
 
 
 </div>
 
 </div>
+</details>
 
 {/* ==============================
     RENDER: CLINICAL FOCUS / WARNINGS
-============================== */}
-
-{/* CLINICAL FOCUS CONTROLS */}
-
-<div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-  <div className="mb-4">
-    <h2 className="text-2xl font-semibold">
-      Clinical Focus
-    </h2>
-
-    <p className="text-sm text-gray-400 mt-1">
-      Choose how the current plan is emphasized for review. This does not regenerate or change the treatment plan.
-    </p>
-  </div>
-
-  <div className="grid grid-cols-3 gap-2">
-    {["adl_home_safety", "transfers_mobility", "caregiver_training"].map((focus) => (
-      <button
-        key={focus}
-        type="button"
-        disabled={briefingLens === focus}
-        onClick={() => {
-          console.log("Selected clinical focus:", focus);
-          setBriefingLens(
-            focus as "adl_home_safety" | "transfers_mobility" | "caregiver_training"
-          );
-        }}
-        className={`w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-          briefingLens === focus
-            ? "bg-blue-600 text-white"
-            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-        }`}
-      >
-        {focus === "adl_home_safety"
-          ? "ADL / Home Safety"
-          : focus === "transfers_mobility"
-          ? "Transfers & Mobility"
-          : "Caregiver Training"}
-      </button>
-    ))}
-  </div>
-</div>      
-
-{(displayCase?.reasoning_stale ||
-  displayCase?.plan_stale ||
-  displayCase?.modules_stale) && (
-  <div className="rounded-xl border border-amber-700 bg-amber-950/30 p-4 mb-6">
-    <div className="flex flex-col gap-2 text-sm text-amber-200">
-
-      {displayCase?.reasoning_stale && (
-        <div>
-          • Clinical reasoning may be outdated relative to the latest structured case data.
-        </div>
-      )}
-
-      {displayCase?.plan_stale && (
-        <div>
-          • Workflow plan may require regeneration to reflect recent case updates.
-        </div>
-      )}
-
-      {displayCase?.modules_stale && (
-        <div>
-          • Detail modules may no longer match the current workflow plan.
-        </div>
-      )}
-
-    </div>
-  </div>
-)}
-
 {/* ==============================
     RENDER: DETAIL MODULES
 ============================== */}
 
+<details className="rounded-xl border border-purple-800 bg-gray-950 p-6">
+  <summary className="flex cursor-pointer items-center justify-between gap-4">
+    <div>
+      <h2 className="text-xl font-semibold text-white">Detail Modules</h2>
+      <p className="mt-1 text-sm text-gray-400">Generated caregiver, transfer, ADL, and equipment support modules.</p>
+    </div>
+    <span className="text-xs tracking-wide text-purple-300">Show</span>
+  </summary>
+
+  <div className="mt-6 space-y-6">
      {/* DETAIL MODULE: FAMILY / CAREGIVER SCRIPT */}
 
-<div className="mt-6 rounded-xl border border-purple-800 bg-gray-950 p-6">
+<div className="rounded-xl border border-purple-800 bg-gray-950 p-6">
   <div className="flex items-start justify-between gap-4">
     <div>
       <h3 className="text-lg font-semibold">
@@ -2987,7 +2956,7 @@ return (
       )}
     </div>
   )}
-</div>  
+</div>
 
        {/* TRANSFER & MOBILITY DETAILS */}
 
@@ -3323,8 +3292,27 @@ return (
     </div>
   )}
 </div>
+  </div>
+</details>
 
+<details className="rounded-xl border border-blue-800 bg-gray-900 p-6">
+  <summary className="flex cursor-pointer items-center justify-between gap-4">
+    <div>
+      <h2 className="text-xl font-semibold text-white">Decision Transparency</h2>
+      <p className="mt-1 text-sm text-gray-400">Detailed continuity and progression diagnostics for review.</p>
+    </div>
+    <span className="text-xs tracking-wide text-blue-300">Show</span>
+  </summary>
 
+  <div className="mt-6 space-y-6">
+    <ProgressionContinuityRow
+          currentContinuityCondition={currentContinuityCondition}
+      reassessmentPressureLabel={reassessmentPressureLabel}
+      operationalChangeClassification={operationalChangeClassification}
+      dominantInstabilityDrivers={dominantInstabilityDrivers}
+      operationalDriftSignals={operationalDriftSignals}
+      continuityAlerts={continuityAlerts}
+    />
 
 {progressionState && (
   <section className="mt-6 rounded-lg border border-dashed border-purple-300 bg-purple-50 p-4">
@@ -3427,6 +3415,8 @@ return (
     </div>
   </section>
 )}
+  </div>
+</details>
 
 {/* ==============================
     RENDER: VERSION HISTORY
@@ -3434,7 +3424,16 @@ return (
 
         {/* VERSION HISTORY */}
 
-       <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+<details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+  <summary className="flex cursor-pointer items-center justify-between gap-4">
+    <div>
+      <h2 className="text-xl font-semibold text-white">Historical Snapshots</h2>
+      <p className="mt-1 text-sm text-gray-400">Saved plans, preview, restore, and delete controls.</p>
+    </div>
+    <span className="text-xs tracking-wide text-gray-300">Show</span>
+  </summary>
+
+  <div className="mt-6">
   <h3 className="text-xl font-semibold mb-3">Clinical Plan History</h3>
   <button
   type="button"
@@ -3531,16 +3530,16 @@ currentGenerationId === generation.id
 >
   Delete
 </button>
-          
+
         </div>
       </li>
     ))}
   </ul>
 )}
-</div> 
+</div>
 
 {selectedGeneration?.output_payload && (
-  <div className="space-y-6">
+  <div className="mt-6 space-y-6">
     <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
@@ -3580,6 +3579,8 @@ currentGenerationId === generation.id
     </div>
   </div>
 )}
+</details>
+</section>
 </div>
 {/* CASE ACTION BUTTONS */}
 <div className="fixed bottom-4 left-4 right-4 z-40 grid grid-cols-2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur sm:left-1/2 sm:right-auto sm:flex sm:-translate-x-1/2 sm:flex-nowrap">

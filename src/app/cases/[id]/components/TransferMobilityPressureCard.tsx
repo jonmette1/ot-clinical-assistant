@@ -21,30 +21,41 @@ export function TransferMobilityPressureCard({
   }
 
   return (
-    <div className="mt-6 border-t border-gray-800 pt-4">
-      <h3 className="text-lg font-semibold mb-2">Execution Pressure Points</h3>
+    <article className="rounded-xl border border-blue-800/70 bg-gray-900 p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
+        Transfer / Mobility
+      </p>
+      <h3 className="mt-1 text-lg font-semibold text-white">
+        Mobility Pressure
+      </h3>
 
       {worstTransfer && (
-        <p className="mb-3 text-sm text-gray-300">
+        <p className="mt-3 rounded-lg border border-blue-900/50 bg-blue-950/20 px-3 py-2 text-sm text-blue-100">
           Highest transfer pressure: {worstTransfer.label} at level {worstTransfer.value}.
         </p>
       )}
 
-      {executionPressurePoints.length > 0 ? (
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {executionPressurePoints.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {transferScores.map((score) => (
-            <li key={score.label}>
+      <div className="mt-3 space-y-2">
+        {executionPressurePoints.length > 0 ? (
+          executionPressurePoints.slice(0, 4).map((item, index) => (
+            <p
+              key={index}
+              className="rounded-lg border border-blue-900/50 bg-blue-950/20 px-3 py-2 text-sm text-gray-200"
+            >
+              {item}
+            </p>
+          ))
+        ) : (
+          transferScores.map((score) => (
+            <p
+              key={score.label}
+              className="rounded-lg border border-blue-900/50 bg-blue-950/20 px-3 py-2 text-sm text-gray-200"
+            >
               {score.label}: level {score.value}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+            </p>
+          ))
+        )}
+      </div>
+    </article>
   );
 }

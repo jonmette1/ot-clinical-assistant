@@ -2,15 +2,11 @@
 
 type StickyOperationalHeaderProps = {
   title?: string | null;
-  clinicalFocusLabel: string;
-  progressionPhase?: string | null;
   isViewingHistoricalVersion: boolean;
 };
 
 export function StickyOperationalHeader({
   title,
-  clinicalFocusLabel,
-  progressionPhase,
   isViewingHistoricalVersion,
 }: StickyOperationalHeaderProps) {
   return (
@@ -22,8 +18,7 @@ export function StickyOperationalHeader({
           </p>
 
           <p className="truncate text-xs text-gray-400">
-            {clinicalFocusLabel}
-            {progressionPhase ? ` • ${progressionPhase}` : ""}
+            Clinician command center
           </p>
         </div>
 
