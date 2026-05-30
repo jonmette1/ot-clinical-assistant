@@ -5,7 +5,7 @@
 # Executive Summary
 
 ## Product Definition
-A structured clinical reasoning and operational prioritization assistant for adult home health Occupational Therapy designed to reduce cognitive overload, improve treatment planning clarity, and support continuity-aware functional ADL intervention.
+A structured clinical reasoning, longitudinal clinical guidance, and operational prioritization assistant for Occupational Therapy designed to reduce cognitive overload, improve treatment planning clarity, support continuity-aware intervention, and help clinicians determine what changed, what requires attention, and what should happen next.
 
 ---
 
@@ -42,7 +42,31 @@ Help clinicians rapidly determine:
 - what caregiver or environmental constraints shape feasibility
 - when reassessment or continuity review may be needed
 
+The system exists to help clinicians determine:
+
+What changed?
+What requires attention?
+What should happen next?
+
 ---
+## Longitudinal Clinical Guidance
+
+The platform is evolving beyond plan generation and treatment prioritization.
+
+The long-term purpose of the system is to help clinicians determine:
+
+- what changed
+- what matters
+- what requires attention
+- what should happen next
+
+Progression exists to support clinical attention.
+
+Clinical attention exists to support treatment decisions.
+
+The platform should continuously reduce the cognitive effort required to understand current clinical reality while preserving longitudinal continuity and clinical reasoning transparency.
+
+The system should function as a continuity-aware clinical guidance workspace rather than a static plan generation tool.
 
 ## Product Philosophy
 The system is not designed to replace clinical judgment.
@@ -272,16 +296,20 @@ The long-term vision is to evolve toward continuity-aware functional reasoning s
 ---
 
 ## Success Metric
-A clinician can review a case and orient to:
-- current progression state
+
+A clinician can review a case and rapidly orient to:
+
+- what changed since the previous visit
+- current clinical attention
+- current progression status
 - current operational emphasis
 - dominant barriers
 - safety concerns
 - caregiver and environmental constraints
-- reassessment triggers
-- actionable treatment direction
+- reassessment signals
+- next treatment focus
 
-within minutes instead of cognitively reconstructing the case manually.
+without cognitively reconstructing the case from evaluation documents, prior notes, or historical plans.
 
 ---
 

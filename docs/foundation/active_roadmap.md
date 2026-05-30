@@ -2,31 +2,108 @@
 
 ---
 
-# ACTIVE ROADMAP — Longitudinal Operational Workflow Transition
+# ACTIVE ROADMAP — Longitudinal Workspace Design Transition
+
+---
+
+# Longitudinal Foundation
+
+## Status
+
+COMPLETE
+
+---
+
+## Established Foundation Artifacts
+
+The following longitudinal authority documents are now considered established:
+
+- Clinical_Progression_Model.md
+- Longitudinal_Data_Capture_Foundation.md
+- Progression_Check_Data_Model.md
+- Clinical_Attention_Model.md
+- Longitudinal_State_Model.md
+- Progression_Check_UX_Architecture.md
+
+These documents should be treated as the governing authority for future longitudinal workspace design.
+
+---
+
+## Architectural Realization
+
+The platform now possesses sufficient longitudinal architecture to answer:
+
+- What changed?
+- Why does it matter?
+- What barrier became dominant?
+- What milestone was achieved?
+- What requires attention today?
+- What should treatment focus on next?
+
+The primary limitation is no longer longitudinal architecture.
+
+The primary limitation is workspace design.
 
 ---
 
 # Current Product State
 
 The platform has successfully transitioned away from:
+
 - pathway-oriented recommendation synthesis
 - competing treatment philosophy generation
 - pathway-selection workflows
+- intake-driven plan viewing
 
-The platform is now operating as:
+The platform is now evolving toward:
+
 - a continuity-aware operational prioritization system
-- an operational instability interpretation engine
-- a longitudinal workflow support architecture
+- a longitudinal clinical guidance system
+- a progression-driven treatment workspace
+- a clinical attention support system
 
-The current semantic authority model is now centered around:
-- current operational instability
-- progression-conditioned operational weighting
-- continuity-aware operational emphasis
-- feasibility constraints
-- environmental pressures
-- reassessment-sensitive operational mutation
+---
 
-This represents a major architectural stabilization milestone.
+# Current Product Identity
+
+The system is no longer attempting to answer:
+
+> "Which treatment pathway should the clinician choose?"
+
+The system is no longer primarily attempting to answer:
+
+> "What plan should be generated?"
+
+The system is now attempting to answer:
+
+> "What changed, what requires attention, and what should happen next?"
+
+This framing now governs:
+
+- progression interpretation
+- continuity interpretation
+- clinical attention
+- operational prioritization
+- reassessment escalation
+- workspace design
+
+---
+
+# Current Architectural Model
+
+## Longitudinal Hierarchy
+
+Barrier Evolution
+↓
+Functional Change
+↓
+Milestone Achievement
+↓
+Clinical Attention
+↓
+Operational Emphasis
+↓
+Treatment Focus
 
 ---
 
@@ -35,6 +112,7 @@ This represents a major architectural stabilization milestone.
 ## Completed Architectural Transition
 
 Successfully completed:
+
 - removal of live selectedPathway authority
 - removal of pathway-centric rendering hierarchy
 - removal of visible competing treatment plans
@@ -52,167 +130,82 @@ Successfully completed:
 
 ---
 
-## Completed UX & Workflow Stabilization
+## Completed Longitudinal Foundation Work
 
-Previously completed:
-- persistent operational workflow controls
-- continuity-safe generation handling
-- historical snapshot restoration
-- unified view/edit workflow structure
-- operational input grouping
-- progression state scaffolding
-- follow-up status scaffolding
-- operational prioritization rendering hierarchy
-- continuity-safe regeneration handling
-- historical continuity architecture foundation
+Successfully completed:
 
----
-
-# Current Product Identity
-
-The system is no longer attempting to answer:
-
-> "Which treatment pathway should the clinician choose?"
-
-The system is now attempting to answer:
-
-> "What operational condition is currently unstable, and what pressures are sustaining that instability?"
-
-This operational framing now governs:
-- synthesis behavior
-- prioritization hierarchy
-- continuity interpretation
-- reassessment evolution
-- environmental feasibility interpretation
-- caregiver feasibility interpretation
-
----
-
-# Current Architectural Model
-
-## Core Operational Hierarchy
-
-1. Current Progression State
-2. Current Operational Emphasis
-3. Instability Drivers
-4. Feasibility Constraints
-5. Environmental Pressures
-6. Execution Pressure Points
-7. Adjacent Operational Priorities
-8. Reassessment Signals
-9. Continuity Summary
+- deterministic progression architecture
+- continuity architecture
+- reassessment architecture
+- operational prioritization architecture
+- longitudinal data capture foundation
+- progression check data model
+- clinical attention model
+- longitudinal state model
+- progression check UX architecture
 
 ---
 
 # Current Focus
 
-# Phase 3B — Continuity Interpretation Foundation
+# Phase 5 — Longitudinal Workspace Design
 
 ## Status
-COMPLETE
+
+ACTIVE
 
 ---
 
-## Completed
+## Objective
 
-### Deterministic Continuity Interpretation Layer
+Transition the product from an intake-driven plan viewer into a longitudinal clinical guidance workspace.
 
-Implemented:
+The workspace should help clinicians answer:
 
-src/lib/buildContinuityInterpretation.ts
+- What changed?
+- What requires attention?
+- What should happen next?
 
-Capabilities now include:
-
-- continuity condition interpretation
-- reassessment pressure classification
-- operational instability interpretation
-- operational drift interpretation
-- continuity-sensitive workflow surfacing
+without requiring review of the full evaluation, intake, or historical documentation.
 
 ---
 
-### API Integration
+## Primary Design Focus
 
-Continuity interpretation is now integrated into:
+Design the workspace around:
 
-src/app/api/generate-plan/route.ts
+1. Current Clinical Attention
+2. Current Operational Emphasis
+3. Current Progression Status
+4. Reassessment Status
+5. Most Recent Longitudinal Event
 
-and injected into generated operational plans.
+The workspace should prioritize:
 
-Progression state is now passed into the generation pipeline before continuity interpretation execution.
+- clinical orientation
+- progression check workflows
+- attention-driven treatment decisions
+- continuity-aware treatment execution
 
----
+over:
 
-### Continuity-Sensitive UI Foundation
-
-Replaced:
-
-Follow-Up Status
-
-with:
-
-Continuity Status
-
-Current surfaced continuity workflow elements:
-
-- Current Continuity Condition
-- Operational Change Classification
-- Dominant Instability Drivers
-- Reassessment Pressure
+- plan consumption
+- intake review
+- historical report viewing
 
 ---
 
-### Interpretation Quality Improvements
+## Explicit Non-Goals
 
-Implemented:
+Do not:
 
-- clinician-readable continuity wording
-- operational instability labeling
-- reassessment pressure calibration
-- operational drift wording improvements
-- operational classification refinement
+- redesign reasoning architecture
+- redesign progression architecture
+- redesign continuity architecture
+- redesign reassessment architecture
+- redesign operational prioritization
 
-The continuity system now reads as:
-
-- operationally grounded
-- reassessment-aware
-- continuity-sensitive
-
-rather than:
-
-- engineering-oriented
-- AI-generated
-- pathway-centric
-
----
-
-# Next Phase
-
-# Phase 4 — Continuity-Sensitive Reassessment Workflow
-
-Primary goals:
-
-- continuity-aware reassessment mutation
-- longitudinal continuity state evolution
-- operational emphasis adaptation
-- reassessment-sensitive continuity recalibration
-- continuity-safe generation persistence
-
-Focus areas:
-
-- follow-up update workflows
-- continuity mutation architecture
-- stale-state recalibration
-- reassessment persistence
-- continuity-aware regeneration flows
-
-Avoid:
-
-- dashboard systems
-- timeline visualization
-- progression gamification
-- predictive longitudinal scoring
-- analytics-heavy UX expansion
+These systems should be consumed by the workspace, not redefined by it.
 
 ---
 
@@ -220,21 +213,27 @@ Avoid:
 
 Future work should prioritize:
 
-- continuity-safe longitudinal workflows
-- operational reassessment evolution
-- deterministic continuity governance
-- reassessment-sensitive operational interpretation
+- progression check command center design
+- longitudinal workspace architecture
+- clinical attention surfacing
+- continuity-aware workflow guidance
+- progression event capture workflows
+- reassessment escalation workflows
 
 rather than:
 
-- expanding UI complexity
-- adding additional pathway abstractions
-- speculative AI reasoning layers
+- dashboard-heavy UX
+- timeline-heavy UX
+- analytics-driven interfaces
+- plan-viewer expansion
+- additional pathway abstractions
 
 ---
 
 # Deferred / Parking Lot
+
 The following concepts remain intentionally deferred:
+
 - predictive analytics
 - autonomous recommendation systems
 - timeline-heavy progression systems
@@ -246,10 +245,13 @@ The following concepts remain intentionally deferred:
 - cross-patient pattern intelligence
 
 These may be revisited later only if they support:
+
 - workflow clarity
 - clinician trust
 - operational usefulness
+
 without increasing:
+
 - cognitive burden
 - architectural instability
 - workflow complexity
@@ -257,11 +259,18 @@ without increasing:
 ---
 
 # Roadmap Governance Rule
-Before adding new features, ask:
 
-Does this improve continuity-aware clinician workflow clarity and reduce cognitive burden in real operational environments?
+Before adding new workspace functionality, ask:
+
+Does this help the clinician determine:
+
+- what changed?
+- what matters?
+- what requires attention?
+- what should happen next?
 
 If not:
+
 - simplify it
 - defer it
 - or reject it
