@@ -13,7 +13,6 @@ import {
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
 import { buildProgressionState } from "@/lib/buildProgressionState";
 import { CaregiverFeasibilityCard } from "./components/CaregiverFeasibilityCard";
-import { CurrentOperationalStatePanel } from "./components/CurrentOperationalStatePanel";
 import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCard";
 import { ProgressionContinuityRow } from "./components/ProgressionContinuityRow";
 import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
@@ -2045,6 +2044,105 @@ const operationalFocusRows: SummaryRow[] = [
   },
 ];
 
+const clinicalAttentionRequiresOperationalReview = readBoolean(
+  clinicalAttentionState,
+  ["requiresOperationalReview", "requires_operational_review"]
+);
+
+const clinicalAttentionReassessmentRecommended = readBoolean(
+  clinicalAttentionState,
+  ["reassessmentRecommended", "reassessment_recommended"]
+);
+
+const sinceLastVisitFunctionalChanges = readTextList(currentLongitudinalState, [
+  "functionalChanges",
+  "functional_changes",
+]);
+
+const sinceLastVisitMilestone = readText(currentLongitudinalState, [
+  "milestoneAchieved",
+  "milestone_achieved",
+]);
+
+const sinceLastVisitTreatmentDirectionChanged = readBoolean(
+  currentLongitudinalState,
+  ["treatmentDirectionChanged", "treatment_direction_changed"]
+);
+
+const sinceLastVisitReasonTreatmentChanged = readText(currentLongitudinalState, [
+  "reasonTreatmentChanged",
+  "reason_treatment_changed",
+]);
+
+const sinceLastVisitUpdatedAt =
+  formatDateTime(readText(currentLongitudinalState, ["lastUpdatedAt", "last_updated_at"])) ||
+  formatDateTime(latestLongitudinalEvent?.created_at);
+
+const sinceLastVisitRows: SummaryRow[] = [
+  {
+    label: "Functional changes",
+    value: sinceLastVisitFunctionalChanges,
+  },
+  {
+    label: "Milestone achieved",
+    value: sinceLastVisitMilestone,
+  },
+  {
+    label: "Treatment direction changed",
+    value: formatBoolean(sinceLastVisitTreatmentDirectionChanged),
+  },
+  {
+    label: "Reason treatment changed",
+    value: sinceLastVisitReasonTreatmentChanged,
+  },
+  {
+    label: "Last updated",
+    value: sinceLastVisitUpdatedAt,
+  },
+];
+
+const attentionRequiredRows: SummaryRow[] = [
+  {
+    label: "Category",
+    value: readText(clinicalAttentionState, ["category"]),
+  },
+  {
+    label: "Attention statement",
+    value: readText(clinicalAttentionState, ["attentionStatement", "attention_statement"]),
+  },
+  {
+    label: "Attention drivers",
+    value: readTextList(clinicalAttentionState, ["attentionDrivers", "attention_drivers"]),
+  },
+  {
+    label: "Operational review",
+    value: formatBoolean(clinicalAttentionRequiresOperationalReview),
+  },
+  {
+    label: "Reassessment recommended",
+    value: formatBoolean(clinicalAttentionReassessmentRecommended),
+  },
+];
+
+const currentFocusRows: SummaryRow[] = [
+  {
+    label: "Current emphasis",
+    value: operationalPrioritization?.currentOperationalEmphasis,
+  },
+  {
+    label: "Why this focus",
+    value: operationalPrioritization?.emphasisRationale,
+  },
+  {
+    label: "Dominant barriers",
+    value: operationalPrioritization?.dominantBarriers,
+  },
+  {
+    label: "Continuity summary",
+    value: operationalPrioritization?.continuitySummary,
+  },
+];
+
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
 
@@ -2081,77 +2179,6 @@ const clinicalStatusExplanation =
     ? "The plan remains usable, but active pressures should be watched during the visit."
     : "The current plan appears appropriate for the available case information.";
 
-type ClinicalChangeDirection = "Improving" | "Stable" | "Declining" | "Mixed";
-
-const progressionReadinessText =
-  progressionState?.advancementReadiness?.toLowerCase() || "";
-const progressionSummaryText =
-  progressionState?.continuitySummary?.toLowerCase() || "";
-const operationalSummaryText = operationalContinuitySummary.toLowerCase();
-const combinedChangeText = `${progressionReadinessText} ${progressionSummaryText} ${operationalSummaryText}`;
-
-const hasImprovingChangeSignal =
-  (progressionState?.activeMilestones || []).length > 0 ||
-  /\b(improv|progress|advance|ready|gaining|increased|better)\b/.test(
-    combinedChangeText
-  );
-const hasDecliningChangeSignal =
-  displayCase.reasoning_stale ||
-  displayCase.plan_stale ||
-  (progressionState?.regressionRisks || []).length > 0 ||
-  operationalReassessmentTriggers.length > 0 ||
-  /\b(declin|regress|worsen|reassess|setback|reduced|less)\b/.test(
-    combinedChangeText
-  );
-
-const clinicalChangeDirection: ClinicalChangeDirection =
-  hasImprovingChangeSignal && hasDecliningChangeSignal
-    ? "Mixed"
-    : hasImprovingChangeSignal
-    ? "Improving"
-    : hasDecliningChangeSignal
-    ? "Declining"
-    : "Stable";
-
-const clinicalChangeBullets = [
-  operationalContinuitySummary || progressionState?.continuitySummary,
-  ...(progressionState?.activeMilestones || [])
-    .slice(0, 2)
-    .map((item) => `Progress noted: ${item}`),
-  ...(progressionState?.regressionRisks || [])
-    .slice(0, 2)
-    .map((item) => `Watch for setback: ${item}`),
-  ...(displayCase.reasoning_stale || displayCase.plan_stale
-    ? ["Recent case updates may change how the plan should be used today."]
-    : []),
-].filter(Boolean) as string[];
-
-const treatmentImplication =
-  clinicalStatus === "Needs Reassessment"
-    ? `Review the current plan before treatment, with attention to ${
-        operationalReassessmentTriggers[0] ||
-        dominantBarriers[0] ||
-        currentOperationalEmphasis
-      }.`
-    : clinicalStatus === "Monitor Closely"
-    ? `Proceed with the current focus while watching ${
-        dominantBarriers[0] ||
-        operationalReassessmentTriggers[0] ||
-        "today's highest-pressure area"
-      } during treatment.`
-    : `Continue the current focus on ${currentOperationalEmphasis}.`;
-
-const progressionOutlookLabel =
-  progressionState?.advancementReadiness ||
-  progressionState?.currentPhase ||
-  "Progression outlook not yet available";
-
-const remainingProgressionRequirements = [
-  ...(progressionState?.activeBarriers || []),
-  ...dominantBarriers,
-  ...operationalReassessmentTriggers,
-].filter(Boolean).slice(0, 4);
-
 const dominantInstabilityDrivers: string[] =
   continuityInterpretation?.dominantInstabilityDrivers || [];
 
@@ -2168,29 +2195,78 @@ const caregiverGuidance: string[] =
       structuredPlanDetails?.caregiverConsiderations ||
       [];
 
-const topCommandPriorities = dominantBarriers.length
-  ? dominantBarriers
-  : emphasisRationale.length
-  ? emphasisRationale
-  : operationalReassessmentTriggers;
+const caseStatusRows: SummaryRow[] = [
+  {
+    label: "Clinical status",
+    value: clinicalStatus,
+  },
+  {
+    label: "Plan status",
+    value:
+      displayCase.reasoning_stale || displayCase.plan_stale
+        ? "Review current plan before relying on it."
+        : displayCase.modules_stale
+        ? "Plan usable; supporting modules may need refresh."
+        : "Current plan is active.",
+  },
+  {
+    label: "Progression status",
+    value:
+      progressionState?.advancementReadiness ||
+      progressionState?.currentPhase ||
+      readText(clinicalAttentionState, ["progressionStatus", "progression_status"]),
+  },
+  {
+    label: "Review flags",
+    value: [
+      clinicalAttentionRequiresOperationalReview ? "Operational review flagged" : null,
+      clinicalAttentionReassessmentRecommended ? "Reassessment recommended" : null,
+      displayCase.reasoning_stale ? "Reasoning stale" : null,
+      displayCase.plan_stale ? "Plan stale" : null,
+    ].filter(Boolean) as string[],
+  },
+];
 
-const primaryStatusDriver =
-  dominantBarriers[0] ||
-  emphasisRationale[0] ||
-  structuredPlanDetails?.instabilityDrivers?.[0] ||
-  "Current structured case findings are guiding the plan status.";
+const nextActionItems = [
+  ...(structuredPlanDetails?.immediateActions || []),
+  ...(clinicalAttentionRequiresOperationalReview ? ["Complete operational review before relying on the current treatment direction."] : []),
+  ...(clinicalAttentionReassessmentRecommended ? ["Consider reassessment before advancing the plan."] : []),
+  ...operationalReassessmentTriggers.map((trigger) => `Reassessment trigger: ${trigger}`),
+  ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Progression trigger: ${trigger}`),
+]
+  .filter(Boolean)
+  .slice(0, 5);
 
-const statusChangeSummary =
-  displayCase.reasoning_stale || displayCase.plan_stale
-    ? "Structured case information has changed since the current plan was generated."
-    : operationalContinuitySummary ||
-      progressionState?.continuitySummary ||
-      "No major plan-changing update is currently highlighted.";
+const clinicalStatusBadgeClass =
+  clinicalStatus === "Needs Reassessment"
+    ? "border-red-700 bg-red-950/70 text-red-100"
+    : clinicalStatus === "Monitor Closely"
+    ? "border-yellow-700 bg-yellow-950/70 text-yellow-100"
+    : "border-emerald-700 bg-emerald-950/70 text-emerald-100";
 
-const statusImportanceSummary =
-  operationalReassessmentTriggers[0] ||
-  structuredPlanDetails?.continuityRisks?.[0] ||
-  "This status helps determine whether to proceed, monitor closely, or reassess before treatment.";
+const progressionOutlookLabel =
+  progressionState?.advancementReadiness ||
+  progressionState?.currentPhase ||
+  "Progression outlook not yet available";
+
+const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
+  <dl className="mt-4 space-y-3 text-sm">
+    {hasAnySummaryValue(rows) ? (
+      rows.map((row) => (
+        <div key={row.label}>
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            {row.label}
+          </dt>
+          <dd className="mt-1 leading-relaxed text-gray-200">
+            {renderSummaryValue(row.value)}
+          </dd>
+        </div>
+      ))
+    ) : (
+      <p className="text-gray-500">{fallback}</p>
+    )}
+  </dl>
+);
 
     const getFocusLabel = (promptVersion?: string | null) => {
   if (promptVersion?.includes("transfers_mobility")) return "Transfers";
@@ -2637,29 +2713,112 @@ return (
 
 
 {/* ==============================
-    RENDER: CURRENT OPERATIONAL EMPHASIS
+    RENDER: COMMAND CENTER
 ============================== */}
 
-<CurrentOperationalStatePanel
-  currentOperationalEmphasis={currentOperationalEmphasis}
-  clinicalStatus={clinicalStatus}
-  clinicalStatusExplanation={clinicalStatusExplanation}
-  clinicalChangeDirection={clinicalChangeDirection}
-  clinicalChangeBullets={clinicalChangeBullets}
-  treatmentImplication={treatmentImplication}
-  progressionOutlookLabel={progressionOutlookLabel}
-  remainingProgressionRequirements={remainingProgressionRequirements}
-  primaryDriver={primaryStatusDriver}
-  whatChanged={statusChangeSummary}
-  whyItMatters={statusImportanceSummary}
-  operationalContinuitySummary={operationalContinuitySummary}
-  planSummary={generated?.summary?.planSummary}
-  topPriorities={topCommandPriorities}
-  immediateActions={structuredPlanDetails?.immediateActions || []}
-  potentialEnhancements={adjacentOperationalPriorities}
-  onShowClinicalSummary={() => setShowClinicalSummary(true)}
-  onCopyRecommendedSummary={handleCopyRecommendedSummary}
-/>
+<section className="rounded-3xl border border-blue-900/70 bg-gradient-to-br from-gray-900 via-gray-950 to-blue-950/50 p-5 shadow-2xl shadow-blue-950/20 sm:p-6">
+  <div className="mb-5 flex flex-col gap-3 border-b border-gray-800 pb-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-300">
+        Command Center
+      </p>
+      <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+        Current clinical reality
+      </h1>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+        First-read orientation for what is happening, what needs attention, what treatment should focus on, and what should happen next.
+      </p>
+    </div>
+
+    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${clinicalStatusBadgeClass}`}>
+      {clinicalStatus}
+      <p className="mt-1 max-w-xs text-xs font-normal opacity-85">
+        {clinicalStatusExplanation}
+      </p>
+    </div>
+  </div>
+
+  <div className="grid gap-4 lg:grid-cols-2">
+    <article className="rounded-2xl border border-gray-800 bg-gray-950/80 p-4 lg:col-span-2">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+            1. Case Status
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-white">
+            {clinicalStatus}
+          </h2>
+        </div>
+        <span className="rounded-full border border-gray-700 px-3 py-1 text-xs text-gray-300">
+          {progressionOutlookLabel}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-gray-300">
+        {clinicalStatusExplanation}
+      </p>
+      {renderCommandCenterRows(caseStatusRows, "No case status details are available yet.")}
+    </article>
+
+    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+        2. Since Last Visit
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-white">
+        What changed recently
+      </h2>
+      {renderCommandCenterRows(sinceLastVisitRows, "No longitudinal update has been recorded yet.")}
+    </article>
+
+    <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-300">
+        3. Attention Required
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-white">
+        Clinical attention
+      </h2>
+      <p className="mt-1 text-xs text-red-100/70">
+        Separate from operational focus; this reflects current clinical attention signals.
+      </p>
+      {renderCommandCenterRows(attentionRequiredRows, "No clinical attention flags are available yet.")}
+    </article>
+
+    <article className="rounded-2xl border border-emerald-900/60 bg-emerald-950/15 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+        4. Current Focus
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-white">
+        {currentOperationalEmphasis}
+      </h2>
+      <p className="mt-1 text-xs text-emerald-100/70">
+        Operational focus remains visually distinct from clinical attention.
+      </p>
+      {renderCommandCenterRows(currentFocusRows, "No operational focus has been generated yet.")}
+    </article>
+
+    <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
+        5. Next Action
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-white">
+        What to do next
+      </h2>
+      {nextActionItems.length > 0 ? (
+        <ul className="mt-4 space-y-2 text-sm text-gray-200">
+          {nextActionItems.map((action, index) => (
+            <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
+              <span className="mt-1 text-blue-300">•</span>
+              <span>{action}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm leading-relaxed text-gray-400">
+          No immediate action is documented yet. Continue with the current focus and update progression when new visit findings are available.
+        </p>
+      )}
+    </article>
+  </div>
+</section>
 
 <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5">
   <div className="mb-4">
@@ -2828,7 +2987,13 @@ return (
   </form>
 
   {shouldRenderProgressionSummaryCards && (
-    <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
+    <details className="mt-5 rounded-xl border border-gray-800 bg-gray-950/60 p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-gray-200">
+        Supporting progression summaries
+        <span className="ml-2 text-xs font-normal text-gray-500">Show current snapshots and event details</span>
+      </summary>
+
+      <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
       <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
         <p className="font-semibold text-gray-100">Current Clinical Attention</p>
         <p className="mt-1 text-xs text-gray-500">Clinician-facing status from the latest progression check.</p>
@@ -2904,7 +3069,8 @@ return (
           )}
         </dl>
       </div>
-    </div>
+      </div>
+    </details>
   )}
 </section>
 
