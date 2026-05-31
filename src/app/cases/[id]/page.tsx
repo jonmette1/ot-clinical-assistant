@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
@@ -233,8 +233,37 @@ type GenerationRow = {
   id: string;
   created_at: string;
   prompt_version: string | null;
-  input_payload: any;
+  input_payload: Partial<CaseDetail> & Record<string, unknown>;
   output_payload: GeneratedOutput | null;
+};
+
+type ProgressionCheckFormState = {
+  functionalChanges: string;
+  currentDominantBarrier: string;
+  progressionStatus: string;
+  treatmentDirectionChanged: boolean;
+  milestoneAchieved: string;
+  reasonTreatmentChanged: string;
+};
+
+type LongitudinalEventRow = {
+  id?: string;
+  created_at?: string;
+  event_type?: string;
+  event_payload?: unknown;
+  previous_state_snapshot?: unknown;
+  current_state_snapshot?: unknown;
+  clinical_attention_snapshot?: unknown;
+  operational_emphasis_snapshot?: unknown;
+};
+
+const emptyProgressionCheckForm: ProgressionCheckFormState = {
+  functionalChanges: "",
+  currentDominantBarrier: "",
+  progressionStatus: "",
+  treatmentDirectionChanged: false,
+  milestoneAchieved: "",
+  reasonTreatmentChanged: "",
 };
 
 type CaseDetail = {
@@ -293,12 +322,14 @@ clinical_decision_input?: {
   environmentContext?: string[];
 } | null;
 
-clinical_decision_model?: any;
+clinical_decision_model?: unknown;
 selected_pathway_index?: number | null;
 reasoning_stale?: boolean;
 plan_stale?: boolean;
 modules_stale?: boolean;
 clinician_notes?: string | null;
+current_longitudinal_state?: unknown;
+clinical_attention_state?: unknown;
 
 environment: {
     bathroom_type?: string;
@@ -409,6 +440,11 @@ const [adlPrivacy, setAdlPrivacy] = useState<AdlPrivacySupport | null>(null);
 const [isGeneratingAdlPrivacy, setIsGeneratingAdlPrivacy] = useState(false);
 const [equipmentFeasibility, setEquipmentFeasibility] = useState<EquipmentFeasibilityPlan | null>(null);
 const [isGeneratingEquipmentFeasibility, setIsGeneratingEquipmentFeasibility] = useState(false);
+const [progressionCheckForm, setProgressionCheckForm] = useState<ProgressionCheckFormState>(emptyProgressionCheckForm);
+const [isSubmittingProgressionCheck, setIsSubmittingProgressionCheck] = useState(false);
+const [progressionCheckMessage, setProgressionCheckMessage] = useState("");
+const [progressionCheckError, setProgressionCheckError] = useState("");
+const [latestLongitudinalEvent, setLatestLongitudinalEvent] = useState<LongitudinalEventRow | null>(null);
 
 // ==============================
 // DATA LOADING
@@ -528,6 +564,87 @@ if (gens.length > 0) {
 // OPERATIONAL HANDLERS
 // save / delete / restore / regenerate
 // ==============================
+
+async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  if (!caseData?.id || isSubmittingProgressionCheck) return;
+
+  setIsSubmittingProgressionCheck(true);
+  setProgressionCheckMessage("");
+  setProgressionCheckError("");
+
+  try {
+    const currentDominantBarrier = progressionCheckForm.currentDominantBarrier.trim();
+    const reasonTreatmentChanged = progressionCheckForm.reasonTreatmentChanged.trim();
+
+    if (progressionCheckForm.treatmentDirectionChanged && !currentDominantBarrier) {
+      setProgressionCheckError("Current limiting factor is required when treatment direction changed.");
+      return;
+    }
+
+    if (progressionCheckForm.treatmentDirectionChanged && !reasonTreatmentChanged) {
+      setProgressionCheckError("Reason treatment changed is required when treatment direction changed.");
+      return;
+    }
+
+    const response = await fetch("/api/progression-check", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        caseId: caseData.id,
+        functionalChanges: progressionCheckForm.functionalChanges.trim() || null,
+        currentDominantBarrier:
+          currentDominantBarrier || "No new dominant barrier identified",
+        progressionStatus: progressionCheckForm.progressionStatus.trim(),
+        treatmentDirectionChanged: progressionCheckForm.treatmentDirectionChanged,
+        milestoneAchieved: progressionCheckForm.milestoneAchieved.trim() || null,
+        reasonTreatmentChanged: reasonTreatmentChanged || null,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Failed to submit progression check.");
+    }
+
+    const { data: refreshedCase, error: refreshError } = await supabase
+      .from("cases")
+      .select("*")
+      .eq("id", caseData.id)
+      .single();
+
+    if (refreshError) throw refreshError;
+
+    const typedCase = refreshedCase as CaseDetail;
+    setCaseData(typedCase);
+    setCurrentGenerationId(typedCase.current_generation_id);
+    setLatestGeneratedPlan(typedCase.generated_output as GeneratedPlan | null);
+    setSelectedGeneration(null);
+
+    const { data: longitudinalEvent, error: longitudinalEventError } = await supabase
+      .from("longitudinal_events")
+      .select("*")
+      .eq("case_id", caseData.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (longitudinalEventError) throw longitudinalEventError;
+
+    setLatestLongitudinalEvent((longitudinalEvent as LongitudinalEventRow) || null);
+    setProgressionCheckForm(emptyProgressionCheckForm);
+    setProgressionCheckMessage("Progression check saved and case data refreshed.");
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to submit progression check.";
+    setProgressionCheckError(message);
+  } finally {
+    setIsSubmittingProgressionCheck(false);
+  }
+}
 
   async function handleDeleteCase() {
   const confirmed = window.confirm(
@@ -739,9 +856,10 @@ modules_stale: true,
     });
 
     setIsEditing(false);
-} catch (error: any) {
+} catch (error: unknown) {
   console.error("Failed to save case edits:", error);
-  alert(`Failed to save changes: ${error?.message || JSON.stringify(error)}`);
+  const message = error instanceof Error ? error.message : JSON.stringify(error);
+  alert(`Failed to save changes: ${message}`);
 }
 }
 
@@ -1184,8 +1302,8 @@ setCaseData({
     } catch (e) {
       console.error("Failed to persist caregiver script", e);
     }
-  } catch (err: any) {
-    setCaregiverScriptError(err.message || "Something went wrong.");
+  } catch (err: unknown) {
+    setCaregiverScriptError(err instanceof Error ? err.message : "Something went wrong.");
   } finally {
     setIsGeneratingCaregiverScript(false);
   }
@@ -2008,8 +2126,8 @@ modules_stale: true,
 
     if (caseUpdateError) throw caseUpdateError;
 
-    setCaseData((prev: any) => ({
-      ...prev,
+    setCaseData((prev) => ({
+      ...(prev || caseData),
       case_classification: updatedCasePayload.case_classification,
       clinical_decision_input: clinicalDecisionInput,
       clinical_decision_model: clinicalDecisionModel,
@@ -2017,7 +2135,7 @@ modules_stale: true,
       reasoning_stale: false,
 plan_stale: false,
 modules_stale: true,
-      current_generation_id: newGeneration?.id || prev.current_generation_id,
+      current_generation_id: newGeneration?.id || prev?.current_generation_id || caseData.current_generation_id,
     }));
 
     setLatestGeneratedPlan(plan);
@@ -2190,6 +2308,200 @@ return (
   onShowClinicalSummary={() => setShowClinicalSummary(true)}
   onCopyRecommendedSummary={handleCopyRecommendedSummary}
 />
+
+<section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5">
+  <div className="mb-4">
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+      Progression Check
+    </p>
+    <h2 className="mt-1 text-xl font-semibold text-white">
+      Quick progression validation
+    </h2>
+    <p className="mt-1 text-sm text-gray-400">
+      Minimal entry point for recording whether the current treatment direction still matches the case.
+    </p>
+  </div>
+
+  <form onSubmit={handleSubmitProgressionCheck} className="space-y-4">
+    <div>
+      <label htmlFor="functionalChanges" className="text-sm font-medium text-gray-200">
+        Functional changes
+      </label>
+      <textarea
+        id="functionalChanges"
+        value={progressionCheckForm.functionalChanges}
+        onChange={(event) =>
+          setProgressionCheckForm((previous) => ({
+            ...previous,
+            functionalChanges: event.target.value,
+          }))
+        }
+        rows={3}
+        className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+        placeholder="Briefly note what changed since the last visit."
+      />
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      <div>
+        <label htmlFor="currentDominantBarrier" className="text-sm font-medium text-gray-200">
+          Current limiting factor
+        </label>
+        <p className="mt-1 text-xs text-gray-500">Optional unless treatment direction changed.</p>
+        <input
+          id="currentDominantBarrier"
+          type="text"
+          required={progressionCheckForm.treatmentDirectionChanged}
+          value={progressionCheckForm.currentDominantBarrier}
+          onChange={(event) =>
+            setProgressionCheckForm((previous) => ({
+              ...previous,
+              currentDominantBarrier: event.target.value,
+            }))
+          }
+          className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          placeholder="e.g., transfer safety, caregiver availability"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="progressionStatus" className="text-sm font-medium text-gray-200">
+          Progression status
+        </label>
+        <select
+          id="progressionStatus"
+          required
+          value={progressionCheckForm.progressionStatus}
+          onChange={(event) =>
+            setProgressionCheckForm((previous) => ({
+              ...previous,
+              progressionStatus: event.target.value,
+            }))
+          }
+          className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+        >
+          <option value="">Select status</option>
+          <option value="Progressing As Expected">Progressing As Expected</option>
+          <option value="Progressing Faster Than Expected">Progressing Faster Than Expected</option>
+          <option value="Minimal Progress">Minimal Progress</option>
+          <option value="Plateau Emerging">Plateau Emerging</option>
+          <option value="Regression Detected">Regression Detected</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label htmlFor="milestoneAchieved" className="text-sm font-medium text-gray-200">
+        Milestone achieved <span className="text-gray-500">(optional)</span>
+      </label>
+      <input
+        id="milestoneAchieved"
+        type="text"
+        value={progressionCheckForm.milestoneAchieved}
+        onChange={(event) =>
+          setProgressionCheckForm((previous) => ({
+            ...previous,
+            milestoneAchieved: event.target.value,
+          }))
+        }
+        className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+        placeholder="e.g., completes toilet transfer with supervision"
+      />
+    </div>
+
+    <label className="flex items-start gap-3 rounded-lg border border-gray-800 bg-gray-950/70 p-3 text-sm text-gray-300">
+      <input
+        type="checkbox"
+        checked={progressionCheckForm.treatmentDirectionChanged}
+        onChange={(event) =>
+          setProgressionCheckForm((previous) => ({
+            ...previous,
+            treatmentDirectionChanged: event.target.checked,
+          }))
+        }
+        className="mt-1"
+      />
+      <span>
+        Treatment direction changed
+        <span className="block text-xs text-gray-500">
+          Check only if the operational emphasis should be refreshed from this progression check.
+        </span>
+      </span>
+    </label>
+
+    {progressionCheckForm.treatmentDirectionChanged && (
+      <div>
+        <label htmlFor="reasonTreatmentChanged" className="text-sm font-medium text-gray-200">
+          Reason treatment changed
+        </label>
+        <textarea
+          id="reasonTreatmentChanged"
+          required={progressionCheckForm.treatmentDirectionChanged}
+          value={progressionCheckForm.reasonTreatmentChanged}
+          onChange={(event) =>
+            setProgressionCheckForm((previous) => ({
+              ...previous,
+              reasonTreatmentChanged: event.target.value,
+            }))
+          }
+          rows={2}
+          className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          placeholder="Briefly explain why the treatment direction changed."
+        />
+      </div>
+    )}
+
+    <div className="flex items-center gap-3">
+      <button
+        type="submit"
+        disabled={isSubmittingProgressionCheck}
+        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSubmittingProgressionCheck ? "Saving..." : "Save progression check"}
+      </button>
+
+      {progressionCheckMessage && (
+        <p className="text-sm text-green-400">{progressionCheckMessage}</p>
+      )}
+
+      {progressionCheckError && (
+        <p className="text-sm text-red-400">{progressionCheckError}</p>
+      )}
+    </div>
+  </form>
+
+  {progressionCheckMessage && (
+    <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+        <p className="mb-2 font-semibold text-gray-200">Clinical attention state</p>
+        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
+          {JSON.stringify(displayCase.clinical_attention_state ?? null, null, 2)}
+        </pre>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+        <p className="mb-2 font-semibold text-gray-200">Current longitudinal state</p>
+        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
+          {JSON.stringify(displayCase.current_longitudinal_state ?? null, null, 2)}
+        </pre>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+        <p className="mb-2 font-semibold text-gray-200">Operational prioritization</p>
+        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
+          {JSON.stringify(generated?.operational_prioritization ?? null, null, 2)}
+        </pre>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+        <p className="mb-2 font-semibold text-gray-200">Latest longitudinal event</p>
+        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
+          {JSON.stringify(latestLongitudinalEvent ?? null, null, 2)}
+        </pre>
+      </div>
+    </div>
+  )}
+</section>
 
 <section className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5">
   <div className="mb-4">
