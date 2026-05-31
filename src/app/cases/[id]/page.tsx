@@ -242,6 +242,7 @@ type ProgressionCheckFormState = {
   currentDominantBarrier: string;
   progressionStatus: string;
   treatmentDirectionChanged: boolean;
+  reasonTreatmentChanged: string;
   milestoneAchieved: string;
 };
 
@@ -261,6 +262,7 @@ const emptyProgressionCheckForm: ProgressionCheckFormState = {
   currentDominantBarrier: "",
   progressionStatus: "",
   treatmentDirectionChanged: false,
+  reasonTreatmentChanged: "",
   milestoneAchieved: "",
 };
 
@@ -572,6 +574,9 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
   setProgressionCheckMessage("");
   setProgressionCheckError("");
 
+  const currentDominantBarrier = progressionCheckForm.currentDominantBarrier.trim();
+  const treatmentDirectionChanged = progressionCheckForm.treatmentDirectionChanged;
+
   try {
     const response = await fetch("/api/progression-check", {
       method: "POST",
@@ -581,9 +586,14 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
       body: JSON.stringify({
         caseId: caseData.id,
         functionalChanges: progressionCheckForm.functionalChanges.trim() || null,
-        currentDominantBarrier: progressionCheckForm.currentDominantBarrier.trim(),
+        currentDominantBarrier:
+          currentDominantBarrier ||
+          (treatmentDirectionChanged ? "" : "No new dominant barrier identified"),
         progressionStatus: progressionCheckForm.progressionStatus.trim(),
-        treatmentDirectionChanged: progressionCheckForm.treatmentDirectionChanged,
+        treatmentDirectionChanged,
+        reasonTreatmentChanged: treatmentDirectionChanged
+          ? progressionCheckForm.reasonTreatmentChanged.trim()
+          : null,
         milestoneAchieved: progressionCheckForm.milestoneAchieved.trim() || null,
       }),
     });
@@ -2328,12 +2338,15 @@ return (
     <div className="grid gap-4 md:grid-cols-2">
       <div>
         <label htmlFor="currentDominantBarrier" className="text-sm font-medium text-gray-200">
-          Current dominant barrier
+          Current limiting factor
         </label>
+        <p className="mt-1 text-xs text-gray-500">
+          Optional unless treatment direction changed.
+        </p>
         <input
           id="currentDominantBarrier"
           type="text"
-          required
+          required={progressionCheckForm.treatmentDirectionChanged}
           value={progressionCheckForm.currentDominantBarrier}
           onChange={(event) =>
             setProgressionCheckForm((previous) => ({
@@ -2399,6 +2412,9 @@ return (
           setProgressionCheckForm((previous) => ({
             ...previous,
             treatmentDirectionChanged: event.target.checked,
+            reasonTreatmentChanged: event.target.checked
+              ? previous.reasonTreatmentChanged
+              : "",
           }))
         }
         className="mt-1"
@@ -2410,6 +2426,28 @@ return (
         </span>
       </span>
     </label>
+
+    {progressionCheckForm.treatmentDirectionChanged && (
+      <div>
+        <label htmlFor="reasonTreatmentChanged" className="text-sm font-medium text-gray-200">
+          Reason Treatment Changed
+        </label>
+        <textarea
+          id="reasonTreatmentChanged"
+          required
+          value={progressionCheckForm.reasonTreatmentChanged}
+          onChange={(event) =>
+            setProgressionCheckForm((previous) => ({
+              ...previous,
+              reasonTreatmentChanged: event.target.value,
+            }))
+          }
+          rows={3}
+          className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          placeholder="Briefly explain why the treatment direction changed."
+        />
+      </div>
+    )}
 
     <div className="flex items-center gap-3">
       <button
