@@ -266,6 +266,159 @@ const emptyProgressionCheckForm: ProgressionCheckFormState = {
   milestoneAchieved: "",
 };
 
+type SummaryValue = string | string[] | boolean | number | null | undefined;
+
+type SummaryRow = {
+  label: string;
+  value: SummaryValue;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readUnknown = (source: unknown, keys: string[]): unknown => {
+  if (!isRecord(source)) return undefined;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const readText = (source: unknown, keys: string[]): string | null => {
+  const value = readUnknown(source, keys);
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+
+  return null;
+};
+
+const readNumber = (source: unknown, keys: string[]): number | null => {
+  const value = readUnknown(source, keys);
+
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+
+  return null;
+};
+
+const readBoolean = (source: unknown, keys: string[]): boolean | null => {
+  const value = readUnknown(source, keys);
+
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.toLowerCase();
+    if (normalized === "true" || normalized === "yes") return true;
+    if (normalized === "false" || normalized === "no") return false;
+  }
+
+  return null;
+};
+
+const readTextList = (source: unknown, keys: string[]): string[] => {
+  const value = readUnknown(source, keys);
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string | number | boolean =>
+        typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+      )
+      .map(String)
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.trim()) return [value];
+
+  return [];
+};
+
+const formatBoolean = (value: boolean | null): string | null => {
+  if (value === null) return null;
+  return value ? "Yes" : "No";
+};
+
+const formatDateTime = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
+
+const hasSummaryValue = (value: SummaryValue): boolean => {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== null && value !== undefined && value !== "";
+};
+
+const hasAnySummaryValue = (rows: SummaryRow[]): boolean =>
+  rows.some((row) => hasSummaryValue(row.value));
+
+const renderSummaryValue = (value: SummaryValue, fallback = "Not documented yet.") => {
+  if (!hasSummaryValue(value)) {
+    return <span className="text-gray-500">{fallback}</span>;
+  }
+
+  if (Array.isArray(value)) {
+    return (
+      <ul className="space-y-1">
+        {value.map((item, index) => (
+          <li key={`${item}-${index}`} className="flex gap-2">
+            <span className="text-gray-500">•</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return <span>{String(value)}</span>;
+};
+
+const formatObjectSummary = (source: unknown, keys: string[]): string[] => {
+  if (!isRecord(source)) return [];
+
+  return keys
+    .map((key) => {
+      const value = source[key];
+
+      if (value === undefined || value === null || value === "") return null;
+
+      const label = key
+        .replace(/_/g, " ")
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (firstCharacter) => firstCharacter.toUpperCase())
+        .trim();
+
+      if (Array.isArray(value)) {
+        const items = value
+          .filter((item): item is string | number | boolean =>
+            typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+          )
+          .map(String);
+
+        return items.length ? `${label}: ${items.join(", ")}` : null;
+      }
+
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        return `${label}: ${String(value)}`;
+      }
+
+      return null;
+    })
+    .filter((item): item is string => Boolean(item));
+};
+
 type CaseDetail = {
   id: string;
     current_generation_id: string | null;
@@ -1686,6 +1839,193 @@ const operationalReassessmentTriggers: string[] =
 const operationalContinuitySummary =
   operationalPrioritization?.continuitySummary || "";
 
+const clinicalAttentionState = displayCase.clinical_attention_state;
+const currentLongitudinalState = displayCase.current_longitudinal_state;
+const latestEventPayload = latestLongitudinalEvent?.event_payload;
+const latestEventCurrentStateSnapshot = latestLongitudinalEvent?.current_state_snapshot;
+const latestEventClinicalAttentionSnapshot = latestLongitudinalEvent?.clinical_attention_snapshot;
+
+const clinicalAttentionRows: SummaryRow[] = [
+  {
+    label: "Category",
+    value: readText(clinicalAttentionState, ["category"]),
+  },
+  {
+    label: "Attention statement",
+    value: readText(clinicalAttentionState, ["attentionStatement", "attention_statement"]),
+  },
+  {
+    label: "Attention drivers",
+    value: readTextList(clinicalAttentionState, ["attentionDrivers", "attention_drivers"]),
+  },
+  {
+    label: "Requires operational review",
+    value: formatBoolean(
+      readBoolean(clinicalAttentionState, ["requiresOperationalReview", "requires_operational_review"])
+    ),
+  },
+  {
+    label: "Reassessment recommended",
+    value: formatBoolean(
+      readBoolean(clinicalAttentionState, ["reassessmentRecommended", "reassessment_recommended"])
+    ),
+  },
+  {
+    label: "Progression status",
+    value: readText(clinicalAttentionState, ["progressionStatus", "progression_status"]),
+  },
+];
+
+const currentLongitudinalRows: SummaryRow[] = [
+  {
+    label: "Current limiting factor",
+    value: readText(currentLongitudinalState, [
+      "currentDominantBarrier",
+      "current_dominant_barrier",
+      "currentLimitingFactor",
+      "current_limiting_factor",
+    ]),
+  },
+  {
+    label: "Secondary barrier",
+    value: readText(currentLongitudinalState, ["secondaryBarrier", "secondary_barrier"]),
+  },
+  {
+    label: "Progression status",
+    value: readText(currentLongitudinalState, ["progressionStatus", "progression_status"]),
+  },
+  {
+    label: "Functional changes",
+    value: readTextList(currentLongitudinalState, ["functionalChanges", "functional_changes"]),
+  },
+  {
+    label: "Milestone achieved",
+    value: readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]),
+  },
+  {
+    label: "Treatment direction changed",
+    value: formatBoolean(
+      readBoolean(currentLongitudinalState, ["treatmentDirectionChanged", "treatment_direction_changed"])
+    ),
+  },
+  {
+    label: "Reason treatment changed",
+    value: readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]),
+  },
+  {
+    label: "Event count",
+    value: readNumber(currentLongitudinalState, ["eventCount", "event_count"]),
+  },
+  {
+    label: "Last updated",
+    value: formatDateTime(readText(currentLongitudinalState, ["lastUpdatedAt", "last_updated_at"])),
+  },
+];
+
+const latestEventPayloadSummary = formatObjectSummary(latestEventPayload, [
+  "functionalChanges",
+  "functional_changes",
+  "currentDominantBarrier",
+  "current_dominant_barrier",
+  "progressionStatus",
+  "progression_status",
+  "milestoneAchieved",
+  "milestone_achieved",
+  "treatmentDirectionChanged",
+  "treatment_direction_changed",
+  "reasonTreatmentChanged",
+  "reason_treatment_changed",
+]);
+
+const latestEventCurrentStateSummary = formatObjectSummary(latestEventCurrentStateSnapshot, [
+  "currentDominantBarrier",
+  "current_dominant_barrier",
+  "secondaryBarrier",
+  "secondary_barrier",
+  "progressionStatus",
+  "progression_status",
+  "functionalChanges",
+  "functional_changes",
+  "milestoneAchieved",
+  "milestone_achieved",
+  "treatmentDirectionChanged",
+  "treatment_direction_changed",
+  "eventCount",
+  "event_count",
+]);
+
+const latestEventClinicalAttentionSummary = formatObjectSummary(latestEventClinicalAttentionSnapshot, [
+  "category",
+  "attentionStatement",
+  "attention_statement",
+  "attentionDrivers",
+  "attention_drivers",
+  "requiresOperationalReview",
+  "requires_operational_review",
+  "reassessmentRecommended",
+  "reassessment_recommended",
+  "progressionStatus",
+  "progression_status",
+]);
+
+const latestProgressionEventRows: SummaryRow[] = [
+  {
+    label: "Event type",
+    value: latestLongitudinalEvent?.event_type,
+  },
+  {
+    label: "Created",
+    value: formatDateTime(latestLongitudinalEvent?.created_at),
+  },
+  {
+    label: "Progression details",
+    value: latestEventPayloadSummary,
+  },
+  {
+    label: "Current state snapshot",
+    value: latestEventCurrentStateSummary,
+  },
+  {
+    label: "Clinical attention snapshot",
+    value: latestEventClinicalAttentionSummary,
+  },
+];
+
+const operationalFocusRows: SummaryRow[] = [
+  {
+    label: "Current operational emphasis",
+    value: operationalPrioritization?.currentOperationalEmphasis,
+  },
+  {
+    label: "Emphasis rationale",
+    value: operationalPrioritization?.emphasisRationale,
+  },
+  {
+    label: "Dominant barriers",
+    value: operationalPrioritization?.dominantBarriers,
+  },
+  {
+    label: "Adjacent operational priorities",
+    value: (operationalPrioritization?.adjacentOperationalPriorities || [])
+      .map((priority) => {
+        const details = [priority.rationale, priority.monitorFor ? `Monitor for ${priority.monitorFor}` : null]
+          .filter(Boolean)
+          .join(" — ");
+
+        return [priority.label, details].filter(Boolean).join(": ");
+      })
+      .filter(Boolean),
+  },
+  {
+    label: "Reassessment triggers",
+    value: operationalPrioritization?.reassessmentTriggers,
+  },
+  {
+    label: "Continuity summary",
+    value: operationalPrioritization?.continuitySummary,
+  },
+];
+
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
 
@@ -2470,32 +2810,80 @@ return (
 
   {progressionCheckMessage && (
     <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-        <p className="mb-2 font-semibold text-gray-200">Clinical attention state</p>
-        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
-          {JSON.stringify(displayCase.clinical_attention_state ?? null, null, 2)}
-        </pre>
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+        <p className="font-semibold text-gray-100">Current Clinical Attention</p>
+        <p className="mt-1 text-xs text-gray-500">Clinician-facing status from the latest progression check.</p>
+        <dl className="mt-4 space-y-3">
+          {hasAnySummaryValue(clinicalAttentionRows) ? (
+            clinicalAttentionRows.map((row) => (
+              <div key={row.label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {row.label}
+                </dt>
+                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No clinical attention summary is available yet.</p>
+          )}
+        </dl>
       </div>
 
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-        <p className="mb-2 font-semibold text-gray-200">Current longitudinal state</p>
-        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
-          {JSON.stringify(displayCase.current_longitudinal_state ?? null, null, 2)}
-        </pre>
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+        <p className="font-semibold text-gray-100">Current Longitudinal State</p>
+        <p className="mt-1 text-xs text-gray-500">Current treatment trajectory and recent longitudinal context.</p>
+        <dl className="mt-4 space-y-3">
+          {hasAnySummaryValue(currentLongitudinalRows) ? (
+            currentLongitudinalRows.map((row) => (
+              <div key={row.label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {row.label}
+                </dt>
+                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No longitudinal state has been documented yet.</p>
+          )}
+        </dl>
       </div>
 
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-        <p className="mb-2 font-semibold text-gray-200">Operational prioritization</p>
-        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
-          {JSON.stringify(generated?.operational_prioritization ?? null, null, 2)}
-        </pre>
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+        <p className="font-semibold text-gray-100">Latest Progression Event</p>
+        <p className="mt-1 text-xs text-gray-500">Most recent saved progression event and summary snapshots.</p>
+        <dl className="mt-4 space-y-3">
+          {hasAnySummaryValue(latestProgressionEventRows) ? (
+            latestProgressionEventRows.map((row) => (
+              <div key={row.label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {row.label}
+                </dt>
+                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No progression event has been recorded yet.</p>
+          )}
+        </dl>
       </div>
 
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-        <p className="mb-2 font-semibold text-gray-200">Latest longitudinal event</p>
-        <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-xs text-gray-300">
-          {JSON.stringify(latestLongitudinalEvent ?? null, null, 2)}
-        </pre>
+      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
+        <p className="font-semibold text-gray-100">Operational Focus</p>
+        <p className="mt-1 text-xs text-gray-500">What treatment should emphasize right now.</p>
+        <dl className="mt-4 space-y-3">
+          {hasAnySummaryValue(operationalFocusRows) ? (
+            operationalFocusRows.map((row) => (
+              <div key={row.label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {row.label}
+                </dt>
+                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No operational focus has been generated yet.</p>
+          )}
+        </dl>
       </div>
     </div>
   )}
