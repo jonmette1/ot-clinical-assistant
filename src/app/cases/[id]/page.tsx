@@ -418,6 +418,13 @@ const formatObjectSummary = (source: unknown, keys: string[]): string[] => {
     .filter((item): item is string => Boolean(item));
 };
 
+const joinReadableList = (items: string[]): string => {
+  if (items.length <= 1) return items[0] || "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
 type CaseDetail = {
   id: string;
     current_generation_id: string | null;
@@ -2054,94 +2061,103 @@ const clinicalAttentionReassessmentRecommended = readBoolean(
   ["reassessmentRecommended", "reassessment_recommended"]
 );
 
-const sinceLastVisitFunctionalChanges = readTextList(currentLongitudinalState, [
+const currentStateFunctionalChanges = readTextList(currentLongitudinalState, [
   "functionalChanges",
   "functional_changes",
 ]);
 
-const sinceLastVisitMilestone = readText(currentLongitudinalState, [
-  "milestoneAchieved",
-  "milestone_achieved",
+const latestEventFunctionalChanges = readTextList(latestEventPayload, [
+  "functionalChanges",
+  "functional_changes",
 ]);
 
-const sinceLastVisitTreatmentDirectionChanged = readBoolean(
-  currentLongitudinalState,
-  ["treatmentDirectionChanged", "treatment_direction_changed"]
-);
+const sinceLastVisitFunctionalChanges = currentStateFunctionalChanges.length
+  ? currentStateFunctionalChanges
+  : latestEventFunctionalChanges;
 
-const sinceLastVisitReasonTreatmentChanged = readText(currentLongitudinalState, [
-  "reasonTreatmentChanged",
-  "reason_treatment_changed",
-]);
+const sinceLastVisitMilestone =
+  readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]) ||
+  readText(latestEventPayload, ["milestoneAchieved", "milestone_achieved"]);
+
+const sinceLastVisitTreatmentDirectionChanged =
+  readBoolean(currentLongitudinalState, ["treatmentDirectionChanged", "treatment_direction_changed"]) ??
+  readBoolean(latestEventPayload, ["treatmentDirectionChanged", "treatment_direction_changed"]);
+
+const sinceLastVisitReasonTreatmentChanged =
+  readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
+  readText(latestEventPayload, ["reasonTreatmentChanged", "reason_treatment_changed"]);
 
 const sinceLastVisitUpdatedAt =
   formatDateTime(readText(currentLongitudinalState, ["lastUpdatedAt", "last_updated_at"])) ||
   formatDateTime(latestLongitudinalEvent?.created_at);
 
-const sinceLastVisitRows: SummaryRow[] = [
-  {
-    label: "Functional changes",
-    value: sinceLastVisitFunctionalChanges,
-  },
-  {
-    label: "Milestone achieved",
-    value: sinceLastVisitMilestone,
-  },
-  {
-    label: "Treatment direction changed",
-    value: formatBoolean(sinceLastVisitTreatmentDirectionChanged),
-  },
-  {
-    label: "Reason treatment changed",
-    value: sinceLastVisitReasonTreatmentChanged,
-  },
-  {
-    label: "Last updated",
-    value: sinceLastVisitUpdatedAt,
-  },
-];
+const sinceLastVisitLimitingFactor =
+  readText(currentLongitudinalState, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]) ||
+  readText(latestEventPayload, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]);
 
-const attentionRequiredRows: SummaryRow[] = [
+const sinceLastVisitProgressionStatus =
+  readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
+  readText(latestEventPayload, ["progressionStatus", "progression_status"]);
+
+const sinceLastVisitSummaryItems = [
+  sinceLastVisitFunctionalChanges.length
+    ? `Recent visit notes indicate ${joinReadableList(sinceLastVisitFunctionalChanges)}.`
+    : null,
+  sinceLastVisitMilestone ? `A milestone was noted: ${sinceLastVisitMilestone}.` : null,
+  sinceLastVisitTreatmentDirectionChanged === true
+    ? `Treatment direction changed${
+        sinceLastVisitReasonTreatmentChanged ? ` because ${sinceLastVisitReasonTreatmentChanged}` : ""
+      }.`
+    : sinceLastVisitTreatmentDirectionChanged === false
+    ? "Treatment direction remains consistent with the prior visit."
+    : null,
+  sinceLastVisitLimitingFactor || sinceLastVisitProgressionStatus
+    ? `Current visit context centers on ${[
+        sinceLastVisitLimitingFactor,
+        sinceLastVisitProgressionStatus ? `progression described as ${sinceLastVisitProgressionStatus}` : null,
+      ]
+        .filter(Boolean)
+        .join(" with ")}.`
+    : null,
+].filter((item): item is string => Boolean(item));
+
+const attentionStatement = readText(clinicalAttentionState, [
+  "attentionStatement",
+  "attention_statement",
+]);
+
+const attentionRequiredMetadataRows: SummaryRow[] = [
   {
     label: "Category",
     value: readText(clinicalAttentionState, ["category"]),
   },
   {
-    label: "Attention statement",
-    value: readText(clinicalAttentionState, ["attentionStatement", "attention_statement"]),
-  },
-  {
-    label: "Attention drivers",
+    label: "Drivers",
     value: readTextList(clinicalAttentionState, ["attentionDrivers", "attention_drivers"]),
   },
   {
-    label: "Operational review",
-    value: formatBoolean(clinicalAttentionRequiresOperationalReview),
+    label: "Review flag",
+    value: clinicalAttentionRequiresOperationalReview ? "Operational review flagged" : null,
   },
   {
-    label: "Reassessment recommended",
-    value: formatBoolean(clinicalAttentionReassessmentRecommended),
+    label: "Reassessment flag",
+    value: clinicalAttentionReassessmentRecommended ? "Reassessment recommended" : null,
   },
 ];
 
-const currentFocusRows: SummaryRow[] = [
-  {
-    label: "Current emphasis",
-    value: operationalPrioritization?.currentOperationalEmphasis,
-  },
-  {
-    label: "Why this focus",
-    value: operationalPrioritization?.emphasisRationale,
-  },
-  {
-    label: "Dominant barriers",
-    value: operationalPrioritization?.dominantBarriers,
-  },
-  {
-    label: "Continuity summary",
-    value: operationalPrioritization?.continuitySummary,
-  },
-];
+const compressedRationaleSummary = emphasisRationale.length
+  ? emphasisRationale.slice(0, 2).join(" ")
+  : operationalContinuitySummary;
 
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
@@ -2197,10 +2213,6 @@ const caregiverGuidance: string[] =
 
 const caseStatusRows: SummaryRow[] = [
   {
-    label: "Clinical status",
-    value: clinicalStatus,
-  },
-  {
     label: "Plan status",
     value:
       displayCase.reasoning_stale || displayCase.plan_stale
@@ -2229,20 +2241,13 @@ const caseStatusRows: SummaryRow[] = [
 
 const nextActionItems = [
   ...(structuredPlanDetails?.immediateActions || []),
-  ...(clinicalAttentionRequiresOperationalReview ? ["Complete operational review before relying on the current treatment direction."] : []),
-  ...(clinicalAttentionReassessmentRecommended ? ["Consider reassessment before advancing the plan."] : []),
-  ...operationalReassessmentTriggers.map((trigger) => `Reassessment trigger: ${trigger}`),
-  ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Progression trigger: ${trigger}`),
+  ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
+  ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Check progression if ${trigger}.`),
+  ...(clinicalAttentionRequiresOperationalReview ? ["Review the current treatment direction."] : []),
+  ...(clinicalAttentionReassessmentRecommended ? ["Reassess before advancing the plan."] : []),
 ]
   .filter(Boolean)
   .slice(0, 5);
-
-const clinicalStatusBadgeClass =
-  clinicalStatus === "Needs Reassessment"
-    ? "border-red-700 bg-red-950/70 text-red-100"
-    : clinicalStatus === "Monitor Closely"
-    ? "border-yellow-700 bg-yellow-950/70 text-yellow-100"
-    : "border-emerald-700 bg-emerald-950/70 text-emerald-100";
 
 const progressionOutlookLabel =
   progressionState?.advancementReadiness ||
@@ -2729,33 +2734,34 @@ return (
         First-read orientation for what is happening, what needs attention, what treatment should focus on, and what should happen next.
       </p>
     </div>
-
-    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${clinicalStatusBadgeClass}`}>
-      {clinicalStatus}
-      <p className="mt-1 max-w-xs text-xs font-normal opacity-85">
-        {clinicalStatusExplanation}
-      </p>
-    </div>
   </div>
 
   <div className="grid gap-4 lg:grid-cols-2">
     <article className="rounded-2xl border border-gray-800 bg-gray-950/80 p-4 lg:col-span-2">
-      <div className="flex items-start justify-between gap-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+        1. Case Status
+      </p>
+      <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
-            1. Case Status
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Clinical Status
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-white">
+          <h2 className="mt-1 text-3xl font-bold text-white">
             {clinicalStatus}
           </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-300">
+            {clinicalStatusExplanation}
+          </p>
         </div>
-        <span className="rounded-full border border-gray-700 px-3 py-1 text-xs text-gray-300">
-          {progressionOutlookLabel}
-        </span>
+        <div className="rounded-2xl border border-blue-800/70 bg-blue-950/30 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
+            Trajectory
+          </p>
+          <p className="mt-1 max-w-xs text-sm font-semibold text-blue-50">
+            {progressionOutlookLabel}
+          </p>
+        </div>
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-gray-300">
-        {clinicalStatusExplanation}
-      </p>
       {renderCommandCenterRows(caseStatusRows, "No case status details are available yet.")}
     </article>
 
@@ -2764,9 +2770,22 @@ return (
         2. Since Last Visit
       </p>
       <h2 className="mt-1 text-lg font-semibold text-white">
-        What changed recently
+        Change summary
       </h2>
-      {renderCommandCenterRows(sinceLastVisitRows, "No longitudinal update has been recorded yet.")}
+      {sinceLastVisitSummaryItems.length > 0 ? (
+        <div className="mt-4 space-y-2 text-sm leading-relaxed text-gray-200">
+          {sinceLastVisitSummaryItems.map((summary, index) => (
+            <p key={`${summary}-${index}`}>{summary}</p>
+          ))}
+          {sinceLastVisitUpdatedAt ? (
+            <p className="pt-1 text-xs text-gray-500">Updated {sinceLastVisitUpdatedAt}</p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          No longitudinal update has been recorded yet.
+        </p>
+      )}
     </article>
 
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4">
@@ -2774,25 +2793,39 @@ return (
         3. Attention Required
       </p>
       <h2 className="mt-1 text-lg font-semibold text-white">
-        Clinical attention
+        {attentionStatement || "No clinical attention statement is available yet."}
       </h2>
-      <p className="mt-1 text-xs text-red-100/70">
-        Separate from operational focus; this reflects current clinical attention signals.
-      </p>
-      {renderCommandCenterRows(attentionRequiredRows, "No clinical attention flags are available yet.")}
+      <div className="mt-4 rounded-2xl border border-red-900/40 bg-gray-950/40 p-3">
+        {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
+      </div>
     </article>
 
     <article className="rounded-2xl border border-emerald-900/60 bg-emerald-950/15 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
         4. Current Focus
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-white">
+      <h2 className="mt-1 text-xl font-semibold text-white">
         {currentOperationalEmphasis}
       </h2>
-      <p className="mt-1 text-xs text-emerald-100/70">
-        Operational focus remains visually distinct from clinical attention.
-      </p>
-      {renderCommandCenterRows(currentFocusRows, "No operational focus has been generated yet.")}
+      {compressedRationaleSummary ? (
+        <p className="mt-3 text-sm leading-relaxed text-emerald-50/80">
+          {compressedRationaleSummary}
+        </p>
+      ) : null}
+      {dominantBarriers.length > 0 ? (
+        <ul className="mt-4 space-y-2 text-sm text-gray-200">
+          {dominantBarriers.slice(0, 3).map((barrier, index) => (
+            <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
+              <span className="mt-1 text-emerald-300">•</span>
+              <span>{barrier}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          No dominant barriers have been generated yet.
+        </p>
+      )}
     </article>
 
     <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
