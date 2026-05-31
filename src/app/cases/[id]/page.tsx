@@ -707,6 +707,18 @@ if (gens.length > 0) {
 }
 }
 
+const { data: longitudinalEvent, error: longitudinalEventError } = await supabase
+  .from("longitudinal_events")
+  .select("*")
+  .eq("case_id", resolvedParams.id)
+  .order("created_at", { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+if (!longitudinalEventError) {
+  setLatestLongitudinalEvent((longitudinalEvent as LongitudinalEventRow) || null);
+}
+
       setLoading(false);
     }
 
@@ -1991,6 +2003,13 @@ const latestProgressionEventRows: SummaryRow[] = [
   },
 ];
 
+const shouldRenderProgressionSummaryCards = Boolean(
+  clinicalAttentionState ||
+    currentLongitudinalState ||
+    operationalPrioritization ||
+    latestLongitudinalEvent
+);
+
 const operationalFocusRows: SummaryRow[] = [
   {
     label: "Current operational emphasis",
@@ -2808,7 +2827,7 @@ return (
     </div>
   </form>
 
-  {progressionCheckMessage && (
+  {shouldRenderProgressionSummaryCards && (
     <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
       <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
         <p className="font-semibold text-gray-100">Current Clinical Attention</p>
