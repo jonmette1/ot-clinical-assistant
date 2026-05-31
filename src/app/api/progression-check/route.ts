@@ -106,71 +106,38 @@ function buildOriginalBaseline(caseData: CaseRecord) {
   };
 }
 
-function buildRichEventInsert(event: LongitudinalEvent) {
-  return {
-    case_id: event.caseId,
-    event_type: event.eventType,
-    event_date: event.eventDate,
-    functional_changes: event.functionalChanges,
-    current_dominant_barrier: event.currentDominantBarrier,
-    secondary_barrier: event.secondaryBarrier,
-    progression_status: event.progressionStatus,
-    treatment_direction_changed: event.treatmentDirectionChanged,
-    milestone_achieved: event.milestoneAchieved,
-    caregiver_change: event.caregiverChange,
-    environmental_change: event.environmentalChange,
-    medical_change: event.medicalChange,
-    reason_treatment_changed: event.reasonTreatmentChanged,
-    reassessment_recommended: event.reassessmentRecommended,
-    event_payload: event,
-  };
-}
+async function insertLongitudinalEvent({
+  event,
+  previousStateSnapshot,
+  currentStateSnapshot,
+  clinicalAttentionSnapshot,
+  operationalEmphasisSnapshot,
+}: {
+  event: LongitudinalEvent;
+  previousStateSnapshot: unknown;
+  currentStateSnapshot: CurrentLongitudinalState;
+  clinicalAttentionSnapshot: unknown;
+  operationalEmphasisSnapshot: unknown;
+}) {
+  const { data, error } = await supabase
+    .from("longitudinal_events")
+    .insert([
+      {
+        case_id: event.caseId,
+        event_type: event.eventType,
+        event_payload: event,
+        previous_state_snapshot: previousStateSnapshot,
+        current_state_snapshot: currentStateSnapshot,
+        clinical_attention_snapshot: clinicalAttentionSnapshot,
+        operational_emphasis_snapshot: operationalEmphasisSnapshot,
+      },
+    ])
+    .select("*")
+    .single();
 
-async function insertLongitudinalEvent(event: LongitudinalEvent) {
-  const insertAttempts = [
-    buildRichEventInsert(event),
-    {
-      case_id: event.caseId,
-      event_type: event.eventType,
-      event_date: event.eventDate,
-      event_payload: event,
-    },
-    {
-      case_id: event.caseId,
-      event_type: event.eventType,
-      event_date: event.eventDate,
-      payload: event,
-    },
-    {
-      case_id: event.caseId,
-      event_type: event.eventType,
-      event_date: event.eventDate,
-      data: event,
-    },
-  ];
+  if (error) throw error;
 
-  let lastError: unknown = null;
-
-  for (const payload of insertAttempts) {
-    const { data, error } = await supabase
-      .from("longitudinal_events")
-      .insert([payload])
-      .select("*")
-      .single();
-
-    if (!error) return data;
-    lastError = error;
-
-    const message = String(error.message || "").toLowerCase();
-    const retryableShapeError =
-      message.includes("column") ||
-      message.includes("schema cache") ||
-      message.includes("could not find");
-
-    if (!retryableShapeError) break;
-  }
-
-  throw lastError instanceof Error ? lastError : new Error("Failed to create longitudinal event.");
+  return data;
 }
 
 export async function POST(req: Request) {
@@ -213,10 +180,10 @@ export async function POST(req: Request) {
     }
 
     const event = buildLongitudinalEvent(input);
-    const insertedEvent = await insertLongitudinalEvent(event);
+    const previousStateSnapshot = loadedCase.current_longitudinal_state ?? null;
 
     const currentLongitudinalState = updateCurrentStateFromEvent({
-      previousState: loadedCase.current_longitudinal_state as
+      previousState: previousStateSnapshot as
         | Partial<CurrentLongitudinalState>
         | null
         | undefined,
@@ -244,6 +211,18 @@ export async function POST(req: Request) {
           }),
         }
       : existingGeneratedOutput;
+
+    const operationalEmphasisSnapshot =
+      (generatedOutput?.operational_prioritization as OperationalPrioritization | undefined) ??
+      null;
+
+    const insertedEvent = await insertLongitudinalEvent({
+      event,
+      previousStateSnapshot,
+      currentStateSnapshot: currentLongitudinalState,
+      clinicalAttentionSnapshot: clinicalAttentionState,
+      operationalEmphasisSnapshot,
+    });
 
     const updatePayload: Record<string, unknown> = {
       current_longitudinal_state: currentLongitudinalState,
