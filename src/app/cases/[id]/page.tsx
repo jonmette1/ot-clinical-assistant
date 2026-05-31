@@ -577,13 +577,14 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
   try {
     const currentDominantBarrier = progressionCheckForm.currentDominantBarrier.trim();
     const reasonTreatmentChanged = progressionCheckForm.reasonTreatmentChanged.trim();
+    const treatmentDirectionChanged = progressionCheckForm.treatmentDirectionChanged;
 
-    if (progressionCheckForm.treatmentDirectionChanged && !currentDominantBarrier) {
+    if (treatmentDirectionChanged && !currentDominantBarrier) {
       setProgressionCheckError("Current limiting factor is required when treatment direction changed.");
       return;
     }
 
-    if (progressionCheckForm.treatmentDirectionChanged && !reasonTreatmentChanged) {
+    if (treatmentDirectionChanged && !reasonTreatmentChanged) {
       setProgressionCheckError("Reason treatment changed is required when treatment direction changed.");
       return;
     }
@@ -596,15 +597,13 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
       body: JSON.stringify({
         caseId: caseData.id,
         functionalChanges: progressionCheckForm.functionalChanges.trim() || null,
-        currentDominantBarrier: progressionCheckForm.treatmentDirectionChanged
+        currentDominantBarrier: treatmentDirectionChanged
           ? currentDominantBarrier
           : currentDominantBarrier || "No new dominant barrier identified",
         progressionStatus: progressionCheckForm.progressionStatus.trim(),
-        treatmentDirectionChanged: progressionCheckForm.treatmentDirectionChanged,
+        treatmentDirectionChanged,
         milestoneAchieved: progressionCheckForm.milestoneAchieved.trim() || null,
-        reasonTreatmentChanged: progressionCheckForm.treatmentDirectionChanged
-          ? reasonTreatmentChanged || null
-          : null,
+        reasonTreatmentChanged: treatmentDirectionChanged ? reasonTreatmentChanged || null : null,
       }),
     });
 
