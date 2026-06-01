@@ -2063,14 +2063,78 @@ const operationalFocusRows: SummaryRow[] = [
 const latestProgressionEvent = recentLongitudinalEvents[0] || latestLongitudinalEvent;
 const previousProgressionEvent = recentLongitudinalEvents[1] || null;
 
+const latestVisitPayload = latestProgressionEvent?.event_payload;
+const latestVisitCurrentStateSnapshot = latestProgressionEvent?.current_state_snapshot;
+const latestVisitClinicalAttentionSnapshot = latestProgressionEvent?.clinical_attention_snapshot;
+const latestVisitOperationalEmphasisSnapshot = latestProgressionEvent?.operational_emphasis_snapshot;
 const latestEventPreviousStateSnapshot = latestProgressionEvent?.previous_state_snapshot;
-const latestEventOperationalEmphasisSnapshot =
-  latestProgressionEvent?.operational_emphasis_snapshot;
+const latestEventOperationalEmphasisSnapshot = latestVisitOperationalEmphasisSnapshot;
 const previousEventCurrentStateSnapshot = previousProgressionEvent?.current_state_snapshot;
 const previousEventClinicalAttentionSnapshot =
   previousProgressionEvent?.clinical_attention_snapshot;
 const previousEventOperationalEmphasisSnapshot =
   previousProgressionEvent?.operational_emphasis_snapshot;
+
+const lastVisitStatus =
+  readText(latestVisitCurrentStateSnapshot, ["progressionStatus", "progression_status"]) ||
+  readText(latestVisitPayload, ["progressionStatus", "progression_status"]);
+
+const lastVisitFunctionalChanges = [
+  ...readTextList(latestVisitPayload, ["functionalChanges", "functional_changes"]),
+  ...readTextList(latestVisitCurrentStateSnapshot, ["functionalChanges", "functional_changes"]),
+].filter((item, index, values) => values.indexOf(item) === index);
+
+const lastVisitMilestone =
+  readText(latestVisitPayload, ["milestoneAchieved", "milestone_achieved"]) ||
+  readText(latestVisitCurrentStateSnapshot, ["milestoneAchieved", "milestone_achieved"]);
+
+const lastVisitTreatmentDirectionChanged =
+  readBoolean(latestVisitPayload, ["treatmentDirectionChanged", "treatment_direction_changed"]) ??
+  readBoolean(latestVisitCurrentStateSnapshot, ["treatmentDirectionChanged", "treatment_direction_changed"]);
+
+const lastVisitTreatmentDirection =
+  lastVisitTreatmentDirectionChanged === true
+    ? "Treatment direction changed"
+    : lastVisitTreatmentDirectionChanged === false
+    ? "Treatment direction unchanged"
+    : null;
+
+const lastVisitReasonTreatmentChanged =
+  readText(latestVisitPayload, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
+  readText(latestVisitCurrentStateSnapshot, ["reasonTreatmentChanged", "reason_treatment_changed"]);
+
+const lastVisitKeyChange = [
+  ...lastVisitFunctionalChanges,
+  lastVisitMilestone,
+  lastVisitTreatmentDirection,
+  lastVisitReasonTreatmentChanged,
+].filter((item): item is string => Boolean(item));
+
+const lastVisitClinicalImpact =
+  readText(latestVisitClinicalAttentionSnapshot, ["attentionStatement", "attention_statement"]) ||
+  readTextList(latestVisitClinicalAttentionSnapshot, ["attentionDrivers", "attention_drivers"])[0] ||
+  readText(latestVisitOperationalEmphasisSnapshot, [
+    "currentOperationalEmphasis",
+    "current_operational_emphasis",
+  ]) ||
+  null;
+
+const lastVisitSummaryRows: SummaryRow[] = [
+  {
+    label: "Visit Status",
+    value: lastVisitStatus,
+  },
+  {
+    label: "Key Change",
+    value: lastVisitKeyChange,
+  },
+  {
+    label: "Clinical Impact",
+    value: lastVisitClinicalImpact,
+  },
+];
+
+const lastVisitCreatedAt = formatDateTime(latestProgressionEvent?.created_at);
 
 const previousDominantBarrierForValidation =
   readText(previousEventCurrentStateSnapshot, [
@@ -2968,9 +3032,45 @@ return (
       )}
     </article>
 
+    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+            4. Last Visit
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-white">
+            What happened last visit?
+          </h2>
+        </div>
+        {lastVisitCreatedAt ? (
+          <p className="shrink-0 rounded-full border border-gray-800 bg-gray-950 px-2 py-1 text-[11px] text-gray-400">
+            {lastVisitCreatedAt}
+          </p>
+        ) : null}
+      </div>
+      {hasAnySummaryValue(lastVisitSummaryRows) ? (
+        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 md:grid-cols-3">
+          {lastVisitSummaryRows.map((row) => (
+            <div key={row.label} className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+                {row.label}
+              </p>
+              <div className="mt-2 text-gray-100">
+                {renderSummaryValue(row.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          No latest visit event has been recorded yet.
+        </p>
+      )}
+    </article>
+
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-300">
-        4. Attention Required
+        5. Attention Required
       </p>
       <h2 className="mt-1 text-xl font-semibold leading-snug text-white">
         {attentionStatement || "No clinical attention statement is available yet."}
@@ -2987,7 +3087,7 @@ return (
 
     <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
-        5. Next Action
+        6. Next Action
       </p>
       <h2 className="mt-1 text-xl font-semibold text-white">
         What should happen next?
