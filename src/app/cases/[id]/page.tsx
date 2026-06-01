@@ -12,6 +12,9 @@ import {
 
 import { buildCanonicalCasePayload } from "@/lib/buildCanonicalCasePayload";
 import { buildProgressionState } from "@/lib/buildProgressionState";
+import { AdjacentOperationalPrioritiesReference } from "./components/AdjacentOperationalPrioritiesReference";
+import { StructuredPlanDetails } from "./components/StructuredPlanDetails";
+import { SupportingProgressionSummaries } from "./components/SupportingProgressionSummaries";
 import { CaregiverFeasibilityCard } from "./components/CaregiverFeasibilityCard";
 import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCard";
 import { ProgressionContinuityRow } from "./components/ProgressionContinuityRow";
@@ -3227,136 +3230,15 @@ return (
   </form>
 
   {/* OWNERSHIP: Patient Reference Workspace — supporting progression summaries remain inline for Phase 1. */}
-  {shouldRenderProgressionSummaryCards && (
-    <details
-      data-ownership="patient-reference-workspace"
-      className="mt-5 rounded-xl border border-gray-800 bg-gray-950/60 p-4"
-    >
-      <summary className="cursor-pointer text-sm font-semibold text-gray-200">
-        Supporting progression summaries
-        <span className="ml-2 text-xs font-normal text-gray-500">Show current snapshots and event details</span>
-      </summary>
-
-      <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-        <p className="font-semibold text-gray-100">Current Clinical Attention</p>
-        <p className="mt-1 text-xs text-gray-500">Clinician-facing status from the latest progression check.</p>
-        <dl className="mt-4 space-y-3">
-          {hasAnySummaryValue(clinicalAttentionRows) ? (
-            clinicalAttentionRows.map((row) => (
-              <div key={row.label}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {row.label}
-                </dt>
-                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No clinical attention summary is available yet.</p>
-          )}
-        </dl>
-      </div>
-
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-        <p className="font-semibold text-gray-100">Current Longitudinal State</p>
-        <p className="mt-1 text-xs text-gray-500">Current treatment trajectory and recent longitudinal context.</p>
-        <dl className="mt-4 space-y-3">
-          {hasAnySummaryValue(currentLongitudinalRows) ? (
-            currentLongitudinalRows.map((row) => (
-              <div key={row.label}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {row.label}
-                </dt>
-                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No longitudinal state has been documented yet.</p>
-          )}
-        </dl>
-      </div>
-
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-        <p className="font-semibold text-gray-100">Latest Progression Event</p>
-        <p className="mt-1 text-xs text-gray-500">Most recent saved progression event and summary snapshots.</p>
-        <dl className="mt-4 space-y-3">
-          {hasAnySummaryValue(latestProgressionEventRows) ? (
-            latestProgressionEventRows.map((row) => (
-              <div key={row.label}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {row.label}
-                </dt>
-                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No progression event has been recorded yet.</p>
-          )}
-        </dl>
-      </div>
-
-      <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-        <p className="font-semibold text-gray-100">Operational Focus</p>
-        <p className="mt-1 text-xs text-gray-500">What treatment should emphasize right now.</p>
-        <dl className="mt-4 space-y-3">
-          {hasAnySummaryValue(operationalFocusRows) ? (
-            operationalFocusRows.map((row) => (
-              <div key={row.label}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {row.label}
-                </dt>
-                <dd className="mt-1 text-gray-200">{renderSummaryValue(row.value)}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No operational focus has been generated yet.</p>
-          )}
-        </dl>
-      </div>
-
-      <div className="rounded-lg border border-amber-900/60 bg-amber-950/10 p-4 md:col-span-2">
-        <p className="font-semibold text-gray-100">Longitudinal Validation</p>
-        <p className="mt-1 text-xs text-gray-500">
-          Validation-only comparisons from saved progression snapshots and current generated outputs.
-        </p>
-
-        {hasProgressionHistoryForValidation ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {longitudinalValidationRows.map((row) => {
-              const hasExactComparison = Boolean(row.previousValue && row.currentValue);
-
-              return (
-                <div key={row.label} className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-                  <p className="text-sm font-semibold text-gray-100">{row.label}</p>
-                  {hasExactComparison ? (
-                    <dl className="mt-3 space-y-3">
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {row.previousLabel}
-                        </dt>
-                        <dd className="mt-1 text-gray-200">{row.previousValue}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {row.currentLabel}
-                        </dt>
-                        <dd className="mt-1 text-gray-200">{row.currentValue}</dd>
-                      </div>
-                    </dl>
-                  ) : (
-                    <p className="mt-3 text-sm text-gray-500">Insufficient progression history.</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-gray-500">Insufficient progression history.</p>
-        )}
-      </div>
-      </div>
-    </details>
-  )}
+  <SupportingProgressionSummaries
+    shouldRender={shouldRenderProgressionSummaryCards}
+    clinicalAttentionRows={clinicalAttentionRows}
+    currentLongitudinalRows={currentLongitudinalRows}
+    latestProgressionEventRows={latestProgressionEventRows}
+    operationalFocusRows={operationalFocusRows}
+    hasProgressionHistoryForValidation={hasProgressionHistoryForValidation}
+    longitudinalValidationRows={longitudinalValidationRows}
+  />
 </section>
 
 {/* OWNERSHIP: Patient Command Center — operational pressures support current treatment prioritization. */}
@@ -3515,122 +3397,24 @@ return (
 
 {/* Adjacent Operational Priorities */}
 
-{adjacentOperationalPriorities.length > 0 && (
-  <details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
-    <summary className="flex cursor-pointer items-center justify-between gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-white">Potential Enhancements Reference</h2>
-        <p className="mt-1 text-sm text-gray-400">Additional monitoring priorities retained from the generated plan.</p>
-      </div>
-      <span className="text-xs tracking-wide text-blue-300">Show</span>
-    </summary>
-  <div className="mt-6">
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <h3 className="text-xl font-semibold text-gray-300">
-          Adjacent Operational Priorities
-        </h3>
-
-        <p className="text-sm text-gray-500 mt-1">
-          Secondary priorities to monitor without treating them as competing plans.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setShowAlternativeApproaches((prev) => !prev)}
-        className="text-sm text-blue-400 hover:text-blue-300 transition"
-      >
-        {showAlternativeApproaches ? "Hide" : "Show"}
-      </button>
-    </div>
-
-    {showAlternativeApproaches && (
-      <div className="space-y-4">
-        {adjacentOperationalPriorities.map(
-          (
-            priority: {
-              label?: string;
-              rationale?: string;
-              monitorFor?: string;
-            },
-            index: number
-          ) => (
-            <div
-              key={`${priority.label || "priority"}-${index}`}
-              className="rounded-lg border border-gray-800/60 p-4 bg-gray-950/60 opacity-90"
-            >
-              <p className="text-xs uppercase tracking-wide text-blue-400 mb-1">
-                Adjacent Priority
-              </p>
-
-              <h4 className="text-sm font-semibold mb-2">
-                {priority.label || "Unnamed priority"}
-              </h4>
-
-              <p className="text-sm text-gray-300 mb-3">
-                {priority.rationale || "No rationale provided."}
-              </p>
-
-              <p className="text-xs text-gray-400">
-                <strong>Monitor for:</strong>{" "}
-                {priority.monitorFor || "No monitoring cue provided."}
-              </p>
-            </div>
-          )
-        )}
-      </div>
-    )}
-  </div>
-  </details>
-)}
+<AdjacentOperationalPrioritiesReference
+  adjacentOperationalPriorities={adjacentOperationalPriorities}
+  isExpanded={showAlternativeApproaches}
+  onToggle={() => setShowAlternativeApproaches((prev) => !prev)}
+/>
 
 {/* ==============================
     RENDER: STRUCTURED PLAN DETAILS
 ============================== */}
 
-{generated?.patientSnapshot && (
-  <details className="rounded-xl border border-green-800 bg-gray-900 p-6">
-    <summary className="flex cursor-pointer items-center justify-between">
-      <div>
-        <h2 className="text-xl font-semibold">Structured Plan Details</h2>
-        <p className="mt-1 text-sm text-gray-400">
-          Implementation details anchored to the current operational emphasis.
-        </p>
-      </div>
-
-      <span className="text-xs tracking-wide text-green-400">
-        Show
-      </span>
-    </summary>
-
-    <div className="mt-6 border-t border-gray-800 pt-4">
-      <h3 className="text-lg font-semibold mb-2">Patient Snapshot</h3>
-      <p className="text-gray-300">{generated.patientSnapshot}</p>
-    </div>
-
-    {(
-  structuredPlanDetails?.instabilityDrivers ||
-  structuredPlanDetails?.safetyConsiderations
-)?.length ? (
-      <div className="mt-6 border-t border-gray-800 pt-4">
-        <h3 className="text-lg font-semibold mb-2">Instability Drivers</h3>
-        <ul className="list-disc pl-5 space-y-1 text-gray-300">
-          {(
-  structuredPlanDetails.instabilityDrivers ||
-  structuredPlanDetails.safetyConsiderations ||
-  []
-).map(
-            (item: string, index: number) => (
-              <li key={index}>{item}</li>
-            )
-          )}
-        </ul>
-      </div>
-    ) : null}
-
-  </details>
-)}
+<StructuredPlanDetails
+  patientSnapshot={generated?.patientSnapshot}
+  instabilityDrivers={
+    structuredPlanDetails?.instabilityDrivers ||
+    structuredPlanDetails?.safetyConsiderations ||
+    []
+  }
+/>
 
 {/* ==============================
     RENDER: CASE HEADER / DETAILS
