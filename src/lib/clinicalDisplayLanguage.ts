@@ -76,6 +76,87 @@ function compressFragmentSet(text: string): string {
   return sentenceFromFragment(normalized);
 }
 
+function compressFocusSubject(text: string): string {
+  return cleanClinicalFragment(text)
+    .replace(
+      /\bbathroom and general home transfer participation\b/gi,
+      "bathroom and home transfers"
+    )
+    .replace(/\bgeneral home transfer participation\b/gi, "home transfers")
+    .replace(/\bbathroom transfer participation\b/gi, "bathroom transfers")
+    .replace(/\bhome transfer participation\b/gi, "home transfers")
+    .replace(/\btransfer participation\b/gi, "transfers")
+    .replace(/\btransfer safety\b/gi, "transfer safety")
+    .replace(/\btransfer stability\b/gi, "transfer stability")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compressDeficitList(text: string): string {
+  const normalized = cleanClinicalFragment(text)
+    .replace(/\bphysical immobility\b/gi, "mobility")
+    .replace(/\bphysical impairments?\b/gi, "strength and endurance")
+    .replace(/\blimiting\s+/gi, "")
+    .replace(/\band\s+strength\b/gi, "and strength")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return "clinical deficits";
+  if (/deficits?$/i.test(normalized)) return normalized.toLowerCase();
+  if (/limitations?$/i.test(normalized)) return normalized.toLowerCase();
+
+  return `${normalized.toLowerCase()} deficits`;
+}
+
+function compressCurrentFocusSentenceInternal(text: string): string | null {
+  const normalized = normalizeWhitespace(text);
+
+  const unstableDueToMatch = normalized.match(
+    /^(.+?)\s+remain(?:s)?\s+unstable\s+due to\s+(.+?)\.?$/i
+  );
+  if (unstableDueToMatch?.[1]) {
+    const subject = compressFocusSubject(unstableDueToMatch[1]);
+    if (subject) return ensurePeriod(`${capitalizeFirst(subject)} remain unstable`);
+  }
+
+  const unstableMatch = normalized.match(/^(.+?)\s+remain(?:s)?\s+unstable\.?$/i);
+  if (unstableMatch?.[1]) {
+    const subject = compressFocusSubject(unstableMatch[1]);
+    if (subject) return ensurePeriod(`${capitalizeFirst(subject)} remain unstable`);
+  }
+
+  const physicalLimitMatch = normalized.match(
+    /^physical impairments?\s+(?:continue to\s+)?limit\s+(.+?)\.?$/i
+  );
+  if (physicalLimitMatch?.[1]) {
+    const target = compressFocusSubject(physicalLimitMatch[1]);
+    if (/transfer stability and endurance/i.test(target)) {
+      return "Transfer stability limited by strength and endurance deficits.";
+    }
+    if (target) return ensurePeriod(`${capitalizeFirst(target)} limited by physical deficits`);
+  }
+
+  const dueToLimitingMatch = normalized.match(
+    /^(.+?)\s+due to\s+(.+?)\s+limiting\s+(.+?)\.?$/i
+  );
+  if (dueToLimitingMatch?.[1] && dueToLimitingMatch?.[3]) {
+    const subject = compressFocusSubject(dueToLimitingMatch[1]);
+    const deficits = compressDeficitList(dueToLimitingMatch[3]);
+    if (subject) return ensurePeriod(`${capitalizeFirst(subject)} limited by ${deficits}`);
+  }
+
+  const limitingMatch = normalized.match(
+    /^(.+?)\s+(?:continue(?:s)? to\s+)?limit(?:s)?\s+(.+?)\.?$/i
+  );
+  if (limitingMatch?.[1] && limitingMatch?.[2]) {
+    const driver = compressDeficitList(limitingMatch[1]);
+    const target = compressFocusSubject(limitingMatch[2]);
+    if (target) return ensurePeriod(`${capitalizeFirst(target)} limited by ${driver}`);
+  }
+
+  return null;
+}
+
 function compressAttentionSentence(text: string): string | null {
   const normalized = normalizeWhitespace(text);
   const lower = normalized.toLowerCase();
@@ -183,6 +264,18 @@ export function compressCommandCenterSentence(text: string | null | undefined): 
     compressAttentionSentence(normalized) ||
     compressSinceLastVisitSentence(normalized) ||
     normalized
+  );
+}
+
+export function compressCurrentFocusSentence(text: string | null | undefined): string {
+  if (typeof text !== "string") return "";
+
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return "";
+
+  return (
+    compressCurrentFocusSentenceInternal(normalized) ||
+    compressCommandCenterSentence(normalized)
   );
 }
 

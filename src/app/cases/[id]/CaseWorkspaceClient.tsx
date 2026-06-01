@@ -24,6 +24,7 @@ import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSect
 import {
   compressCommandCenterList,
   compressCommandCenterSentence,
+  compressCurrentFocusSentence,
 } from "@/lib/clinicalDisplayLanguage";
 // ==============================
 // TYPES
@@ -1856,7 +1857,7 @@ const currentOperationalEmphasis =
   "No operational emphasis generated";
 
 const commandCenterCurrentOperationalEmphasis =
-  compressCommandCenterSentence(currentOperationalEmphasis);
+  compressCurrentFocusSentence(currentOperationalEmphasis);
 
 const emphasisRationale: string[] =
   operationalPrioritization?.emphasisRationale || [];
@@ -2348,7 +2349,7 @@ const compressedRationaleSummary = emphasisRationale.length
   : operationalContinuitySummary;
 
 const commandCenterRationaleSummary =
-  compressCommandCenterSentence(compressedRationaleSummary);
+  compressCurrentFocusSentence(compressedRationaleSummary);
 
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
