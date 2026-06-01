@@ -265,6 +265,68 @@ const emptyProgressionCheckForm: ProgressionCheckFormState = {
   milestoneAchieved: "",
 };
 
+type OverallTrajectory =
+  | "Improving"
+  | "Stable"
+  | "Declining"
+  | "Stable / Plateau"
+  | "Stable / Limited Progress"
+  | "Not enough longitudinal data";
+
+const normalizeTrajectorySource = (value: string | null | undefined): string =>
+  (value || "")
+    .toLowerCase()
+    .replace(/[_-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const mapProgressionStatusToTrajectory = (
+  value: string | null | undefined
+): OverallTrajectory | null => {
+  const normalized = normalizeTrajectorySource(value);
+
+  if (!normalized) return null;
+
+  if (normalized.includes("regression") || normalized.includes("declin")) {
+    return "Declining";
+  }
+
+  if (normalized.includes("plateau")) {
+    return "Stable / Plateau";
+  }
+
+  if (
+    normalized.includes("minimal progress") ||
+    normalized.includes("limited progress") ||
+    normalized.includes("not ready to advance")
+  ) {
+    return "Stable / Limited Progress";
+  }
+
+  if (
+    normalized.includes("progressing faster") ||
+    normalized.includes("faster than expected") ||
+    normalized.includes("progressing as expected") ||
+    normalized.includes("improving") ||
+    normalized.includes("ready to advance") ||
+    normalized.includes("advancing")
+  ) {
+    return "Improving";
+  }
+
+  if (
+    normalized.includes("no meaningful change") ||
+    normalized.includes("no change") ||
+    normalized === "stable" ||
+    normalized.includes("unchanged") ||
+    normalized.includes("maintain")
+  ) {
+    return "Stable";
+  }
+
+  return null;
+};
+
 type SummaryValue = string | string[] | boolean | number | null | undefined;
 
 type SummaryRow = {
@@ -2211,7 +2273,43 @@ const caregiverGuidance: string[] =
       structuredPlanDetails?.caregiverConsiderations ||
       [];
 
+const longitudinalProgressionStatus = readText(currentLongitudinalState, [
+  "progressionStatus",
+  "progression_status",
+]);
+
+const clinicalAttentionProgressionStatus = readText(clinicalAttentionState, [
+  "progressionStatus",
+  "progression_status",
+]);
+
+const progressionAdvancementReadiness =
+  progressionState?.advancementReadiness || null;
+
+const explicitTrajectoryFromProgressionStatus =
+  mapProgressionStatusToTrajectory(longitudinalProgressionStatus) ||
+  mapProgressionStatusToTrajectory(clinicalAttentionProgressionStatus) ||
+  mapProgressionStatusToTrajectory(progressionAdvancementReadiness);
+
+const hasHighRegressionOrReassessmentSignal =
+  clinicalAttentionReassessmentRecommended === true &&
+  (clinicalAttentionRequiresOperationalReview === true ||
+    sinceLastVisitTreatmentDirectionChanged === true ||
+    clinicalStatus === "Needs Reassessment");
+
+const overallTrajectory: OverallTrajectory =
+  explicitTrajectoryFromProgressionStatus ||
+  (hasHighRegressionOrReassessmentSignal
+    ? "Declining"
+    : sinceLastVisitTreatmentDirectionChanged === false
+    ? "Stable"
+    : "Not enough longitudinal data");
+
 const caseStatusRows: SummaryRow[] = [
+  {
+    label: "Clinical status",
+    value: clinicalStatus,
+  },
   {
     label: "Plan status",
     value:
@@ -2248,11 +2346,6 @@ const nextActionItems = [
 ]
   .filter(Boolean)
   .slice(0, 5);
-
-const progressionOutlookLabel =
-  progressionState?.advancementReadiness ||
-  progressionState?.currentPhase ||
-  "Progression outlook not yet available";
 
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
@@ -2744,21 +2837,24 @@ return (
       <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-            Clinical Status
+            Overall Trajectory
           </p>
           <h2 className="mt-1 text-3xl font-bold text-white">
-            {clinicalStatus}
+            {overallTrajectory}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-300">
-            {clinicalStatusExplanation}
+            Patient trajectory based on current longitudinal progression signals.
           </p>
         </div>
         <div className="rounded-2xl border border-blue-800/70 bg-blue-950/30 px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
-            Trajectory
+            Clinical Status
           </p>
           <p className="mt-1 max-w-xs text-sm font-semibold text-blue-50">
-            {progressionOutlookLabel}
+            {clinicalStatus}
+          </p>
+          <p className="mt-2 max-w-xs text-xs leading-relaxed text-blue-100/70">
+            {clinicalStatusExplanation}
           </p>
         </div>
       </div>
