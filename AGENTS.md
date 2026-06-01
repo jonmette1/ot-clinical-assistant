@@ -186,6 +186,95 @@ The clinician should not need to:
 to answer those questions.
 
 ---
+# Patient-Centric Navigation Rule
+
+The product is transitioning from:
+
+Case-Centric Navigation
+
+to:
+
+Patient-Centric Navigation.
+
+Approved navigation model:
+
+Patient
+
+├── Command Center
+└── Reference Workspace
+
+---
+
+## Command Center Purpose
+
+The Command Center is the primary clinician workflow surface.
+
+Its purpose is rapid clinical orientation.
+
+The Command Center should allow a clinician to answer within approximately 5 seconds:
+
+1. Is the patient improving, stable, or declining?
+2. What changed since the last visit?
+3. Why does that change matter?
+4. What requires attention today?
+5. What should I do next?
+
+without reconstructing prior visits from memory.
+
+The software should carry the continuity burden.
+
+The clinician should not.
+
+---
+
+## Command Center Content
+
+Command Center content should prioritize:
+
+* Case Status
+* Since Last Visit
+* Attention Required
+* Current Focus
+* Next Action
+* Recent Visit History
+
+Recent visit history is considered orientation content, not historical reference content.
+
+---
+
+## Reference Workspace Purpose
+
+The Reference Workspace exists for context, review, and deeper investigation.
+
+Examples:
+
+* Evaluation
+* Goals
+* Caregiver Context
+* Environmental Context
+* Operational Pressures
+* Historical Snapshots
+* Version History
+* Generated Outputs
+* Full Longitudinal Review
+
+Reference content should not compete with orientation content.
+
+---
+
+## Navigation Decision Rule
+
+When determining placement of information:
+
+If a clinician would need the information while preparing for a visit within the next 15 minutes:
+
+Place it in the Command Center.
+
+If the information is primarily for review, context, explanation, investigation, or historical understanding:
+
+Place it in the Reference Workspace.
+
+---
 
 # Continuity UX Rule
 
@@ -351,6 +440,36 @@ If architecture changes appear necessary:
 2. identify affected systems
 3. propose alternatives
 4. wait for approval
+
+---
+# Implementation Execution Rule
+
+When an approved architecture, roadmap direction, or UX objective already exists:
+
+Implementation agents should assume strategic planning is complete.
+
+Do not respond with:
+
+* stop implementation
+* gather more feedback
+* validate before proceeding
+* revisit roadmap
+* revisit architecture
+
+unless:
+
+1. a documented conflict exists
+2. required information is missing
+3. implementation cannot proceed safely
+
+Implementation responses should default to:
+
+* exact files
+* exact changes
+* exact implementation steps
+* exact Codex prompts
+
+The role of an implementation agent is execution support, not product governance.
 
 ---
 
