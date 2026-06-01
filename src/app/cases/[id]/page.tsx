@@ -2904,6 +2904,7 @@ setCaseData({
 
 return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
+{/* OWNERSHIP: Patient Command Center — sticky orientation header for current case context. */}
 <StickyOperationalHeader
   title={displayCase.title}
   isViewingHistoricalVersion={isViewingHistoricalVersion}
@@ -2913,10 +2914,14 @@ return (
 
 
 {/* ==============================
-    RENDER: COMMAND CENTER
+    OWNERSHIP: PATIENT COMMAND CENTER
+    Current-orientation content retained in place for Phase 1 ownership classification.
 ============================== */}
 
-<section className="rounded-3xl border border-blue-900/70 bg-gradient-to-br from-gray-900 via-gray-950 to-blue-950/50 p-5 shadow-2xl shadow-blue-950/20 sm:p-6">
+<section
+  data-ownership="patient-command-center"
+  className="rounded-3xl border border-blue-900/70 bg-gradient-to-br from-gray-900 via-gray-950 to-blue-950/50 p-5 shadow-2xl shadow-blue-950/20 sm:p-6"
+>
   <div className="mb-5 flex flex-col gap-3 border-b border-gray-800 pb-4 md:flex-row md:items-start md:justify-between">
     <div>
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-300">
@@ -3051,7 +3056,11 @@ return (
   </div>
 </section>
 
-<section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5">
+{/* OWNERSHIP: Patient Command Center — progression check workflow remains current-visit orientation. */}
+<section
+  data-ownership="patient-command-center"
+  className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5"
+>
   <div className="mb-4">
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
       Progression Check
@@ -3217,8 +3226,12 @@ return (
     </div>
   </form>
 
+  {/* OWNERSHIP: Patient Reference Workspace — supporting progression summaries remain inline for Phase 1. */}
   {shouldRenderProgressionSummaryCards && (
-    <details className="mt-5 rounded-xl border border-gray-800 bg-gray-950/60 p-4">
+    <details
+      data-ownership="patient-reference-workspace"
+      className="mt-5 rounded-xl border border-gray-800 bg-gray-950/60 p-4"
+    >
       <summary className="cursor-pointer text-sm font-semibold text-gray-200">
         Supporting progression summaries
         <span className="ml-2 text-xs font-normal text-gray-500">Show current snapshots and event details</span>
@@ -3346,7 +3359,11 @@ return (
   )}
 </section>
 
-<section className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5">
+{/* OWNERSHIP: Patient Command Center — operational pressures support current treatment prioritization. */}
+<section
+  data-ownership="patient-command-center"
+  className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5"
+>
   <div className="mb-4">
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
       Operational Pressures
@@ -3386,7 +3403,15 @@ return (
   </div>
 </section>
 
-<section className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5">
+{/* ==============================
+    OWNERSHIP: PATIENT REFERENCE WORKSPACE
+    Review, generated, context-heavy, transparency, module, snapshot, and history content retained in place for Phase 1 ownership classification.
+============================== */}
+
+<section
+  data-ownership="patient-reference-workspace"
+  className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5"
+>
   <div>
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
       Reference Workspace
