@@ -1811,6 +1811,8 @@ const displayCase = selectedGeneration?.input_payload
   : caseData;
 
 const generated = displayCase.generated_output as GeneratedOutput | null;
+const commandCenterHref = `/cases/${caseData.id}`;
+const referenceWorkspaceHref = `/cases/${caseData.id}/reference`;
 
 const progressionState = generated?.progression_state;
 
@@ -2850,6 +2852,14 @@ return (
 
 <div className={`max-w-5xl mx-auto space-y-6 ${workspaceMode === "command" ? "pt-28 sm:pt-20" : "pt-8"}`}>
 
+<nav aria-label="Patient workspace navigation" className="flex justify-end">
+  <Link
+    href={workspaceMode === "command" ? referenceWorkspaceHref : commandCenterHref}
+    className="inline-flex items-center rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition hover:border-blue-500 hover:bg-gray-800"
+  >
+    {workspaceMode === "command" ? "Reference Workspace" : "Command Center"}
+  </Link>
+</nav>
 
 {workspaceMode === "command" && (
 <>
