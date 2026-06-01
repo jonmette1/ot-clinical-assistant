@@ -8,7 +8,7 @@ This document defines the authoritative data model governing routine longitudina
 
 The purpose of a Progression Check is not to recreate the evaluation.
 
-The purpose is to identify meaningful clinical change since the previous visit, determine whether treatment direction should change, and maintain accurate clinician orientation.
+The purpose is to identify meaningful clinical change since the previous visit and determine whether treatment direction should change.
 
 Progression Checks are the primary longitudinal workflow.
 
@@ -32,25 +32,6 @@ Evaluation
 → Progression Check
 
 The system should never require clinicians to re-enter information that has not changed.
-
----
-
-# Clinical Navigation Principle
-
-Progression Checks exist to support clinical navigation.
-
-The purpose is not historical recordkeeping.
-
-The purpose is helping clinicians answer:
-
-- What changed?
-- Does that change today's treatment approach?
-- What requires attention now?
-- What should happen next?
-
-without reconstructing prior visits from memory.
-
-The software should carry the continuity burden.
 
 ---
 
@@ -160,7 +141,7 @@ Choose one:
 - Plateau Emerging
 - Regression Detected
 
-Represents clinician interpretation of overall progression.
+This represents clinician interpretation of the overall progression trajectory.
 
 ---
 
@@ -246,7 +227,7 @@ Examples:
 - safety concerns increased
 - environmental limitation emerged
 
-Provides the bridge between:
+This provides the bridge between:
 
 Barrier Evolution
 → Operational Prioritization
@@ -367,22 +348,6 @@ Progression Checks do not:
 
 ---
 
-# Relationship To The Command Center
-
-Progression Checks exist to maintain Command Center accuracy.
-
-The Command Center should allow clinicians to answer:
-
-1. Is the patient improving, stable, or declining?
-2. What changed since the last visit?
-3. Does that change today's treatment approach?
-4. What requires attention today?
-5. What should happen next?
-
-Progression events provide the information necessary to keep those answers current.
-
----
-
 # Longitudinal Outputs
 
 Progression Checks should produce:
@@ -408,5 +373,3 @@ A successful Progression Check allows the system to answer:
 - What should treatment focus on next?
 
 without requiring full reassessment documentation.
-
-The ultimate purpose of the Progression Check is maintaining accurate clinical orientation and decision support over time.

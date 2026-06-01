@@ -456,7 +456,7 @@ rather than:
 - pathway differentiation
 - narrative plan generation
 
-# DECISION 011
+# DECISION 012
 
 ## Decision
 
@@ -529,6 +529,265 @@ ACTIVE
 
 ---
 
+DECISION 014
+Decision
+
+The platform will pause deeper continuity architecture expansion after foundational continuity consolidation and shift primary focus toward UX compression, operational clarity, and clinician usability stabilization.
+
+The current continuity foundation is considered sufficient for near-term reassessment workflow evolution.
+
+Further architecture work should become:
+
+incremental
+operationally justified
+UX-constrained
+
+rather than:
+
+theoretically expansive
+recursively abstracted
+infrastructure-driven
+Rationale
+
+The platform has now established:
+
+deterministic continuity authority
+continuity mutation governance
+canonical continuity state infrastructure
+reassessment-sensitive continuity interpretation
+continuity-safe regeneration workflows
+stale-state governance
+operational prioritization architecture
+
+At this stage, the primary product risk is no longer insufficient continuity infrastructure.
+
+The primary risk is now:
+
+clinician cognitive overload
+operational complexity leakage
+reduced workflow clarity
+excessive architectural visibility within UX
+increasing onboarding friction
+
+The product’s strategic value is not:
+
+deeper architectural sophistication
+
+The value is:
+
+operational cognition compression
+continuity readability
+reassessment clarity
+low-friction clinical usability
+continuity-aware workflow support
+Strategic Direction
+
+Future product evolution should prioritize:
+
+operational scanability
+continuity readability
+progressive disclosure
+reassessment comprehension
+workflow compression
+clinician confidence
+low-friction continuity interpretation
+operational clarity
+longitudinal usability stability
+
+Future architecture work should be:
+
+incremental
+implementation-driven
+operationally necessary
+
+rather than:
+
+speculative
+recursively abstracted
+infrastructure-expansive
+Deferred Transitional Areas
+
+The following areas remain intentionally transitional:
+
+new-case progression assembly
+API-owned continuity interpretation attachment
+detail-module continuity dependency standardization
+
+These areas are considered acceptable transitional debt until:
+
+operationally necessary
+UX-validated
+reassessment workflows mature further
+Tradeoff
+
+This decision intentionally slows deeper continuity consolidation.
+
+However, it protects against:
+
+architectural recursion
+continuity overengineering
+UX degradation
+workflow complexity escalation
+clinician usability decline
+
+This creates healthier balance between:
+
+architectural sophistication
+operational usability
+clinician cognition
+workflow clarity
+Status
+
+ACTIVE
+
+# DECISION 012
+
+## Decision
+
+The primary longitudinal unit of progress will be occupational performance evolution, not visit history.
+
+The platform will prioritize tracking:
+
+- occupational performance
+- assistance level change
+- milestone attainment
+- barrier evolution
+- operational priority transitions
+
+rather than:
+
+- visit count
+- treatment count
+- narrative treatment history
+
+---
+
+## Rationale
+
+Clinical progression occurs because:
+
+- barriers are resolved
+- new barriers emerge
+- operational priorities shift
+- occupational performance improves
+
+The most meaningful longitudinal questions are:
+
+- What changed?
+- Why did it change?
+- What barrier was resolved?
+- What barrier became dominant?
+- What milestone was achieved?
+
+These questions cannot be answered reliably through visit history alone.
+
+---
+
+## Tradeoff
+
+This increases the importance of structured follow-up data capture and reduces reliance on narrative documentation as the source of continuity interpretation.
+
+However, it creates substantially stronger alignment with actual OT clinical reasoning and progression workflows.
+
+---
+
+## Status
+
+# DECISION 013
+
+## Decision
+
+The Command Center is the primary clinician workflow surface.
+
+The primary purpose of opening a patient case is clinician orientation and clinical navigation, not evaluation review, documentation review, or treatment-plan review.
+
+---
+
+## Rationale
+
+Longitudinal validation demonstrated that the system can:
+
+* preserve continuity
+* mutate interpretation appropriately
+* maintain clinical context
+* update attention over time
+* update operational focus over time
+
+The remaining challenge is not information generation.
+
+The remaining challenge is helping clinicians rapidly consume the information already available.
+
+Clinical review indicates that therapists returning to a case are attempting to answer:
+
+1. Is the patient improving, stable, or declining?
+2. What changed since the last visit?
+3. Does that change today's treatment approach?
+4. What requires attention today?
+5. What should I do next?
+
+The Command Center should prioritize answering these questions immediately upon case open.
+
+---
+
+## Implications
+
+The Command Center becomes the primary workflow surface.
+
+Information should be prioritized according to clinical orientation value rather than historical importance.
+
+Priority hierarchy:
+
+1. Case Status
+2. Since Last Visit
+3. Attention Required
+4. Current Focus
+5. Next Action
+
+---
+
+## Secondary Information
+
+The following remain important but are supporting information:
+
+* evaluation details
+* intake details
+* diagnosis context
+* historical progression records
+* generated reasoning
+* longitudinal history
+* environmental details
+* caregiver details
+
+These should support orientation rather than drive it.
+
+---
+
+## Non-Goals
+
+This decision does not:
+
+* redesign reasoning architecture
+* redesign continuity architecture
+* redesign progression architecture
+* redesign reassessment architecture
+* redesign operational prioritization architecture
+
+These systems remain authoritative and stable.
+
+The objective is improving clinician consumption of existing intelligence.
+
+---
+
+## Success Measure
+
+A clinician should be able to open a case and understand the patient's current clinical reality without reconstructing prior visits from memory.
+
+The software should carry the continuity burden.
+
+The clinician should not.
+
+
+ACTIVE
 
 ## Next Phase
 
