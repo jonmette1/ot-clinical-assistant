@@ -21,6 +21,10 @@ import { DecisionTransparency } from "./components/DecisionTransparency";
 import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
 import { TransferMobilityPressureCard } from "./components/TransferMobilityPressureCard";
 import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSection";
+import {
+  compressCommandCenterList,
+  compressCommandCenterSentence,
+} from "@/lib/clinicalDisplayLanguage";
 // ==============================
 // TYPES
 // ==============================
@@ -1851,6 +1855,9 @@ const currentOperationalEmphasis =
   operationalPrioritization?.currentOperationalEmphasis ||
   "No operational emphasis generated";
 
+const commandCenterCurrentOperationalEmphasis =
+  compressCommandCenterSentence(currentOperationalEmphasis);
+
 const emphasisRationale: string[] =
   operationalPrioritization?.emphasisRationale || [];
 
@@ -2134,6 +2141,17 @@ const lastVisitSummaryRows: SummaryRow[] = [
   },
 ];
 
+const compressCommandCenterSummaryValue = (value: SummaryValue): SummaryValue => {
+  if (Array.isArray(value)) return compressCommandCenterList(value);
+  if (typeof value === "string") return compressCommandCenterSentence(value);
+  return value;
+};
+
+const commandCenterLastVisitSummaryRows: SummaryRow[] = lastVisitSummaryRows.map((row) => ({
+  ...row,
+  value: compressCommandCenterSummaryValue(row.value),
+}));
+
 const lastVisitCreatedAt = formatDateTime(latestProgressionEvent?.created_at);
 
 const previousDominantBarrierForValidation =
@@ -2295,10 +2313,16 @@ const sinceLastVisitSummaryItems = [
     : null,
 ].filter((item): item is string => Boolean(item));
 
+const commandCenterSinceLastVisitSummaryItems =
+  compressCommandCenterList(sinceLastVisitSummaryItems);
+
 const attentionStatement = readText(clinicalAttentionState, [
   "attentionStatement",
   "attention_statement",
 ]);
+
+const commandCenterAttentionStatement =
+  compressCommandCenterSentence(attentionStatement);
 
 const attentionRequiredMetadataRows: SummaryRow[] = [
   {
@@ -2322,6 +2346,9 @@ const attentionRequiredMetadataRows: SummaryRow[] = [
 const compressedRationaleSummary = emphasisRationale.length
   ? emphasisRationale.slice(0, 2).join(" ")
   : operationalContinuitySummary;
+
+const commandCenterRationaleSummary =
+  compressCommandCenterSentence(compressedRationaleSummary);
 
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
@@ -2416,6 +2443,8 @@ const nextActionItems = [
 ]
   .filter(Boolean)
   .slice(0, 5);
+
+const commandCenterNextActionItems = compressCommandCenterList(nextActionItems);
 
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
@@ -2929,11 +2958,11 @@ return (
         What should treatment focus on right now?
       </p>
       <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
-        {currentOperationalEmphasis}
+        {commandCenterCurrentOperationalEmphasis}
       </h2>
-      {compressedRationaleSummary ? (
+      {commandCenterRationaleSummary ? (
         <p className="mt-4 max-w-4xl text-sm leading-relaxed text-emerald-50/85">
-          {compressedRationaleSummary}
+          {commandCenterRationaleSummary}
         </p>
       ) : null}
       {dominantBarriers.length > 0 ? (
@@ -3003,22 +3032,22 @@ return (
           </p>
         ) : null}
       </div>
-      {sinceLastVisitSummaryItems.length > 0 ? (
+      {commandCenterSinceLastVisitSummaryItems.length > 0 ? (
         <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 sm:grid-cols-2">
           <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
               What Changed
             </p>
-            <p className="mt-2 text-gray-100">{sinceLastVisitSummaryItems[0]}</p>
+            <p className="mt-2 text-gray-100">{commandCenterSinceLastVisitSummaryItems[0]}</p>
           </div>
           <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
               Why It Matters
             </p>
             <div className="mt-2 space-y-2">
-              {(sinceLastVisitSummaryItems.length > 1
-                ? sinceLastVisitSummaryItems.slice(1)
-                : [sinceLastVisitSummaryItems[0]]
+              {(commandCenterSinceLastVisitSummaryItems.length > 1
+                ? commandCenterSinceLastVisitSummaryItems.slice(1)
+                : [commandCenterSinceLastVisitSummaryItems[0]]
               ).map((summary, index) => (
                 <p key={`${summary}-${index}`}>{summary}</p>
               ))}
@@ -3048,9 +3077,9 @@ return (
           </p>
         ) : null}
       </div>
-      {hasAnySummaryValue(lastVisitSummaryRows) ? (
+      {hasAnySummaryValue(commandCenterLastVisitSummaryRows) ? (
         <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 md:grid-cols-3">
-          {lastVisitSummaryRows.map((row) => (
+          {commandCenterLastVisitSummaryRows.map((row) => (
             <div key={row.label} className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
                 {row.label}
@@ -3073,7 +3102,7 @@ return (
         5. Attention Required
       </p>
       <h2 className="mt-1 text-xl font-semibold leading-snug text-white">
-        {attentionStatement || "No clinical attention statement is available yet."}
+        {commandCenterAttentionStatement || "No clinical attention statement is available yet."}
       </h2>
       <details className="mt-4 rounded-2xl border border-red-900/30 bg-gray-950/30 p-3">
         <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-red-200/70">
@@ -3092,9 +3121,9 @@ return (
       <h2 className="mt-1 text-xl font-semibold text-white">
         What should happen next?
       </h2>
-      {nextActionItems.length > 0 ? (
+      {commandCenterNextActionItems.length > 0 ? (
         <ul className="mt-4 space-y-2 text-sm text-gray-100">
-          {nextActionItems.map((action, index) => (
+          {commandCenterNextActionItems.map((action, index) => (
             <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
               <span className="mt-1 text-blue-300">•</span>
               <span>{action}</span>
