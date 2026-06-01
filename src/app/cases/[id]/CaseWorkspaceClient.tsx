@@ -2343,38 +2343,6 @@ const overallTrajectory: OverallTrajectory =
     ? "Stable"
     : "Not enough longitudinal data");
 
-const caseStatusRows: SummaryRow[] = [
-  {
-    label: "Clinical status",
-    value: clinicalStatus,
-  },
-  {
-    label: "Plan status",
-    value:
-      displayCase.reasoning_stale || displayCase.plan_stale
-        ? "Review current plan before relying on it."
-        : displayCase.modules_stale
-        ? "Plan usable; supporting modules may need refresh."
-        : "Current plan is active.",
-  },
-  {
-    label: "Progression status",
-    value:
-      progressionState?.advancementReadiness ||
-      progressionState?.currentPhase ||
-      readText(clinicalAttentionState, ["progressionStatus", "progression_status"]),
-  },
-  {
-    label: "Review flags",
-    value: [
-      clinicalAttentionRequiresOperationalReview ? "Operational review flagged" : null,
-      clinicalAttentionReassessmentRecommended ? "Reassessment recommended" : null,
-      displayCase.reasoning_stale ? "Reasoning stale" : null,
-      displayCase.plan_stale ? "Plan stale" : null,
-    ].filter(Boolean) as string[],
-  },
-];
-
 const nextActionItems = [
   ...(structuredPlanDetails?.immediateActions || []),
   ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
@@ -2889,52 +2857,109 @@ return (
   </div>
 
   <div className="grid gap-4 lg:grid-cols-2">
-    <article className="rounded-2xl border border-gray-800 bg-gray-950/80 p-4 lg:col-span-2">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
-        1. Case Status
+    <article className="rounded-3xl border border-emerald-700/70 bg-emerald-950/25 p-5 shadow-xl shadow-emerald-950/20 lg:col-span-2 sm:p-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+        1. Current Focus
       </p>
-      <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-            Overall Trajectory
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/60">
+        What should treatment focus on right now?
+      </p>
+      <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
+        {currentOperationalEmphasis}
+      </h2>
+      {compressedRationaleSummary ? (
+        <p className="mt-4 max-w-4xl text-sm leading-relaxed text-emerald-50/85">
+          {compressedRationaleSummary}
+        </p>
+      ) : null}
+      {dominantBarriers.length > 0 ? (
+        <div className="mt-5 rounded-2xl border border-emerald-900/50 bg-gray-950/40 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/80">
+            Dominant barriers shaping this focus
           </p>
-          <h2 className="mt-1 text-3xl font-bold text-white">
-            {overallTrajectory}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-300">
-            Patient trajectory based on current longitudinal progression signals.
-          </p>
+          <ul className="mt-3 grid gap-2 text-sm text-gray-100 md:grid-cols-3">
+            {dominantBarriers.slice(0, 3).map((barrier, index) => (
+              <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
+                <span className="mt-1 text-emerald-300">•</span>
+                <span>{barrier}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="rounded-2xl border border-blue-800/70 bg-blue-950/30 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
-            Clinical Status
-          </p>
-          <p className="mt-1 max-w-xs text-sm font-semibold text-blue-50">
-            {clinicalStatus}
-          </p>
-          <p className="mt-2 max-w-xs text-xs leading-relaxed text-blue-100/70">
-            {clinicalStatusExplanation}
-          </p>
-        </div>
-      </div>
-      {renderCommandCenterRows(caseStatusRows, "No case status details are available yet.")}
+      ) : (
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          No dominant barriers have been generated yet.
+        </p>
+      )}
     </article>
 
     <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
-        2. Since Last Visit
+        2. Case Status
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-white">
-        Change summary
-      </h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-gray-800 bg-gray-950/80 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Overall Trajectory
+          </p>
+          <h2 className="mt-1 text-2xl font-bold text-white">
+            {overallTrajectory}
+          </h2>
+          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+            Based on current longitudinal progression signals.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-blue-800/70 bg-blue-950/30 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
+            Clinical Status
+          </p>
+          <p className="mt-1 text-base font-semibold text-blue-50">
+            {clinicalStatus}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-blue-100/70">
+            {clinicalStatusExplanation}
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+            3. Since Last Visit
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-white">
+            Change summary
+          </h2>
+        </div>
+        {sinceLastVisitUpdatedAt ? (
+          <p className="shrink-0 rounded-full border border-gray-800 bg-gray-950 px-2 py-1 text-[11px] text-gray-400">
+            Updated {sinceLastVisitUpdatedAt}
+          </p>
+        ) : null}
+      </div>
       {sinceLastVisitSummaryItems.length > 0 ? (
-        <div className="mt-4 space-y-2 text-sm leading-relaxed text-gray-200">
-          {sinceLastVisitSummaryItems.map((summary, index) => (
-            <p key={`${summary}-${index}`}>{summary}</p>
-          ))}
-          {sinceLastVisitUpdatedAt ? (
-            <p className="pt-1 text-xs text-gray-500">Updated {sinceLastVisitUpdatedAt}</p>
-          ) : null}
+        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 sm:grid-cols-2">
+          <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+              What Changed
+            </p>
+            <p className="mt-2 text-gray-100">{sinceLastVisitSummaryItems[0]}</p>
+          </div>
+          <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+              Why It Matters
+            </p>
+            <div className="mt-2 space-y-2">
+              {(sinceLastVisitSummaryItems.length > 1
+                ? sinceLastVisitSummaryItems.slice(1)
+                : [sinceLastVisitSummaryItems[0]]
+              ).map((summary, index) => (
+                <p key={`${summary}-${index}`}>{summary}</p>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
@@ -2945,53 +2970,30 @@ return (
 
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-300">
-        3. Attention Required
+        4. Attention Required
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-white">
+      <h2 className="mt-1 text-xl font-semibold leading-snug text-white">
         {attentionStatement || "No clinical attention statement is available yet."}
       </h2>
-      <div className="mt-4 rounded-2xl border border-red-900/40 bg-gray-950/40 p-3">
-        {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
-      </div>
-    </article>
-
-    <article className="rounded-2xl border border-emerald-900/60 bg-emerald-950/15 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
-        4. Current Focus
-      </p>
-      <h2 className="mt-1 text-xl font-semibold text-white">
-        {currentOperationalEmphasis}
-      </h2>
-      {compressedRationaleSummary ? (
-        <p className="mt-3 text-sm leading-relaxed text-emerald-50/80">
-          {compressedRationaleSummary}
-        </p>
-      ) : null}
-      {dominantBarriers.length > 0 ? (
-        <ul className="mt-4 space-y-2 text-sm text-gray-200">
-          {dominantBarriers.slice(0, 3).map((barrier, index) => (
-            <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
-              <span className="mt-1 text-emerald-300">•</span>
-              <span>{barrier}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-sm leading-relaxed text-gray-500">
-          No dominant barriers have been generated yet.
-        </p>
-      )}
+      <details className="mt-4 rounded-2xl border border-red-900/30 bg-gray-950/30 p-3">
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-red-200/70">
+          Supporting attention details
+        </summary>
+        <div className="mt-3 opacity-80">
+          {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
+        </div>
+      </details>
     </article>
 
     <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
         5. Next Action
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-white">
-        What to do next
+      <h2 className="mt-1 text-xl font-semibold text-white">
+        What should happen next?
       </h2>
       {nextActionItems.length > 0 ? (
-        <ul className="mt-4 space-y-2 text-sm text-gray-200">
+        <ul className="mt-4 space-y-2 text-sm text-gray-100">
           {nextActionItems.map((action, index) => (
             <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
               <span className="mt-1 text-blue-300">•</span>
@@ -3008,16 +3010,60 @@ return (
   </div>
 </section>
 
+{/* OWNERSHIP: Patient Command Center — operational pressures support current treatment prioritization. */}
+<section
+  data-ownership="patient-command-center"
+  className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5"
+>
+  <div className="mb-4">
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+      Operational Pressures
+    </p>
+    <h2 className="mt-1 text-xl font-semibold text-white">
+      Pressures shaping what can safely happen next
+    </h2>
+  </div>
+
+  <div className="grid gap-4 lg:grid-cols-3">
+    <CaregiverFeasibilityCard
+      caregiverGuidance={caregiverGuidance}
+      fallbackFeasibilityItems={
+        structuredPlanDetails?.feasibilityConstraints ||
+        structuredPlanDetails?.caregiverConsiderations ||
+        []
+      }
+    />
+
+    <EnvironmentalPressureCard
+      environmentalPressures={
+        structuredPlanDetails?.environmentalPressures ||
+        structuredPlanDetails?.environmentalConsiderations ||
+        []
+      }
+    />
+
+    <TransferMobilityPressureCard
+      worstTransfer={worstTransfer}
+      transferScores={transferScores}
+      executionPressurePoints={
+        structuredPlanDetails?.executionPressurePoints ||
+        structuredPlanDetails?.treatmentExecutionNotes ||
+        []
+      }
+    />
+  </div>
+</section>
+
 {/* OWNERSHIP: Patient Command Center — progression check workflow remains current-visit orientation. */}
 <section
   data-ownership="patient-command-center"
-  className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5"
+  className="rounded-2xl border border-gray-800 bg-gray-950/30 p-4"
 >
   <div className="mb-4">
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
       Progression Check
     </p>
-    <h2 className="mt-1 text-xl font-semibold text-white">
+    <h2 className="mt-1 text-lg font-semibold text-white">
       Quick progression validation
     </h2>
     <p className="mt-1 text-sm text-gray-400">
@@ -3180,49 +3226,7 @@ return (
 
 </section>
 
-{/* OWNERSHIP: Patient Command Center — operational pressures support current treatment prioritization. */}
-<section
-  data-ownership="patient-command-center"
-  className="rounded-2xl border border-gray-800 bg-gray-950/40 p-5"
->
-  <div className="mb-4">
-    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-      Operational Pressures
-    </p>
-    <h2 className="mt-1 text-xl font-semibold text-white">
-      Pressures shaping what can safely happen next
-    </h2>
-  </div>
 
-  <div className="grid gap-4 lg:grid-cols-3">
-    <CaregiverFeasibilityCard
-      caregiverGuidance={caregiverGuidance}
-      fallbackFeasibilityItems={
-        structuredPlanDetails?.feasibilityConstraints ||
-        structuredPlanDetails?.caregiverConsiderations ||
-        []
-      }
-    />
-
-    <EnvironmentalPressureCard
-      environmentalPressures={
-        structuredPlanDetails?.environmentalPressures ||
-        structuredPlanDetails?.environmentalConsiderations ||
-        []
-      }
-    />
-
-    <TransferMobilityPressureCard
-      worstTransfer={worstTransfer}
-      transferScores={transferScores}
-      executionPressurePoints={
-        structuredPlanDetails?.executionPressurePoints ||
-        structuredPlanDetails?.treatmentExecutionNotes ||
-        []
-      }
-    />
-  </div>
-</section>
 </>
 )}
 
