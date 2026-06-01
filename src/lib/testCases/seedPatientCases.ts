@@ -1,0 +1,652 @@
+export type SeedPatientCase = {
+  label: string;
+  case_classification: { case_type: string; clinical_focus: string };
+  patient_profile: { age_range: string; primary_diagnosis: string };
+  target_activities: string[];
+  goals_preferences: { primary_goal: string; other_target_activity: string };
+  functional_status: {
+    current_assistance_level: string;
+    adl_assist_levels: {
+      bed_transfer: string;
+      toilet_transfer: string;
+      shower_transfer: string;
+    };
+    key_barriers: string[];
+    other_key_barriers: string;
+  };
+  environment: {
+    bathroom_assessment: Record<string, any>;
+    transfer_surfaces: Record<string, any>;
+    general_mobility: Record<string, any>;
+    bedroom_bed_setup: Record<string, any>;
+    outside_entrance: Record<string, any>;
+  };
+  caregiverSupport: Record<string, any>;
+  feasibility_context: {
+    financial_constraint: string;
+    environmental_constraint: string;
+    equipment_access: string;
+  };
+};
+
+function baseEnvironment(overrides: Partial<SeedPatientCase["environment"]> = {}) {
+  return {
+    bathroom_assessment: {
+      bathroom_type: "tub_shower_combo",
+      space_constraints: "moderate",
+      toilet_setup: "standard",
+      transfer_surface: "tub_edge",
+      grab_bars_status: "none",
+      handheld_shower_status: "no",
+      bath_seating: "none",
+      safety_hazards: [],
+      equipment_present: [],
+      other_safety_hazards: "",
+      other_equipment_present: "",
+    },
+    transfer_surfaces: {
+      primary_seating: "chair",
+      seat_height: "standard",
+      armrests_present: "yes",
+      surface_firmness: "firm",
+      sit_to_stand_difficulty: "mild",
+    },
+    general_mobility: {
+      primary_mobility_device: "walker",
+      indoor_mobility_level: "supervision",
+      endurance: "moderate",
+      recent_falls: "no",
+    },
+    bedroom_bed_setup: {
+      bed_type: "standard",
+      bed_height: "standard",
+      bed_rails: "none",
+      bed_clearance: "adequate",
+      bedside_hazards: [],
+    },
+    outside_entrance: {
+      driveway_surface: "smooth",
+      parking_type: "driveway",
+      entry_access: "front",
+      steps_present: "no",
+      number_of_steps: "",
+      step_height: "",
+      step_depth: "",
+      railings_present: "na",
+      door_type: "standard",
+      door_width: "standard",
+      mailbox_location: "porch",
+      exterior_hazards: [],
+      other_exterior_hazards: "",
+    },
+    ...overrides,
+  };
+}
+
+function baseCaregiver(overrides: Record<string, any> = {}) {
+  return {
+    caregiver_name: "Test Caregiver",
+    relationship: "Family",
+    phone: "",
+    availability: "part_time_available",
+    physical_capacity: "light_assist_only",
+    training_level: "minimal_familiarity",
+    confidence: "moderate_confidence",
+    priorities: "",
+    is_primary_support: true,
+    ...overrides,
+  };
+}
+
+export const seedPatientCases: SeedPatientCase[] = [
+  {
+    label: "Left CVA with Hemiparesis",
+    case_classification: { case_type: "neurological", clinical_focus: "transfers_mobility" },
+    patient_profile: { age_range: "70-79", primary_diagnosis: "Left CVA with right hemiparesis" },
+    target_activities: ["Transfers"],
+    goals_preferences: { primary_goal: "Safe transfers with reduced physical assistance", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "3",
+      adl_assist_levels: { bed_transfer: "3", toilet_transfer: "3", shower_transfer: "2" },
+      key_barriers: ["Balance", "Strength"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "none",
+        safety_hazards: ["No grab bars", "High tub wall"],
+        equipment_present: [],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      transfer_surfaces: {
+        primary_seating: "chair",
+        seat_height: "standard",
+        armrests_present: "yes",
+        surface_firmness: "firm",
+        sit_to_stand_difficulty: "moderate",
+      },
+      general_mobility: {
+        primary_mobility_device: "walker",
+        indoor_mobility_level: "assist",
+        endurance: "moderate",
+        recent_falls: "yes",
+      },
+      outside_entrance: {
+        driveway_surface: "smooth",
+        parking_type: "driveway",
+        entry_access: "front",
+        steps_present: "yes",
+        number_of_steps: "2",
+        step_height: "high",
+        step_depth: "shallow",
+        railings_present: "no",
+        door_type: "standard",
+        door_width: "standard",
+        mailbox_location: "porch",
+        exterior_hazards: ["cracks_in_pathways"],
+        other_exterior_hazards: "",
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      relationship: "Spouse",
+      priorities: "Wants safer transfers and reduced fall risk.",
+    }),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "insurance_dme" },
+  },
+
+  {
+    label: "Right TKA",
+    case_classification: { case_type: "physical_rehabilitation", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "70-79", primary_diagnosis: "Right total knee arthroplasty" },
+    target_activities: ["Bathing and Dressing"],
+    goals_preferences: { primary_goal: "Complete bathing and dressing safely with reduced assistance", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "5", toilet_transfer: "4", shower_transfer: "3" },
+      key_barriers: ["ROM", "Pain", "Strength"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "raised_toilet_seat",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "toilet_only",
+        handheld_shower_status: "yes",
+        bath_seating: "shower_chair",
+        safety_hazards: ["High tub wall"],
+        equipment_present: ["Shower chair", "Raised toilet seat"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      transfer_surfaces: {
+        primary_seating: "recliner",
+        seat_height: "high",
+        armrests_present: "yes",
+        surface_firmness: "firm",
+        sit_to_stand_difficulty: "mild",
+      },
+    }),
+    caregiverSupport: baseCaregiver({ confidence: "high_confidence" }),
+    feasibility_context: { financial_constraint: "low", environmental_constraint: "moderate", equipment_access: "insurance_dme" },
+  },
+
+  {
+    label: "Parkinson's Disease",
+    case_classification: { case_type: "neurological", clinical_focus: "transfers_mobility" },
+    patient_profile: { age_range: "70-79", primary_diagnosis: "Parkinson's disease" },
+    target_activities: ["Functional Mobility"],
+    goals_preferences: { primary_goal: "Improve safe household mobility and reduce freezing-related fall risk", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "4", toilet_transfer: "4", shower_transfer: "4" },
+      key_barriers: ["Balance", "Sequencing", "Fear/Anxiety"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "walk_in_shower",
+        space_constraints: "minimal",
+        toilet_setup: "comfort_height",
+        transfer_surface: "walk_in_shower_threshold",
+        grab_bars_status: "toilet_and_shower",
+        handheld_shower_status: "yes",
+        bath_seating: "shower_chair",
+        safety_hazards: ["Poor lighting"],
+        equipment_present: ["Grab bars", "Shower chair"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "cane",
+        indoor_mobility_level: "supervision",
+        endurance: "moderate",
+        recent_falls: "yes",
+      },
+      transfer_surfaces: {
+        primary_seating: "chair",
+        seat_height: "standard",
+        armrests_present: "yes",
+        surface_firmness: "firm",
+        sit_to_stand_difficulty: "moderate",
+      },
+    }),
+    caregiverSupport: baseCaregiver({ training_level: "some_experience" }),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "mixed" },
+  },
+
+  {
+    label: "Dementia with Caregiver Strain",
+    case_classification: { case_type: "geriatric", clinical_focus: "caregiver_training" },
+    patient_profile: { age_range: "80-89", primary_diagnosis: "Dementia with impaired ADL sequencing" },
+    target_activities: ["Caregiver Training"],
+    goals_preferences: { primary_goal: "Improve caregiver confidence with safe cueing and ADL routine setup", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "5", toilet_transfer: "4", shower_transfer: "4" },
+      key_barriers: ["Cognition", "Sequencing"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "shower_chair",
+        safety_hazards: ["Clutter", "No grab bars"],
+        equipment_present: ["Shower chair"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      bedroom_bed_setup: {
+        bed_type: "standard",
+        bed_height: "standard",
+        bed_rails: "none",
+        bed_clearance: "limited",
+        bedside_hazards: ["clutter"],
+      },
+      transfer_surfaces: {
+        primary_seating: "couch",
+        seat_height: "low",
+        armrests_present: "no",
+        surface_firmness: "soft",
+        sit_to_stand_difficulty: "mild",
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      availability: "full_time_available",
+      training_level: "no_training",
+      confidence: "low_confidence",
+      priorities: "Caregiver is overwhelmed by cueing, hygiene routines, and safety supervision.",
+    }),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "mixed" },
+  },
+
+  {
+    label: "COPD with Endurance Limitations",
+    case_classification: { case_type: "geriatric", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "70-79", primary_diagnosis: "COPD with reduced activity tolerance" },
+    target_activities: ["Bathing"],
+    goals_preferences: { primary_goal: "Complete bathing with energy conservation and safe pacing", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "5", toilet_transfer: "4", shower_transfer: "4" },
+      key_barriers: ["Endurance", "Fear/Anxiety"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "comfort_height",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "shower_only",
+        handheld_shower_status: "yes",
+        bath_seating: "shower_chair",
+        safety_hazards: ["Slippery surfaces"],
+        equipment_present: ["Shower chair", "Handheld shower"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "walker",
+        indoor_mobility_level: "supervision",
+        endurance: "low",
+        recent_falls: "no",
+      },
+      outside_entrance: {
+        driveway_surface: "inclined",
+        parking_type: "driveway",
+        entry_access: "front",
+        steps_present: "yes",
+        number_of_steps: "3",
+        step_height: "high",
+        step_depth: "shallow",
+        railings_present: "yes",
+        door_type: "standard",
+        door_width: "standard",
+        mailbox_location: "driveway",
+        exterior_hazards: ["must_cross_grass"],
+        other_exterior_hazards: "",
+      },
+    }),
+    caregiverSupport: baseCaregiver(),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "insurance_dme" },
+  },
+
+  {
+    label: "Multiple Falls with Environmental Hazards",
+    case_classification: { case_type: "geriatric", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "80-89", primary_diagnosis: "Recurrent falls with environmental barriers" },
+    target_activities: ["Home Safety"],
+    goals_preferences: { primary_goal: "Reduce fall risk through safer home setup and mobility routines", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "5",
+      adl_assist_levels: { bed_transfer: "5", toilet_transfer: "5", shower_transfer: "4" },
+      key_barriers: ["Balance", "Environment"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "significant",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "none",
+        safety_hazards: ["Loose rugs", "Poor lighting", "No grab bars"],
+        equipment_present: [],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "cane",
+        indoor_mobility_level: "independent",
+        endurance: "moderate",
+        recent_falls: "yes",
+      },
+      transfer_surfaces: {
+        primary_seating: "couch",
+        seat_height: "low",
+        armrests_present: "no",
+        surface_firmness: "soft",
+        sit_to_stand_difficulty: "moderate",
+      },
+      bedroom_bed_setup: {
+        bed_type: "standard",
+        bed_height: "high",
+        bed_rails: "none",
+        bed_clearance: "limited",
+        bedside_hazards: ["poor_lighting", "clutter"],
+      },
+      outside_entrance: {
+        driveway_surface: "rough",
+        parking_type: "driveway",
+        entry_access: "front",
+        steps_present: "yes",
+        number_of_steps: "2",
+        step_height: "high",
+        step_depth: "shallow",
+        railings_present: "no",
+        door_type: "standard",
+        door_width: "narrow",
+        mailbox_location: "driveway",
+        exterior_hazards: ["cracks_in_pathways", "must_cross_gravel"],
+        other_exterior_hazards: "",
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      availability: "intermittent_availability",
+      confidence: "low_confidence",
+      priorities: "Family wants to reduce falls but cannot provide daily supervision.",
+    }),
+    feasibility_context: { financial_constraint: "high", environmental_constraint: "severe", equipment_access: "out_of_pocket" },
+  },
+
+  {
+    label: "Caregiver-Dependent Transfer Case",
+    case_classification: { case_type: "geriatric", clinical_focus: "caregiver_training" },
+    patient_profile: { age_range: "80-89", primary_diagnosis: "Generalized weakness with transfer dependence" },
+    target_activities: ["Transfers"],
+    goals_preferences: { primary_goal: "Complete essential transfers safely with caregiver support", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "2",
+      adl_assist_levels: { bed_transfer: "2", toilet_transfer: "2", shower_transfer: "2" },
+      key_barriers: ["Strength", "Balance", "Environment"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "significant",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "none",
+        safety_hazards: ["Clutter", "No grab bars", "High tub wall"],
+        equipment_present: [],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "wheelchair",
+        indoor_mobility_level: "assist",
+        endurance: "low",
+        recent_falls: "yes",
+      },
+      transfer_surfaces: {
+        primary_seating: "wheelchair",
+        seat_height: "standard",
+        armrests_present: "yes",
+        surface_firmness: "firm",
+        sit_to_stand_difficulty: "severe",
+      },
+      bedroom_bed_setup: {
+        bed_type: "hospital",
+        bed_height: "high",
+        bed_rails: "both_sides",
+        bed_clearance: "very_limited",
+        bedside_hazards: ["obstacles", "narrow_path"],
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      availability: "intermittent_availability",
+      physical_capacity: "cannot_provide_physical_assist",
+      training_level: "no_training",
+      confidence: "low_confidence",
+      priorities: "Caregiver cannot safely provide the level of physical assist currently required.",
+    }),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "severe", equipment_access: "insurance_dme" },
+  },
+
+  {
+    label: "CHF with Functional Decline",
+    case_classification: { case_type: "geriatric", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "80-89", primary_diagnosis: "CHF exacerbation with functional decline" },
+    target_activities: ["Bathing"],
+    goals_preferences: { primary_goal: "Resume safe bathing routine while monitoring fatigue and decline risk", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "3",
+      adl_assist_levels: { bed_transfer: "3", toilet_transfer: "3", shower_transfer: "3" },
+      key_barriers: ["Endurance", "Strength"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "comfort_height",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "toilet_only",
+        handheld_shower_status: "yes",
+        bath_seating: "shower_chair",
+        safety_hazards: ["Slippery surfaces"],
+        equipment_present: ["Shower chair", "Raised toilet seat"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "walker",
+        indoor_mobility_level: "assist",
+        endurance: "low",
+        recent_falls: "yes",
+      },
+      transfer_surfaces: {
+        primary_seating: "recliner",
+        seat_height: "low",
+        armrests_present: "no",
+        surface_firmness: "very_soft",
+        sit_to_stand_difficulty: "moderate",
+      },
+      outside_entrance: {
+        driveway_surface: "smooth",
+        parking_type: "driveway",
+        entry_access: "front",
+        steps_present: "yes",
+        number_of_steps: "2",
+        step_height: "high",
+        step_depth: "shallow",
+        railings_present: "yes",
+        door_type: "standard",
+        door_width: "standard",
+        mailbox_location: "porch",
+        exterior_hazards: ["cracks_in_pathways"],
+        other_exterior_hazards: "",
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      priorities: "Family is concerned about fatigue, shortness of breath, and recent decline.",
+    }),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "insurance_dme" },
+  },
+
+  {
+    label: "Severe OA with Pain-Limited Function",
+    case_classification: { case_type: "geriatric", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "70-79", primary_diagnosis: "Severe osteoarthritis with pain-limited transfers" },
+    target_activities: ["Toileting"],
+    goals_preferences: { primary_goal: "Complete toilet transfers with less pain and safer mechanics", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "4", toilet_transfer: "3", shower_transfer: "3" },
+      key_barriers: ["Pain", "Strength"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "moderate",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "shower_chair",
+        safety_hazards: ["High tub wall"],
+        equipment_present: ["Shower chair"],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      transfer_surfaces: {
+        primary_seating: "chair",
+        seat_height: "low",
+        armrests_present: "yes",
+        surface_firmness: "firm",
+        sit_to_stand_difficulty: "moderate",
+      },
+      general_mobility: {
+        primary_mobility_device: "walker",
+        indoor_mobility_level: "supervision",
+        endurance: "moderate",
+        recent_falls: "no",
+      },
+    }),
+    caregiverSupport: baseCaregiver(),
+    feasibility_context: { financial_constraint: "moderate", environmental_constraint: "moderate", equipment_access: "mixed" },
+  },
+
+  {
+    label: "Frail Elder Living Alone",
+    case_classification: { case_type: "geriatric", clinical_focus: "adl_home_safety" },
+    patient_profile: { age_range: "90+", primary_diagnosis: "Frailty with functional decline and limited support" },
+    target_activities: ["Home Safety"],
+    goals_preferences: { primary_goal: "Remain safely at home with reduced fall risk and clearer support needs", other_target_activity: "" },
+    functional_status: {
+      current_assistance_level: "4",
+      adl_assist_levels: { bed_transfer: "4", toilet_transfer: "4", shower_transfer: "3" },
+      key_barriers: ["Balance", "Endurance", "Environment"],
+      other_key_barriers: "",
+    },
+    environment: baseEnvironment({
+      bathroom_assessment: {
+        bathroom_type: "tub_shower_combo",
+        space_constraints: "significant",
+        toilet_setup: "standard",
+        transfer_surface: "tub_edge",
+        grab_bars_status: "none",
+        handheld_shower_status: "no",
+        bath_seating: "none",
+        safety_hazards: ["Loose rugs", "Poor lighting", "Clutter", "No grab bars"],
+        equipment_present: [],
+        other_safety_hazards: "",
+        other_equipment_present: "",
+      },
+      general_mobility: {
+        primary_mobility_device: "walker",
+        indoor_mobility_level: "supervision",
+        endurance: "low",
+        recent_falls: "yes",
+      },
+      transfer_surfaces: {
+        primary_seating: "couch",
+        seat_height: "low",
+        armrests_present: "no",
+        surface_firmness: "soft",
+        sit_to_stand_difficulty: "moderate",
+      },
+      bedroom_bed_setup: {
+        bed_type: "standard",
+        bed_height: "low",
+        bed_rails: "none",
+        bed_clearance: "limited",
+        bedside_hazards: ["poor_lighting", "clutter", "narrow_path"],
+      },
+      outside_entrance: {
+        driveway_surface: "rough",
+        parking_type: "driveway",
+        entry_access: "front",
+        steps_present: "yes",
+        number_of_steps: "3",
+        step_height: "high",
+        step_depth: "shallow",
+        railings_present: "no",
+        door_type: "standard",
+        door_width: "narrow",
+        mailbox_location: "driveway",
+        exterior_hazards: ["cracks_in_pathways", "must_cross_grass"],
+        other_exterior_hazards: "",
+      },
+    }),
+    caregiverSupport: baseCaregiver({
+      availability: "rarely_available",
+      physical_capacity: "cannot_provide_physical_assist",
+      training_level: "no_training",
+      confidence: "low_confidence",
+      is_primary_support: false,
+      priorities: "Patient lives alone with limited reliable support.",
+    }),
+    feasibility_context: { financial_constraint: "high", environmental_constraint: "severe", equipment_access: "out_of_pocket" },
+  },
+];
