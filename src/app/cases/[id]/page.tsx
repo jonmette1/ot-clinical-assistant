@@ -334,6 +334,14 @@ type SummaryRow = {
   value: SummaryValue;
 };
 
+type ValidationComparisonRow = {
+  label: string;
+  previousLabel: string;
+  previousValue: string | null;
+  currentLabel: string;
+  currentValue: string | null;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -666,6 +674,7 @@ const [isSubmittingProgressionCheck, setIsSubmittingProgressionCheck] = useState
 const [progressionCheckMessage, setProgressionCheckMessage] = useState("");
 const [progressionCheckError, setProgressionCheckError] = useState("");
 const [latestLongitudinalEvent, setLatestLongitudinalEvent] = useState<LongitudinalEventRow | null>(null);
+const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<LongitudinalEventRow[]>([]);
 
 // ==============================
 // DATA LOADING
@@ -775,16 +784,17 @@ if (gens.length > 0) {
 }
 }
 
-const { data: longitudinalEvent, error: longitudinalEventError } = await supabase
+const { data: longitudinalEvents, error: longitudinalEventError } = await supabase
   .from("longitudinal_events")
   .select("*")
   .eq("case_id", resolvedParams.id)
   .order("created_at", { ascending: false })
-  .limit(1)
-  .maybeSingle();
+  .limit(2);
 
 if (!longitudinalEventError) {
-  setLatestLongitudinalEvent((longitudinalEvent as LongitudinalEventRow) || null);
+  const recentEvents = (longitudinalEvents as LongitudinalEventRow[]) || [];
+  setRecentLongitudinalEvents(recentEvents);
+  setLatestLongitudinalEvent(recentEvents[0] || null);
 }
 
       setLoading(false);
@@ -851,17 +861,18 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
     setLatestGeneratedPlan(typedCase.generated_output as GeneratedPlan | null);
     setSelectedGeneration(null);
 
-    const { data: longitudinalEvent, error: longitudinalEventError } = await supabase
+    const { data: longitudinalEvents, error: longitudinalEventError } = await supabase
       .from("longitudinal_events")
       .select("*")
       .eq("case_id", caseData.id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+      .limit(2);
 
     if (longitudinalEventError) throw longitudinalEventError;
 
-    setLatestLongitudinalEvent((longitudinalEvent as LongitudinalEventRow) || null);
+    const recentEvents = (longitudinalEvents as LongitudinalEventRow[]) || [];
+    setRecentLongitudinalEvents(recentEvents);
+    setLatestLongitudinalEvent(recentEvents[0] || null);
     setProgressionCheckForm(emptyProgressionCheckForm);
     setProgressionCheckMessage("Progression check saved and case data refreshed.");
   } catch (error: unknown) {
@@ -2113,6 +2124,97 @@ const operationalFocusRows: SummaryRow[] = [
   },
 ];
 
+const latestProgressionEvent = recentLongitudinalEvents[0] || latestLongitudinalEvent;
+const previousProgressionEvent = recentLongitudinalEvents[1] || null;
+
+const latestEventPreviousStateSnapshot = latestProgressionEvent?.previous_state_snapshot;
+const latestEventOperationalEmphasisSnapshot =
+  latestProgressionEvent?.operational_emphasis_snapshot;
+const previousEventCurrentStateSnapshot = previousProgressionEvent?.current_state_snapshot;
+const previousEventClinicalAttentionSnapshot =
+  previousProgressionEvent?.clinical_attention_snapshot;
+const previousEventOperationalEmphasisSnapshot =
+  previousProgressionEvent?.operational_emphasis_snapshot;
+
+const previousDominantBarrierForValidation =
+  readText(previousEventCurrentStateSnapshot, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]) ||
+  readText(latestEventPreviousStateSnapshot, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]);
+
+const currentDominantBarrierForValidation =
+  readText(latestProgressionEvent?.current_state_snapshot, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]) ||
+  readText(currentLongitudinalState, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+    "currentLimitingFactor",
+    "current_limiting_factor",
+  ]);
+
+const previousAttentionRequiredForValidation = readText(
+  previousEventClinicalAttentionSnapshot,
+  ["attentionStatement", "attention_statement"]
+);
+
+const currentAttentionRequiredForValidation =
+  readText(latestProgressionEvent?.clinical_attention_snapshot, [
+    "attentionStatement",
+    "attention_statement",
+  ]) || readText(clinicalAttentionState, ["attentionStatement", "attention_statement"]);
+
+const previousOperationalEmphasisForValidation = readText(
+  previousEventOperationalEmphasisSnapshot,
+  ["currentOperationalEmphasis", "current_operational_emphasis"]
+);
+
+const currentOperationalEmphasisForValidation =
+  readText(latestEventOperationalEmphasisSnapshot, [
+    "currentOperationalEmphasis",
+    "current_operational_emphasis",
+  ]) || operationalPrioritization?.currentOperationalEmphasis || null;
+
+const hasProgressionHistoryForValidation = Boolean(
+  previousProgressionEvent ||
+    (latestEventPreviousStateSnapshot && latestProgressionEvent?.current_state_snapshot)
+);
+
+const longitudinalValidationRows: ValidationComparisonRow[] = [
+  {
+    label: "Barrier Evolution",
+    previousLabel: "Previous Dominant Barrier",
+    previousValue: previousDominantBarrierForValidation,
+    currentLabel: "Current Dominant Barrier",
+    currentValue: currentDominantBarrierForValidation,
+  },
+  {
+    label: "Clinical Attention Evolution",
+    previousLabel: "Previous Attention Required",
+    previousValue: previousAttentionRequiredForValidation,
+    currentLabel: "Current Attention Required",
+    currentValue: currentAttentionRequiredForValidation,
+  },
+  {
+    label: "Operational Focus Evolution",
+    previousLabel: "Previous Operational Emphasis",
+    previousValue: previousOperationalEmphasisForValidation,
+    currentLabel: "Current Operational Emphasis",
+    currentValue: currentOperationalEmphasisForValidation,
+  },
+];
+
 const clinicalAttentionRequiresOperationalReview = readBoolean(
   clinicalAttentionState,
   ["requiresOperationalReview", "requires_operational_review"]
@@ -3197,6 +3299,47 @@ return (
             <p className="text-gray-500">No operational focus has been generated yet.</p>
           )}
         </dl>
+      </div>
+
+      <div className="rounded-lg border border-amber-900/60 bg-amber-950/10 p-4 md:col-span-2">
+        <p className="font-semibold text-gray-100">Longitudinal Validation</p>
+        <p className="mt-1 text-xs text-gray-500">
+          Validation-only comparisons from saved progression snapshots and current generated outputs.
+        </p>
+
+        {hasProgressionHistoryForValidation ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {longitudinalValidationRows.map((row) => {
+              const hasExactComparison = Boolean(row.previousValue && row.currentValue);
+
+              return (
+                <div key={row.label} className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+                  <p className="text-sm font-semibold text-gray-100">{row.label}</p>
+                  {hasExactComparison ? (
+                    <dl className="mt-3 space-y-3">
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          {row.previousLabel}
+                        </dt>
+                        <dd className="mt-1 text-gray-200">{row.previousValue}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          {row.currentLabel}
+                        </dt>
+                        <dd className="mt-1 text-gray-200">{row.currentValue}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-gray-500">Insufficient progression history.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-gray-500">Insufficient progression history.</p>
+        )}
       </div>
       </div>
     </details>
