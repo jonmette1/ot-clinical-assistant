@@ -13,7 +13,34 @@ They should not be interpreted as active implementation priorities.
 An item may only move from this document into `active_roadmap.md` through explicit approval.
 
 ---
+## Patient Entry Card Context Deduplication
 
+Status: Backlog
+
+Observation:
+
+Patient Entry cards currently display:
+
+- Available Clinical Context
+- Clinical Context
+
+Certain cases resolve both sections to the same underlying diagnosis-level information, creating perceived duplication.
+
+Questions:
+
+- Are both sections required?
+- Should Treatment Frame become the primary orientation field?
+- Should diagnosis/context become secondary context?
+- Can duplication be eliminated without reducing orientation quality?
+
+Priority:
+
+Low
+
+Rationale:
+
+Does not block Quick Preview or patient-entry workflows.
+---
 # Patient Preview / Visit Preparation Experience
 
 ## Status
@@ -255,6 +282,8 @@ Operational Focus, progression context, and longitudinal summaries may represent
 * What is pre-visit orientation information?
 * What belongs in Command Center?
 * What belongs in a future preview experience?
+
+Investigate whether Operational Focus, Latest Progression Event, and other orientation-oriented Reference Workspace content should be surfaced through a future Patient Preview / Visit Preparation experience or compressed Command Center orientation layer.
 
 ## Potential Outcome
 
