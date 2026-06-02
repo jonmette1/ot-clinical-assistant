@@ -4,7 +4,6 @@ type ProgressionContinuityRowProps = {
   progressionPhase?: string | null;
   currentContinuityCondition: string;
   reassessmentPressureLabel: string;
-  operationalChangeClassification: string[];
   dominantInstabilityDrivers: string[];
   operationalDriftSignals?: string[];
   continuityAlerts?: string[];
@@ -14,7 +13,6 @@ export function ProgressionContinuityRow({
   progressionPhase,
   currentContinuityCondition,
   reassessmentPressureLabel,
-  operationalChangeClassification,
   dominantInstabilityDrivers,
   operationalDriftSignals = [],
   continuityAlerts = [],
@@ -62,29 +60,6 @@ export function ProgressionContinuityRow({
 
         <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
           <p className="mb-2 text-xs text-gray-500">
-            Operational Change Classification
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {operationalChangeClassification.length > 0 ? (
-              operationalChangeClassification.map((item, index) => (
-                <span
-                  key={index}
-                  className="rounded-md border border-blue-900/60 bg-blue-950/30 px-2 py-1 text-xs text-blue-100"
-                >
-                  {item}
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-gray-500">
-                No continuity classification available.
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-          <p className="mb-2 text-xs text-gray-500">
             Dominant Instability Drivers
           </p>
 
@@ -118,15 +93,6 @@ export function ProgressionContinuityRow({
             )}
           </ul>
         </div>
-      </div>
-
-      <div className="mt-4 flex justify-end">
-        <button
-          type="button"
-          className="rounded-lg border border-blue-700 bg-blue-950/40 px-4 py-2 text-sm font-medium text-blue-200 hover:bg-blue-900/40"
-        >
-          Start Follow-Up Update
-        </button>
       </div>
     </div>
   );

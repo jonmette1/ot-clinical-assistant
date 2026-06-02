@@ -344,14 +344,6 @@ type SummaryRow = {
   value: SummaryValue;
 };
 
-type ValidationComparisonRow = {
-  label: string;
-  previousLabel: string;
-  previousValue: string | null;
-  currentLabel: string;
-  currentValue: string | null;
-};
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -2070,20 +2062,10 @@ const operationalFocusRows: SummaryRow[] = [
 ];
 
 const latestProgressionEvent = recentLongitudinalEvents[0] || latestLongitudinalEvent;
-const previousProgressionEvent = recentLongitudinalEvents[1] || null;
-
 const latestVisitPayload = latestProgressionEvent?.event_payload;
 const latestVisitCurrentStateSnapshot = latestProgressionEvent?.current_state_snapshot;
 const latestVisitClinicalAttentionSnapshot = latestProgressionEvent?.clinical_attention_snapshot;
 const latestVisitOperationalEmphasisSnapshot = latestProgressionEvent?.operational_emphasis_snapshot;
-const latestEventPreviousStateSnapshot = latestProgressionEvent?.previous_state_snapshot;
-const latestEventOperationalEmphasisSnapshot = latestVisitOperationalEmphasisSnapshot;
-const previousEventCurrentStateSnapshot = previousProgressionEvent?.current_state_snapshot;
-const previousEventClinicalAttentionSnapshot =
-  previousProgressionEvent?.clinical_attention_snapshot;
-const previousEventOperationalEmphasisSnapshot =
-  previousProgressionEvent?.operational_emphasis_snapshot;
-
 const lastVisitStatus =
   readText(latestVisitCurrentStateSnapshot, ["progressionStatus", "progression_status"]) ||
   readText(latestVisitPayload, ["progressionStatus", "progression_status"]);
@@ -2155,85 +2137,6 @@ const commandCenterLastVisitSummaryRows: SummaryRow[] = lastVisitSummaryRows.map
 }));
 
 const lastVisitCreatedAt = formatDateTime(latestProgressionEvent?.created_at);
-
-const previousDominantBarrierForValidation =
-  readText(previousEventCurrentStateSnapshot, [
-    "currentDominantBarrier",
-    "current_dominant_barrier",
-    "currentLimitingFactor",
-    "current_limiting_factor",
-  ]) ||
-  readText(latestEventPreviousStateSnapshot, [
-    "currentDominantBarrier",
-    "current_dominant_barrier",
-    "currentLimitingFactor",
-    "current_limiting_factor",
-  ]);
-
-const currentDominantBarrierForValidation =
-  readText(latestProgressionEvent?.current_state_snapshot, [
-    "currentDominantBarrier",
-    "current_dominant_barrier",
-    "currentLimitingFactor",
-    "current_limiting_factor",
-  ]) ||
-  readText(currentLongitudinalState, [
-    "currentDominantBarrier",
-    "current_dominant_barrier",
-    "currentLimitingFactor",
-    "current_limiting_factor",
-  ]);
-
-const previousAttentionRequiredForValidation = readText(
-  previousEventClinicalAttentionSnapshot,
-  ["attentionStatement", "attention_statement"]
-);
-
-const currentAttentionRequiredForValidation =
-  readText(latestProgressionEvent?.clinical_attention_snapshot, [
-    "attentionStatement",
-    "attention_statement",
-  ]) || readText(clinicalAttentionState, ["attentionStatement", "attention_statement"]);
-
-const previousOperationalEmphasisForValidation = readText(
-  previousEventOperationalEmphasisSnapshot,
-  ["currentOperationalEmphasis", "current_operational_emphasis"]
-);
-
-const currentOperationalEmphasisForValidation =
-  readText(latestEventOperationalEmphasisSnapshot, [
-    "currentOperationalEmphasis",
-    "current_operational_emphasis",
-  ]) || operationalPrioritization?.currentOperationalEmphasis || null;
-
-const hasProgressionHistoryForValidation = Boolean(
-  previousProgressionEvent ||
-    (latestEventPreviousStateSnapshot && latestProgressionEvent?.current_state_snapshot)
-);
-
-const longitudinalValidationRows: ValidationComparisonRow[] = [
-  {
-    label: "Barrier Evolution",
-    previousLabel: "Previous Dominant Barrier",
-    previousValue: previousDominantBarrierForValidation,
-    currentLabel: "Current Dominant Barrier",
-    currentValue: currentDominantBarrierForValidation,
-  },
-  {
-    label: "Clinical Attention Evolution",
-    previousLabel: "Previous Attention Required",
-    previousValue: previousAttentionRequiredForValidation,
-    currentLabel: "Current Attention Required",
-    currentValue: currentAttentionRequiredForValidation,
-  },
-  {
-    label: "Operational Focus Evolution",
-    previousLabel: "Previous Operational Emphasis",
-    previousValue: previousOperationalEmphasisForValidation,
-    currentLabel: "Current Operational Emphasis",
-    currentValue: currentOperationalEmphasisForValidation,
-  },
-];
 
 const clinicalAttentionRequiresOperationalReview = readBoolean(
   clinicalAttentionState,
@@ -2358,9 +2261,6 @@ const continuityInterpretation =
 const currentContinuityCondition =
   continuityInterpretation?.currentContinuityCondition ||
   "Patient remains in an active stabilization state with ongoing operational variability.";
-
-const operationalChangeClassification: string[] =
-  continuityInterpretation?.operationalChangeClassification || [];
 
 const reassessmentPressureLevel =
   continuityInterpretation?.reassessmentPressureLevel || "low";
@@ -3409,8 +3309,6 @@ return (
     currentLongitudinalRows={currentLongitudinalRows}
     latestProgressionEventRows={latestProgressionEventRows}
     operationalFocusRows={operationalFocusRows}
-    hasProgressionHistoryForValidation={hasProgressionHistoryForValidation}
-    longitudinalValidationRows={longitudinalValidationRows}
   />
 
 {/* ==============================
@@ -4443,11 +4341,9 @@ return (
 <DecisionTransparency
   currentContinuityCondition={currentContinuityCondition}
   reassessmentPressureLabel={reassessmentPressureLabel}
-  operationalChangeClassification={operationalChangeClassification}
   dominantInstabilityDrivers={dominantInstabilityDrivers}
   operationalDriftSignals={operationalDriftSignals}
   continuityAlerts={continuityAlerts}
-  progressionState={progressionState}
 />
 
 {/* ==============================
