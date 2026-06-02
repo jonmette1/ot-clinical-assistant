@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { type PatientEntryPreviewSignal } from "./patientEntryPreview";
 
 export type PatientEntryCase = {
   id: string;
@@ -25,9 +26,18 @@ export type PatientEntryCase = {
   } | null;
 };
 
+export type PatientEntryPreviewState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "loaded"; signals: PatientEntryPreviewSignal[] }
+  | { status: "error"; message: string };
+
 type PatientEntryCardProps = {
   caseRow: PatientEntryCase;
   isSelected: boolean;
+  previewState: PatientEntryPreviewState;
+  isPreviewOpen: boolean;
+  onQuickPreviewToggle: () => void;
   onSelectionChange: (checked: boolean) => void;
 };
 
@@ -126,9 +136,79 @@ function formatRecency(createdAt: string) {
   }).format(new Date(createdAt));
 }
 
+function PatientEntryQuickPreview({
+  previewState,
+}: {
+  previewState: PatientEntryPreviewState;
+}) {
+  if (previewState.status === "loading" || previewState.status === "idle") {
+    return (
+      <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+          Quick Preview
+        </p>
+        <p className="mt-2 text-sm text-gray-400">
+          Loading current preview signals...
+        </p>
+      </div>
+    );
+  }
+
+  if (previewState.status === "error") {
+    return (
+      <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+          Quick Preview
+        </p>
+        <p className="mt-2 text-sm text-amber-200">
+          Preview could not be loaded. Open Command Center for full current
+          status.
+        </p>
+      </div>
+    );
+  }
+
+  if (previewState.signals.length === 0) {
+    return (
+      <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+          Quick Preview
+        </p>
+        <p className="mt-2 text-sm text-gray-400">
+          No current preview data available yet. Open Command Center for full
+          current status.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+        Quick Preview
+      </p>
+      <dl className="mt-3 grid gap-3 md:grid-cols-2">
+        {previewState.signals.map((signal) => (
+          <div key={signal.label}>
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+              {signal.label}
+            </dt>
+            <dd className="mt-1 text-sm leading-6 text-gray-200">
+              {signal.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export function PatientEntryCard({
   caseRow,
   isSelected,
+  previewState,
+  isPreviewOpen,
+  onQuickPreviewToggle,
   onSelectionChange,
 }: PatientEntryCardProps) {
   const { primaryIdentity, secondaryIdentity } = resolvePatientIdentity(caseRow);
@@ -200,15 +280,30 @@ export function PatientEntryCard({
             </div>
           </div>
 
+          {isPreviewOpen && (
+            <PatientEntryQuickPreview previewState={previewState} />
+          )}
+
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm leading-6 text-gray-400">{supportingContext}</p>
 
-            <Link
-              href={`/cases/${caseRow.id}`}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-gray-900"
-            >
-              Open Command Center
-            </Link>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                aria-expanded={isPreviewOpen}
+                onClick={onQuickPreviewToggle}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-200 transition hover:border-gray-500 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              >
+                {isPreviewOpen ? "Hide Preview" : "Quick Preview"}
+              </button>
+
+              <Link
+                href={`/cases/${caseRow.id}`}
+                className="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-gray-900"
+              >
+                Open Command Center
+              </Link>
+            </div>
           </div>
         </div>
       </div>
