@@ -4,7 +4,7 @@
 
 ## Current Highest-Priority Investigation
 
-### Patient Entry Phase 2 — Quick Preview Planning
+### Patient Entry Phase 2A — Quick Preview Foundation
 
 Objective:
 
@@ -51,7 +51,7 @@ Not Yet Implemented:
 
 Status:
 
-Implementation Planning
+Implementation Approved
 
 ---
 
