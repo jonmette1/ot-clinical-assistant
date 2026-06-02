@@ -31,13 +31,89 @@ type PatientEntryCardProps = {
   onSelectionChange: (checked: boolean) => void;
 };
 
-function formatClinicalLabel(value?: string | null) {
-  if (!value) return "Not documented";
+function getDocumentedText(value?: string | null) {
+  const trimmedValue = value?.trim();
 
-  return value
+  return trimmedValue || null;
+}
+
+function formatClinicalLabel(value?: string | null) {
+  const documentedValue = getDocumentedText(value);
+
+  if (!documentedValue) return null;
+
+  return documentedValue
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function resolvePatientIdentity(caseRow: PatientEntryCase) {
+  const documentedPatientName = getDocumentedText(
+    caseRow.client_info?.client_name
+  );
+  const caseTitle = getDocumentedText(caseRow.title) || "Untitled case";
+
+  if (documentedPatientName) {
+    return {
+      primaryIdentity: documentedPatientName,
+      secondaryIdentity: caseTitle,
+    };
+  }
+
+  return {
+    primaryIdentity: caseTitle,
+    secondaryIdentity: "Patient name not documented",
+  };
+}
+
+function resolveTreatmentFrame(caseRow: PatientEntryCase) {
+  const targetActivity = getDocumentedText(
+    caseRow.goals_preferences?.other_target_activity
+  );
+
+  if (targetActivity) {
+    return {
+      label: "Treatment frame",
+      value: targetActivity,
+    };
+  }
+
+  const keyBarriers = getDocumentedText(
+    caseRow.functional_status?.other_key_barriers
+  );
+
+  if (keyBarriers) {
+    return {
+      label: "Treatment frame",
+      value: keyBarriers,
+    };
+  }
+
+  const caseType = formatClinicalLabel(caseRow.case_classification?.case_type);
+
+  if (caseType) {
+    return {
+      label: "Available clinical context",
+      value: caseType,
+    };
+  }
+
+  const primaryDiagnosis = getDocumentedText(
+    caseRow.patient_profile?.primary_diagnosis
+  );
+
+  if (primaryDiagnosis) {
+    return {
+      label: "Available clinical context",
+      value: primaryDiagnosis,
+    };
+  }
+
+  return {
+    label: "Available clinical context",
+    value: "Clinical treatment frame not documented",
+  };
 }
 
 function formatRecency(createdAt: string) {
@@ -55,14 +131,11 @@ export function PatientEntryCard({
   isSelected,
   onSelectionChange,
 }: PatientEntryCardProps) {
-  const patientName = caseRow.client_info?.client_name || "Unnamed patient";
-  const caseTitle = caseRow.title || "Untitled case";
+  const { primaryIdentity, secondaryIdentity } = resolvePatientIdentity(caseRow);
+  const treatmentFrame = resolveTreatmentFrame(caseRow);
   const primaryDiagnosis =
-    caseRow.patient_profile?.primary_diagnosis || "Diagnosis not documented";
-  const treatmentFrame =
-    caseRow.goals_preferences?.other_target_activity ||
-    caseRow.functional_status?.other_key_barriers ||
-    formatClinicalLabel(caseRow.case_classification?.case_type);
+    getDocumentedText(caseRow.patient_profile?.primary_diagnosis) ||
+    "Diagnosis not documented";
   const supportingContext = caseRow.environment?.other_safety_hazards
     ? `Safety context: ${caseRow.environment.other_safety_hazards}`
     : caseRow.environment?.other_equipment_present
@@ -75,7 +148,7 @@ export function PatientEntryCard({
         <div className="pt-1">
           <input
             type="checkbox"
-            aria-label={`Select ${patientName}`}
+            aria-label={`Select ${primaryIdentity}`}
             checked={isSelected}
             onChange={(event) => onSelectionChange(event.target.checked)}
             onClick={(event) => event.stopPropagation()}
@@ -90,9 +163,11 @@ export function PatientEntryCard({
                 Patient
               </p>
               <h2 className="mt-1 truncate text-2xl font-semibold tracking-tight text-white">
-                {patientName}
+                {primaryIdentity}
               </h2>
-              <p className="mt-1 truncate text-sm text-gray-400">{caseTitle}</p>
+              <p className="mt-1 truncate text-sm text-gray-400">
+                {secondaryIdentity}
+              </p>
             </div>
 
             <div className="shrink-0 text-left md:text-right">
@@ -108,10 +183,10 @@ export function PatientEntryCard({
           <div className="mt-5 grid gap-4 border-y border-gray-800 py-4 md:grid-cols-[1.1fr_1fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Treatment frame
+                {treatmentFrame.label}
               </p>
               <p className="mt-2 text-base font-medium leading-6 text-gray-100">
-                {treatmentFrame}
+                {treatmentFrame.value}
               </p>
             </div>
 
