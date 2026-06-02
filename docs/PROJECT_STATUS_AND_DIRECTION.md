@@ -571,3 +571,6 @@ Notes:
 Patient Entry now functions as an orientation surface but remains constrained by currently available /cases data.
 
 Future value will come from Quick Preview and access to current clinical state data.
+
+Patient Entry card context deduplication completed.
+Treatment frame and clinical context now represent distinct information.
