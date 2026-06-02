@@ -2952,30 +2952,30 @@ return (
   </div>
 
   <div className="grid gap-4 lg:grid-cols-2">
-    <article className="rounded-3xl border border-emerald-700/70 bg-emerald-950/25 p-5 shadow-xl shadow-emerald-950/20 lg:col-span-2 sm:p-6">
+    <article className="rounded-3xl border border-gray-700/80 bg-gray-950/75 p-5 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         1. Current Focus
       </p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/60">
+      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
         What should treatment focus on right now?
       </p>
-      <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
+      <h2 className="mt-2 max-w-4xl text-3xl font-bold leading-tight text-white sm:text-4xl">
         {commandCenterCurrentOperationalEmphasis}
       </h2>
       {commandCenterRationaleSummary ? (
-        <p className="mt-4 max-w-4xl text-sm leading-relaxed text-emerald-50/85">
+        <p className="mt-4 max-w-4xl text-base leading-relaxed text-gray-200">
           {commandCenterRationaleSummary}
         </p>
       ) : null}
       {dominantBarriers.length > 0 ? (
-        <div className="mt-5 rounded-2xl border border-emerald-900/50 bg-gray-950/40 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/80">
+        <div className="mt-6 border-t border-gray-800 pt-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Dominant barriers shaping this focus
           </p>
-          <ul className="mt-3 grid gap-2 text-sm text-gray-100 md:grid-cols-3">
+          <ul className="mt-3 grid gap-2 text-sm text-gray-200 md:grid-cols-3">
             {dominantBarriers.slice(0, 3).map((barrier, index) => (
               <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
-                <span className="mt-1 text-emerald-300">•</span>
+                <span className="mt-1 text-emerald-300/80">•</span>
                 <span>{barrier}</span>
               </li>
             ))}
@@ -2992,8 +2992,8 @@ return (
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         2. Case Status
       </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-gray-800 bg-gray-950/80 p-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-[0.9fr_1.1fr] sm:divide-x sm:divide-gray-800">
+        <div className="sm:pr-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Overall Trajectory
           </p>
@@ -3004,14 +3004,14 @@ return (
             Based on current longitudinal progression signals.
           </p>
         </div>
-        <div className="rounded-2xl border border-blue-800/70 bg-blue-950/30 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
+        <div className="border-t border-gray-800 pt-4 sm:border-t-0 sm:pl-4 sm:pt-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Clinical Status
           </p>
-          <p className="mt-1 text-base font-semibold text-blue-50">
+          <p className="mt-1 text-base font-semibold text-white">
             {clinicalStatus}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-blue-100/70">
+          <p className="mt-2 text-xs leading-relaxed text-gray-400">
             {clinicalStatusExplanation}
           </p>
         </div>
@@ -3035,18 +3035,18 @@ return (
         ) : null}
       </div>
       {commandCenterSinceLastVisitSummaryItems.length > 0 ? (
-        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 sm:grid-cols-2">
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+        <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-200">
+          <section>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
               What Changed
             </p>
             <p className="mt-2 text-gray-100">{commandCenterSinceLastVisitSummaryItems[0]}</p>
-          </div>
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+          </section>
+          <section className="border-t border-gray-800 pt-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
               Why It Matters
             </p>
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 space-y-2 text-gray-300">
               {(commandCenterSinceLastVisitSummaryItems.length > 1
                 ? commandCenterSinceLastVisitSummaryItems.slice(1)
                 : [commandCenterSinceLastVisitSummaryItems[0]]
@@ -3054,7 +3054,7 @@ return (
                 <p key={`${summary}-${index}`}>{summary}</p>
               ))}
             </div>
-          </div>
+          </section>
         </div>
       ) : (
         <p className="mt-4 text-sm leading-relaxed text-gray-500">
@@ -3116,33 +3116,33 @@ return (
       </details>
     </article>
 
-    <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-200/80">
+    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         6. Next Action
       </p>
       <h2 className="mt-1 text-xl font-semibold text-white">
         What should happen next?
       </h2>
       {primaryNextAction ? (
-        <div className="mt-4 space-y-3">
-          <div className="rounded-2xl border border-blue-800/60 bg-blue-950/30 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/80">
+        <div className="mt-4 space-y-4">
+          <div className="border-l-2 border-blue-400/70 pl-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
               Primary Action
             </p>
-            <p className="mt-2 text-lg font-semibold leading-snug text-blue-50">
+            <p className="mt-2 text-xl font-semibold leading-snug text-blue-50">
               {primaryNextAction}
             </p>
           </div>
 
           {supportingNextActions.length > 0 ? (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/70">
+            <div className="border-t border-gray-800 pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
                 Supporting Actions
               </p>
-              <ul className="mt-2 space-y-2 text-sm text-gray-100">
+              <ul className="mt-2 space-y-2 text-sm text-gray-200">
                 {supportingNextActions.map((action, index) => (
                   <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
-                    <span className="mt-1 text-blue-300">•</span>
+                    <span className="mt-1 text-blue-300/80">•</span>
                     <span>{action}</span>
                   </li>
                 ))}
