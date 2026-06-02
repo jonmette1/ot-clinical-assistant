@@ -552,3 +552,99 @@ without increasing:
 - architecture surface area
 - workflow friction
 - implementation risk
+
+## UX Governance
+
+The following UX documents are considered authoritative:
+
+* `docs/UX/Visual_Design_Principles.md`
+* `docs/UX/Command_Center_UX_Normalization_Roadmap.md`
+
+When proposing UX, visual design, layout, hierarchy, or presentation changes:
+
+Review both documents before making recommendations.
+
+Do not introduce visual patterns that conflict with these documents without explicit approval.
+
+### Approved Visual Direction
+
+The OT Clinical Assistant is a clinical operations command center.
+
+The approved design philosophy is:
+
+* Clinical Mission Control
+* The restraint of Apple
+* The clarity of Linear
+* The authority of a clinical workstation
+
+The interface should feel:
+
+* calm
+* focused
+* trustworthy
+* clear
+* professional
+* decisive
+
+The interface should not feel:
+
+* flashy
+* futuristic
+* AI-centric
+* dashboard-heavy
+* over-designed
+
+### UX Priorities
+
+Prefer:
+
+1. hierarchy
+2. scanability
+3. cognitive load reduction
+4. typography-driven organization
+5. whitespace-driven organization
+6. clinically meaningful color
+7. workflow continuity
+
+Avoid:
+
+* decorative color systems
+* category-based color systems
+* excessive card nesting
+* competing visual authority
+* dashboard-style visual fragmentation
+* UI patterns that increase interpretation burden
+
+### Information Authority Model
+
+Visual hierarchy should reinforce:
+
+Level 1 — Current Clinical Reality
+
+Level 2 — Meaningful Change
+
+Level 3 — Required Attention
+
+Level 4 — Immediate Action
+
+Level 5 — Supporting Context
+
+Not all information deserves equal visual authority.
+
+Whenever hierarchy decisions are made, determine the information authority level before determining visual treatment.
+
+### Current UX Workstream
+
+The project is currently executing:
+
+Command Center UX Normalization
+
+Primary objectives:
+
+* reduce visual competition
+* reduce card fragmentation
+* move hierarchy from containers to typography
+* reduce decorative color usage
+* strengthen workflow-oriented scanning
+
+Do not propose architecture, navigation, workflow, or ownership changes as part of UX normalization efforts.
