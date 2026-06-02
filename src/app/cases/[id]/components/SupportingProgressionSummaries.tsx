@@ -7,22 +7,12 @@ type SummaryRow = {
   value: SummaryValue;
 };
 
-type ValidationComparisonRow = {
-  label: string;
-  previousLabel: string;
-  previousValue: string | null;
-  currentLabel: string;
-  currentValue: string | null;
-};
-
 type SupportingProgressionSummariesProps = {
   shouldRender: boolean;
   clinicalAttentionRows: SummaryRow[];
   currentLongitudinalRows: SummaryRow[];
   latestProgressionEventRows: SummaryRow[];
   operationalFocusRows: SummaryRow[];
-  hasProgressionHistoryForValidation: boolean;
-  longitudinalValidationRows: ValidationComparisonRow[];
 };
 
 const hasSummaryValue = (value: SummaryValue): boolean => {
@@ -61,8 +51,6 @@ export function SupportingProgressionSummaries({
   currentLongitudinalRows,
   latestProgressionEventRows,
   operationalFocusRows,
-  hasProgressionHistoryForValidation,
-  longitudinalValidationRows,
 }: SupportingProgressionSummariesProps) {
   if (!shouldRender) return null;
 
@@ -153,46 +141,6 @@ export function SupportingProgressionSummaries({
         </dl>
       </div>
 
-      <div className="rounded-lg border border-amber-900/60 bg-amber-950/10 p-4 md:col-span-2">
-        <p className="font-semibold text-gray-100">Longitudinal Validation</p>
-        <p className="mt-1 text-xs text-gray-500">
-          Validation-only comparisons from saved progression snapshots and current generated outputs.
-        </p>
-
-        {hasProgressionHistoryForValidation ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {longitudinalValidationRows.map((row) => {
-              const hasExactComparison = Boolean(row.previousValue && row.currentValue);
-
-              return (
-                <div key={row.label} className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-                  <p className="text-sm font-semibold text-gray-100">{row.label}</p>
-                  {hasExactComparison ? (
-                    <dl className="mt-3 space-y-3">
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {row.previousLabel}
-                        </dt>
-                        <dd className="mt-1 text-gray-200">{row.previousValue}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {row.currentLabel}
-                        </dt>
-                        <dd className="mt-1 text-gray-200">{row.currentValue}</dd>
-                      </div>
-                    </dl>
-                  ) : (
-                    <p className="mt-3 text-sm text-gray-500">Insufficient progression history.</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-gray-500">Insufficient progression history.</p>
-        )}
-      </div>
       </div>
     </details>
   );
