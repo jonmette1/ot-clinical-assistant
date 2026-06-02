@@ -493,3 +493,58 @@ Current project focus should remain:
 * product usability improvements
 
 rather than additional reasoning-system expansion.
+
+### Reference Workspace Cleanup (Completed)
+
+Objective:
+
+Reduce clinician-facing diagnostic noise and remove legacy continuity validation artifacts that no longer align with the current workflow model.
+
+Completed:
+
+* Removed Dev Only Progression State
+* Removed Start Follow-Up Update
+* Removed Longitudinal Validation
+* Removed Operational Change Classification
+* Removed Decision Transparency
+* Removed Continuity Status
+
+Preserved:
+
+* Operational Focus
+* Supporting Progression Summaries
+* Current Longitudinal State
+* Latest Progression Event
+* Historical Snapshots
+* Progression architecture
+* Continuity architecture
+* Operational prioritization architecture
+
+Key Outcome:
+
+The Reference Workspace is now focused on supporting clinical understanding, historical context, progression review, and treatment rationale rather than exposing internal continuity-engine diagnostics.
+
+Current Ownership Model:
+
+### Command Center
+
+Answers:
+
+* What matters?
+* What changed?
+* What requires attention?
+* What should I do next?
+
+### Reference Workspace
+
+Answers:
+
+* Why does this matter?
+* What supporting context exists?
+* What progression information exists?
+* What historical information exists?
+* What details support the current plan?
+
+Decision Transparency and Continuity Status have been retired as clinician-facing concepts.
+
+Future consideration of confidence indicators and patient-preview workflows remains deferred to future opportunities.

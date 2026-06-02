@@ -2,6 +2,32 @@
 
 ---
 
+## Current Highest-Priority Investigation
+
+### Patient Entry Experience
+
+Objective:
+
+Evaluate how clinicians should orient around a patient before entering the Command Center.
+
+Questions:
+
+* What should be visible from the patient list?
+* What information should be available before opening a patient?
+* What information supports driveway review workflows?
+* How should Operational Focus be surfaced?
+* What should remain exclusive to Command Center?
+* What should remain exclusive to Reference Workspace?
+
+Status:
+
+Audit / Discovery
+
+No implementation approved.
+
+
+---
+
 # ACTIVE ROADMAP — Longitudinal Workspace Design Transition
 
 ---
