@@ -4,27 +4,54 @@
 
 ## Current Highest-Priority Investigation
 
-### Patient Entry Experience
+### Patient Entry Phase 2 — Quick Preview Planning
 
 Objective:
 
-Evaluate how clinicians should orient around a patient before entering the Command Center.
+Define the safest implementation approach for introducing Quick Preview within the Patient Entry experience.
 
-Questions:
+Purpose:
 
-* What should be visible from the patient list?
-* What information should be available before opening a patient?
-* What information supports driveway review workflows?
-* How should Operational Focus be surfaced?
+Allow clinicians to rapidly orient around a patient before opening the Command Center while preserving the Command Center as the authoritative workflow surface.
+
+Key Questions:
+
+* What current-state information should be available from Quick Preview?
+* How should Current Focus be surfaced?
+* How should Attention Required be surfaced?
+* How should Since Last Visit be surfaced?
+* How should Next Action be surfaced?
+* How should Operational Focus be summarized?
+* What data already exists and can be reused?
+* What additional data loading is required?
+* How can Quick Preview avoid becoming a second Command Center?
 * What should remain exclusive to Command Center?
 * What should remain exclusive to Reference Workspace?
 
+Current State:
+
+Patient Entry Phase 1 completed.
+
+Completed:
+
+* PatientEntryCard implementation
+* Patient-oriented information hierarchy
+* Command Center entry emphasis
+* Patient identity hierarchy correction
+* Treatment-frame fallback correction
+
+Not Yet Implemented:
+
+* Quick Preview
+* Operational Focus preview
+* Current Focus preview
+* Attention Required preview
+* Since Last Visit preview
+* Next Action preview
+
 Status:
 
-Audit / Discovery
-
-No implementation approved.
-
+Implementation Planning
 
 ---
 

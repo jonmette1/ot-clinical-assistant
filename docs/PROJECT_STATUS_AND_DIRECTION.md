@@ -548,3 +548,26 @@ Answers:
 Decision Transparency and Continuity Status have been retired as clinician-facing concepts.
 
 Future consideration of confidence indicators and patient-preview workflows remains deferred to future opportunities.
+
+## Patient Entry Phase 1 — Completed
+
+Status: Complete
+
+Outcome:
+
+- Reframed /cases from saved-case management toward patient-entry orientation.
+- Introduced PatientEntryCard presentation layer.
+- Elevated patient identity, treatment frame, clinical context, and recency.
+- Preserved existing routing, queries, APIs, schema, and persistence.
+- Added explicit Open Command Center action.
+- Corrected Phase 1.1 fallback hierarchy:
+  - Case title becomes primary identity when patient name is unavailable.
+  - Treatment-frame fallback hierarchy improved.
+- No Quick Preview implemented.
+- No additional clinical data loading implemented.
+
+Notes:
+
+Patient Entry now functions as an orientation surface but remains constrained by currently available /cases data.
+
+Future value will come from Quick Preview and access to current clinical state data.
