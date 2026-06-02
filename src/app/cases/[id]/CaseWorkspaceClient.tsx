@@ -17,7 +17,6 @@ import { StructuredPlanDetails } from "./components/StructuredPlanDetails";
 import { SupportingProgressionSummaries } from "./components/SupportingProgressionSummaries";
 import { CaregiverFeasibilityCard } from "./components/CaregiverFeasibilityCard";
 import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCard";
-import { DecisionTransparency } from "./components/DecisionTransparency";
 import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
 import { TransferMobilityPressureCard } from "./components/TransferMobilityPressureCard";
 import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSection";
@@ -650,7 +649,6 @@ const [showDetails, setShowDetails] = useState(false);
 const [showTaskBreakdown, setShowTaskBreakdown] = useState(false);
 const [showClinicalConsiderations, setShowClinicalConsiderations] = useState(false);
 const [showFirstSessionPriorities, setShowFirstSessionPriorities] = useState(false);
-const [showDecisionTransparency, setShowDecisionTransparency] = useState(false);
 const [showAlternativeApproaches, setShowAlternativeApproaches] = useState(false);
 const [showCaregiverGuidance, setShowCaregiverGuidance] = useState(false);
 const [showTransferDetails, setShowTransferDetails] = useState(false);
@@ -1332,30 +1330,6 @@ ${item.clinicalDecision || item.costComparisonNote || "—"}
         .join("\n\n")
     : ""
 }
-
-DECISION ENGINE TRANSPARENCY
-----------------------------
-Dominant Barrier:
-${liveClinicalDecisionModel.dominantBarrier || "—"}
-
-Secondary Barrier:
-${liveClinicalDecisionModel.secondaryBarrier || "None"}
-
-Safety Risk:
-${liveClinicalDecisionModel.safetyRiskLevel || "—"}
-
-Support Level:
-${liveClinicalDecisionModel.supportLevel || "—"}
-
-Selected Strategies:
-${
-  liveClinicalDecisionModel.selectedStrategies?.length
-    ? liveClinicalDecisionModel.selectedStrategies.join(", ")
-    : "—"
-}
-
-Reasoning Summary:
-${liveClinicalDecisionModel.reasoningSummary || "—"}
 `.trim();
 }
 
@@ -2258,19 +2232,8 @@ const commandCenterRationaleSummary =
 const continuityInterpretation =
   generated?.continuity_interpretation || {};
 
-const currentContinuityCondition =
-  continuityInterpretation?.currentContinuityCondition ||
-  "Patient remains in an active stabilization state with ongoing operational variability.";
-
 const reassessmentPressureLevel =
   continuityInterpretation?.reassessmentPressureLevel || "low";
-
-const reassessmentPressureLabel =
-  reassessmentPressureLevel === "high"
-    ? "High"
-    : reassessmentPressureLevel === "moderate"
-    ? "Moderate"
-    : "Low";
 
 const clinicalStatus =
   displayCase.reasoning_stale ||
@@ -2287,15 +2250,6 @@ const clinicalStatusExplanation =
     : clinicalStatus === "Monitor Closely"
     ? "The plan remains usable, but active pressures should be watched during the visit."
     : "The current plan appears appropriate for the available case information.";
-
-const dominantInstabilityDrivers: string[] =
-  continuityInterpretation?.dominantInstabilityDrivers || [];
-
-const operationalDriftSignals: string[] =
-  continuityInterpretation?.operationalDriftSignals || [];
-
-const continuityAlerts: string[] =
-  continuityInterpretation?.continuityAlerts || [];
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -3299,7 +3253,7 @@ return (
       Collapsed supporting information
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Open these sections when you need case details, generated report content, modules, transparency, or history.
+      Open these sections when you need case details, generated report content, modules, or history.
     </p>
   </div>
 
@@ -3490,71 +3444,6 @@ return (
     </span>
   </p>
 
-  {!isEditing && (
-    <div className="mt-4 rounded-lg border border-blue-800 bg-blue-950/30 p-4">
-      <button
-        type="button"
-        onClick={() => setShowDecisionTransparency((prev) => !prev)}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <h3 className="text-sm font-semibold text-blue-200">
-          Decision Engine Transparency
-        </h3>
-
-        <span className="text-xs text-blue-300">
-          {showDecisionTransparency ? "Hide" : "Show"}
-        </span>
-      </button>
-
-      {showDecisionTransparency && (
-        <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
-          <div>
-            <p className="text-xs text-blue-300">Dominant Barrier</p>
-            <p className="text-white font-medium">
-              {liveClinicalDecisionModel.dominantBarrier || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-blue-300">Secondary Barrier</p>
-            <p className="text-white font-medium">
-              {liveClinicalDecisionModel.secondaryBarrier || "None"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-blue-300">Safety Risk</p>
-            <p className="text-white font-medium">
-              {liveClinicalDecisionModel.safetyRiskLevel || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-blue-300">Support Level</p>
-            <p className="text-white font-medium">
-              {liveClinicalDecisionModel.supportLevel || "—"}
-            </p>
-          </div>
-
-          <div className="md:col-span-2">
-            <p className="text-xs text-blue-300">Selected Strategies</p>
-            <p className="text-white font-medium">
-              {liveClinicalDecisionModel.selectedStrategies?.length
-                ? liveClinicalDecisionModel.selectedStrategies.join(", ")
-                : "—"}
-            </p>
-          </div>
-
-          <div className="md:col-span-2">
-            <p className="text-xs text-blue-300">Reasoning Summary</p>
-            <p className="text-gray-200 leading-relaxed">
-              {liveClinicalDecisionModel.reasoningSummary || "—"}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  )}
 
   </div>
 
@@ -4338,13 +4227,6 @@ return (
   </div>
 </details>
 
-<DecisionTransparency
-  currentContinuityCondition={currentContinuityCondition}
-  reassessmentPressureLabel={reassessmentPressureLabel}
-  dominantInstabilityDrivers={dominantInstabilityDrivers}
-  operationalDriftSignals={operationalDriftSignals}
-  continuityAlerts={continuityAlerts}
-/>
 
 {/* ==============================
     RENDER: VERSION HISTORY
