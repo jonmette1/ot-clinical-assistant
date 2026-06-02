@@ -2935,11 +2935,11 @@ return (
 
 <section
   data-ownership="patient-command-center"
-  className="rounded-3xl border border-blue-900/70 bg-gradient-to-br from-gray-900 via-gray-950 to-blue-950/50 p-5 shadow-2xl shadow-blue-950/20 sm:p-6"
+  className="rounded-3xl border border-gray-800/80 bg-gradient-to-br from-gray-900/50 via-gray-950 to-gray-950 p-5 shadow-lg shadow-black/10 sm:p-6"
 >
   <div className="mb-5 flex flex-col gap-3 border-b border-gray-800 pb-4 md:flex-row md:items-start md:justify-between">
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
         Command Center
       </p>
       <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
@@ -2953,7 +2953,7 @@ return (
 
   <div className="grid gap-4 lg:grid-cols-2">
     <article className="rounded-3xl border border-emerald-700/70 bg-emerald-950/25 p-5 shadow-xl shadow-emerald-950/20 lg:col-span-2 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         1. Current Focus
       </p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/60">
@@ -3100,7 +3100,7 @@ return (
     </article>
 
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-300/85">
         5. Attention Required
       </p>
       <h2 className="mt-1 text-xl font-semibold leading-snug text-white">
@@ -3117,7 +3117,7 @@ return (
     </article>
 
     <article className="rounded-2xl border border-blue-900/60 bg-blue-950/20 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-200/80">
         6. Next Action
       </p>
       <h2 className="mt-1 text-xl font-semibold text-white">
