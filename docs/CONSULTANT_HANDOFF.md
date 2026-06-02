@@ -72,6 +72,28 @@ Important documentation mismatch: `docs/foundation/active_roadmap.md` still fram
 
 ---
 
+## Current Product Maturity
+
+The project has transitioned from:
+
+Architecture Discovery
+
+to:
+
+Workflow Optimization
+
+Most remaining work focuses on:
+
+- clinician usability
+- workflow compression
+- intake fidelity
+- contradiction prevention
+- cognitive load reduction
+
+rather than new platform architecture.
+
+---
+
 ## Completed Workstreams
 
 ### 1. Architectural Stabilization
@@ -147,13 +169,49 @@ Implemented in code, though roadmap wording may lag behind reality:
 
 Consultant caution: Quick Preview should remain subordinate. It is not a second Command Center and should not absorb full Reference Workspace or operational-rationale content.
 
+### 8. Intake Fidelity Normalization Phase 1A
+
+Completed documentation and implementation alignment includes:
+
+- Intake Fidelity Audit.
+- Intake Fidelity Normalization Specification.
+- Intake Fidelity Phase 1A.
+
+Implemented outcomes:
+
+- High-signal intake hierarchy.
+- Minimum viable intake validation.
+- Clinical Decision Inputs removal from the visible intake experience.
+
 ---
 
 ## Active Workstreams
 
-### 1. Command Center UX Normalization
+### 1. Intake Fidelity Phase 1B
 
-This is the most important current UX thread. The goal is not new architecture. It is to reduce visual competition and improve clinician scanning by using hierarchy, typography, whitespace, and restrained clinical color.
+This is the current active implementation focus. The goal is not new architecture. It is to continue improving intake quality so downstream clinical reasoning receives clearer, higher-signal inputs with less clinician friction.
+
+Current direction:
+
+- Preserve the completed high-signal intake hierarchy.
+- Strengthen minimum viable intake quality without over-validating clinician workflow.
+- Keep intake language clinician-facing rather than system-facing.
+- Avoid adding new persistence or API contract changes unless explicitly approved.
+
+### 2. Contradiction Guardrails Planning
+
+The parallel active planning focus is contradiction prevention. This work should reduce internally inconsistent intake submissions and downstream clinical reasoning conflicts without redesigning the reasoning architecture.
+
+Current direction:
+
+- Identify clinically meaningful contradictions before generation.
+- Prefer lightweight clinician-facing prompts over system-facing explanations.
+- Keep guardrails focused on safety, fidelity, and workflow clarity.
+- Do not expose internal reasoning terminology as primary UI.
+
+### 3. Command Center UX Normalization
+
+Command Center UX Normalization remains an important UX guardrail. The goal is not new architecture. It is to reduce visual competition and improve clinician scanning by using hierarchy, typography, whitespace, and restrained clinical color.
 
 Current UX direction:
 
@@ -164,31 +222,13 @@ Current UX direction:
 - Reduced dashboard-like fragmentation.
 - Level 1 authority for current clinical reality, then meaningful change, required attention, immediate action, and supporting context.
 
-### 2. Longitudinal Workspace Design / Phase 5
-
-The active product focus remains turning the workspace into a longitudinal clinical guidance surface. The workspace should consume existing reasoning outputs and help the clinician understand:
-
-- What changed?
-- What requires attention?
-- What should happen next?
-- Whether reassessment pressure exists.
-- How current progression affects treatment focus.
-
-### 3. Patient Entry / Quick Preview Refinement
-
-Because Quick Preview is now present in code, near-term work should be refinement and validation rather than first implementation. Key guardrails:
-
-- Preserve Command Center as the authoritative workflow surface.
-- Keep preview lightweight.
-- Do not load or render a full mini-workspace.
-- Use existing current-state, clinical-attention, generated-output, and longitudinal-event data.
-- Do not introduce new persistence or API contract changes solely for preview refinement.
-
 ### 4. Reference Workspace Cleanup / Boundary Clarification
 
 Reference Workspace is for review, context, investigation, historical snapshots, generated outputs, and deeper longitudinal review. It should not compete with the Command Center for rapid visit orientation.
 
 Some content currently in Reference Workspace may eventually move to a future preview/orientation layer, but that is deferred unless explicitly promoted.
+
+Patient Entry and Quick Preview are implemented. Near-term work should not treat Patient Entry as the primary active workstream unless explicitly promoted again.
 
 ---
 
@@ -201,7 +241,7 @@ Deferred opportunities include:
 - Patient Entry Card context deduplication.
 - Broader Patient Preview / Visit Preparation experience beyond the implemented Quick Preview primitives.
 - Richer Patient Entry Experience evolution.
-- Intake Fidelity Optimization.
+- Broader Intake Fidelity Optimization beyond the active Phase 1B scope.
 - Workflow Actions Consolidation.
 - Current Focus adaptive typography.
 - Reference Workspace evolution.
@@ -307,9 +347,9 @@ Do not reopen these unless the user explicitly requests a strategic reconsiderat
 
 The practical focus for near-term implementation is:
 
-1. Normalize Command Center UX hierarchy.
-2. Refine patient entry and Quick Preview without turning it into a mini Command Center.
-3. Strengthen the Command Center versus Reference Workspace boundary.
+1. Continue Intake Fidelity Phase 1B.
+2. Plan contradiction guardrails for clinically meaningful intake conflicts.
+3. Preserve implemented Patient Entry and Quick Preview behavior without treating it as the primary active workstream.
 4. Improve scanability and clinician orientation using existing data.
 5. Preserve stable architecture and avoid data-model or API-contract changes unless explicitly approved.
 
