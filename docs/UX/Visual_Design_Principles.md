@@ -1,4 +1,4 @@
-# OT Clinical Assistant — Visual Design Principles v1
+# OT Clinical Assistant — Visual Design Principles
 
 ## Purpose
 
@@ -56,7 +56,77 @@ No secondary content should visually compete with it.
 
 ---
 
-# Principle 2 — Workflow Over Cards
+# Principle 2 — Information Has Authority Levels
+
+Not all information is equally important.
+
+The visual system should continuously communicate information authority.
+
+The interface should reinforce the following hierarchy:
+
+### Level 1 — Current Clinical Reality
+
+The most important thing happening right now.
+
+Examples:
+
+* Current Focus
+* Current Operational State
+
+### Level 2 — Meaningful Change
+
+What changed since the last visit.
+
+Why it matters.
+
+Examples:
+
+* Since Last Visit
+* Clinical Status
+* Progression State
+
+### Level 3 — Required Attention
+
+What requires clinician awareness or intervention.
+
+Examples:
+
+* Attention Required
+* Elevated concerns
+* Reassessment signals
+
+### Level 4 — Immediate Action
+
+What should happen next.
+
+Examples:
+
+* Next Action
+* Treatment direction
+* Progression validation
+
+### Level 5 — Supporting Context
+
+Useful information that supports understanding but should not compete with primary workflow.
+
+Examples:
+
+* Operational Pressures
+* Historical context
+* Supporting metadata
+* Detailed reference information
+
+The visual system should make these authority levels obvious without requiring explanation.
+
+Whenever visual hierarchy decisions are made, designers should first ask:
+
+> What authority level does this information belong to?
+
+before deciding how much attention it receives.
+
+---
+
+# Principle 3 — Workflow Over Cards
 
 The Command Center is a workflow.
 
@@ -86,7 +156,7 @@ Visual design should reinforce the clinical thought process rather than emphasiz
 
 ---
 
-# Principle 3 — Typography Creates Hierarchy
+# Principle 4 — Typography Creates Hierarchy
 
 Hierarchy should be communicated primarily through:
 
@@ -115,7 +185,7 @@ should be preferred over:
 
 ---
 
-# Principle 4 — Color Must Have Meaning
+# Principle 5 — Color Must Have Meaning
 
 Color is a clinical signal.
 
@@ -127,7 +197,7 @@ Preferred meanings:
 
 | Meaning  | Purpose                      |
 | -------- | ---------------------------- |
-| Neutral  | Normal information           |
+| Neutral  | Standard information         |
 | Positive | Improvement                  |
 | Warning  | Attention required           |
 | Negative | Decline or elevated concern  |
@@ -146,7 +216,7 @@ Meaning should be obvious.
 
 ---
 
-# Principle 5 — Attention Is Earned
+# Principle 6 — Attention Is Earned
 
 Visual emphasis carries cognitive cost.
 
@@ -157,7 +227,7 @@ If everything is emphasized, nothing is emphasized.
 Visual emphasis should be reserved for:
 
 * current clinical reality
-* significant change
+* meaningful change
 * required attention
 * immediate action
 
@@ -165,7 +235,7 @@ Reference information should remain available without demanding attention.
 
 ---
 
-# Principle 6 — Whitespace Is Functional
+# Principle 7 — Whitespace Is Functional
 
 Whitespace is not decoration.
 
@@ -184,7 +254,7 @@ Whitespace should guide the eye through the clinical workflow.
 
 ---
 
-# Principle 7 — Reduce Visual Noise
+# Principle 8 — Reduce Visual Noise
 
 Every visual element should justify its existence.
 
@@ -206,7 +276,39 @@ It is the one with the fewest unnecessary elements.
 
 ---
 
-# Principle 8 — Progressive Disclosure Over Clutter
+# Principle 9 — Present Complexity Calmly
+
+The goal is not minimalism.
+
+The goal is not reducing clinically relevant information.
+
+Clinical work is inherently complex.
+
+Clinicians require context, continuity, progression, feasibility considerations, and operational realities.
+
+Removing important information is not simplification.
+
+It is information loss.
+
+The responsibility of the interface is to:
+
+* organize complexity
+* prioritize complexity
+* present complexity calmly
+
+The goal is:
+
+Same information.
+
+Less effort.
+
+Complexity may exist.
+
+Confusion may not.
+
+---
+
+# Principle 10 — Progressive Disclosure Over Clutter
 
 Primary workflow information should always be visible.
 
@@ -218,7 +320,7 @@ The interface should reward deeper exploration without requiring it.
 
 ---
 
-# Principle 9 — Calm Confidence
+# Principle 11 — Calm Confidence
 
 The product should feel trustworthy before it feels impressive.
 
@@ -241,7 +343,7 @@ not from visual complexity.
 
 ---
 
-# Principle 10 — Clinical Utility Is The Ultimate Measure
+# Principle 12 — Clinical Utility Is The Ultimate Measure
 
 Every design decision should be evaluated through one question:
 
@@ -263,10 +365,14 @@ It is:
 
 # Design Direction Statement
 
-The OT Clinical Assistant should feel like:
+The OT Clinical Assistant should embody:
 
-**The calm confidence of an Apple product, the operational clarity of Linear, and the seriousness of a clinical workstation.**
+**The restraint of Apple, the clarity of Linear, and the authority of a clinical workstation.**
 
 The interface should communicate current reality, meaningful change, required attention, and next action with maximum clarity and minimum visual noise.
 
-Simplicity is achieved through hierarchy, restraint, typography, and whitespace—not through removing clinically relevant information.
+Simplicity is achieved through hierarchy, restraint, typography, whitespace, and information governance—not through removing clinically relevant information.
+
+The objective is not to create a beautiful interface.
+
+The objective is to create an interface that feels calm, trustworthy, and effortless to use under clinical pressure.
