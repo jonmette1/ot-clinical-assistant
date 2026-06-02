@@ -25,6 +25,7 @@ import {
   compressCommandCenterList,
   compressCommandCenterSentence,
   compressCurrentFocusSentence,
+  compressNextActionList,
 } from "@/lib/clinicalDisplayLanguage";
 // ==============================
 // TYPES
@@ -2441,11 +2442,11 @@ const nextActionItems = [
   ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Check progression if ${trigger}.`),
   ...(clinicalAttentionRequiresOperationalReview ? ["Review the current treatment direction."] : []),
   ...(clinicalAttentionReassessmentRecommended ? ["Reassess before advancing the plan."] : []),
-]
-  .filter(Boolean)
-  .slice(0, 5);
+].filter(Boolean);
 
-const commandCenterNextActionItems = compressCommandCenterList(nextActionItems);
+const commandCenterNextActionItems = compressNextActionList(nextActionItems, 3);
+const primaryNextAction = commandCenterNextActionItems[0] || "";
+const supportingNextActions = commandCenterNextActionItems.slice(1);
 
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
@@ -3122,18 +3123,36 @@ return (
       <h2 className="mt-1 text-xl font-semibold text-white">
         What should happen next?
       </h2>
-      {commandCenterNextActionItems.length > 0 ? (
-        <ul className="mt-4 space-y-2 text-sm text-gray-100">
-          {commandCenterNextActionItems.map((action, index) => (
-            <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
-              <span className="mt-1 text-blue-300">•</span>
-              <span>{action}</span>
-            </li>
-          ))}
-        </ul>
+      {primaryNextAction ? (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-blue-800/60 bg-blue-950/30 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/80">
+              Primary Action
+            </p>
+            <p className="mt-2 text-lg font-semibold leading-snug text-blue-50">
+              {primaryNextAction}
+            </p>
+          </div>
+
+          {supportingNextActions.length > 0 ? (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/70">
+                Supporting Actions
+              </p>
+              <ul className="mt-2 space-y-2 text-sm text-gray-100">
+                {supportingNextActions.map((action, index) => (
+                  <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
+                    <span className="mt-1 text-blue-300">•</span>
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
       ) : (
         <p className="mt-4 text-sm leading-relaxed text-gray-400">
-          No immediate action is documented yet. Continue with the current focus and update progression when new visit findings are available.
+          Continue current focus. Update progression when new findings are available.
         </p>
       )}
     </article>

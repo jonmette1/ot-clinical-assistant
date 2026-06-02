@@ -221,6 +221,72 @@ function compressActionSentence(text: string): string | null {
   return null;
 }
 
+function cleanNextActionTarget(text: string): string {
+  return cleanClinicalFragment(text)
+    .replace(/\brequires clinical review\b/gi, "")
+    .replace(/\brequires review\b/gi, "")
+    .replace(/\bthe current treatment direction\b/gi, "treatment direction")
+    .replace(/\bthe current focus\b/gi, "current focus")
+    .replace(/\bthe plan\b/gi, "plan")
+    .replace(/\s+/g, " ")
+    .replace(/^(with|on)\s+/i, "")
+    .trim();
+}
+
+function actionSentence(verb: string, target: string): string {
+  const cleaned = cleanNextActionTarget(target);
+  if (!cleaned) return ensurePeriod(verb);
+
+  return ensurePeriod(`${verb} ${lowerFirst(cleaned)}`);
+}
+
+function compressNextActionSentenceInternal(text: string): string | null {
+  const normalized = normalizeWhitespace(text);
+
+  const reassessIfMatch = normalized.match(/^reassess if (.+?)\.?$/i);
+  if (reassessIfMatch?.[1]) {
+    return actionSentence("Reassess", reassessIfMatch[1]);
+  }
+
+  const checkProgressionMatch = normalized.match(/^check progression if (.+?)\.?$/i);
+  if (checkProgressionMatch?.[1]) {
+    const target = cleanNextActionTarget(checkProgressionMatch[1]);
+    return target ? `Check progression: ${lowerFirst(target)}.` : "Check progression.";
+  }
+
+  if (/^review the current treatment direction\.?$/i.test(normalized)) {
+    return "Review treatment direction.";
+  }
+
+  if (/^reassess before advancing the plan\.?$/i.test(normalized)) {
+    return "Reassess before advancing.";
+  }
+
+  const continueMatch = normalized.match(/^continue(?: to)? (.+?)\.?$/i);
+  if (continueMatch?.[1]) {
+    return actionSentence("Continue", continueMatch[1]);
+  }
+
+  const focusMatch = normalized.match(/^focus on (.+?)\.?$/i);
+  if (focusMatch?.[1]) {
+    const target = cleanNextActionTarget(focusMatch[1]);
+    return target ? `Focus: ${lowerFirst(target)}.` : "Focus current treatment.";
+  }
+
+  const prioritizeMatch = normalized.match(/^prioritize (.+?)\.?$/i);
+  if (prioritizeMatch?.[1]) {
+    return actionSentence("Prioritize", prioritizeMatch[1]);
+  }
+
+  const monitorMatch = normalized.match(/^monitor (.+?)\.?$/i);
+  if (monitorMatch?.[1]) {
+    const target = cleanNextActionTarget(monitorMatch[1]);
+    return target ? `Monitor: ${lowerFirst(target)}.` : "Monitor closely.";
+  }
+
+  return null;
+}
+
 function compressSinceLastVisitSentence(text: string): string | null {
   const normalized = normalizeWhitespace(text);
 
@@ -277,6 +343,41 @@ export function compressCurrentFocusSentence(text: string | null | undefined): s
     compressCurrentFocusSentenceInternal(normalized) ||
     compressCommandCenterSentence(normalized)
   );
+}
+
+export function compressNextActionSentence(text: string | null | undefined): string {
+  if (typeof text !== "string") return "";
+
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return "";
+
+  return (
+    compressNextActionSentenceInternal(normalized) ||
+    compressCommandCenterSentence(normalized)
+  );
+}
+
+export function compressNextActionList(
+  items: Array<string | null | undefined>,
+  limit = 3
+): string[] {
+  const seen = new Set<string>();
+  const compressed: string[] = [];
+
+  for (const item of items) {
+    const action = compressNextActionSentence(item);
+    if (!action) continue;
+
+    const key = stripTerminalPunctuation(action).toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    compressed.push(action);
+
+    if (compressed.length >= limit) break;
+  }
+
+  return compressed;
 }
 
 export function compressCommandCenterList(
