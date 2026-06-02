@@ -2,9 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { PatientEntryCard, type PatientEntryCase } from "./PatientEntryCard";
+import {
+  PatientEntryCard,
+  type PatientEntryCase,
+  type PatientEntryPreviewState,
+} from "./PatientEntryCard";
+import {
+  derivePatientEntryPreviewSignals,
+  type PatientEntryPreviewCaseData,
+  type PatientEntryPreviewEventData,
+} from "./patientEntryPreview";
 
 type CaseRow = PatientEntryCase;
+
+type PreviewStateMap = Record<string, PatientEntryPreviewState>;
 
 export default function CasesPage() {
   const [cases, setCases] = useState<CaseRow[]>([]);
@@ -15,6 +26,11 @@ export default function CasesPage() {
   const [sortOrder, setSortOrder] = useState("newest");
   const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openPreviewCaseId, setOpenPreviewCaseId] = useState<string | null>(
+    null
+  );
+  const [previewStateByCaseId, setPreviewStateByCaseId] =
+    useState<PreviewStateMap>({});
 
   useEffect(() => {
     async function loadCases() {
@@ -36,6 +52,75 @@ export default function CasesPage() {
 
     loadCases();
   }, []);
+
+  async function loadPreview(caseId: string) {
+    setPreviewStateByCaseId((prev) => ({
+      ...prev,
+      [caseId]: { status: "loading" },
+    }));
+
+    const [casePreviewResult, longitudinalEventsResult] = await Promise.all([
+      supabase
+        .from("cases")
+        .select(
+          "id, generated_output, current_longitudinal_state, clinical_attention_state, reasoning_stale, plan_stale, modules_stale"
+        )
+        .eq("id", caseId)
+        .single(),
+      supabase
+        .from("longitudinal_events")
+        .select(
+          "id, created_at, event_payload, current_state_snapshot, clinical_attention_snapshot"
+        )
+        .eq("case_id", caseId)
+        .order("created_at", { ascending: false })
+        .limit(2),
+    ]);
+
+    if (casePreviewResult.error || longitudinalEventsResult.error) {
+      setPreviewStateByCaseId((prev) => ({
+        ...prev,
+        [caseId]: {
+          status: "error",
+          message:
+            casePreviewResult.error?.message ||
+            longitudinalEventsResult.error?.message ||
+            "Preview could not be loaded.",
+        },
+      }));
+      return;
+    }
+
+    const previewSignals = derivePatientEntryPreviewSignals({
+      caseData:
+        (casePreviewResult.data as PatientEntryPreviewCaseData | null) || null,
+      recentEvents:
+        (longitudinalEventsResult.data as PatientEntryPreviewEventData[]) || [],
+    });
+
+    setPreviewStateByCaseId((prev) => ({
+      ...prev,
+      [caseId]: {
+        status: "loaded",
+        signals: previewSignals,
+      },
+    }));
+  }
+
+  function toggleQuickPreview(caseId: string) {
+    const isCurrentlyOpen = openPreviewCaseId === caseId;
+
+    if (isCurrentlyOpen) {
+      setOpenPreviewCaseId(null);
+      return;
+    }
+
+    setOpenPreviewCaseId(caseId);
+
+    if (!previewStateByCaseId[caseId]) {
+      void loadPreview(caseId);
+    }
+  }
 
   async function deleteSelectedCases() {
     if (selectedCaseIds.length === 0) return;
@@ -205,6 +290,9 @@ export default function CasesPage() {
               key={c.id}
               caseRow={c}
               isSelected={selectedCaseIds.includes(c.id)}
+              previewState={previewStateByCaseId[c.id] || { status: "idle" }}
+              isPreviewOpen={openPreviewCaseId === c.id}
+              onQuickPreviewToggle={() => toggleQuickPreview(c.id)}
               onSelectionChange={(checked) => {
                 if (checked) {
                   setSelectedCaseIds((prev) => [...prev, c.id]);
