@@ -104,25 +104,14 @@ function resolveTreatmentFrame(caseRow: PatientEntryCase) {
 
   if (caseType) {
     return {
-      label: "Available clinical context",
+      label: "Treatment frame",
       value: caseType,
     };
   }
 
-  const primaryDiagnosis = getDocumentedText(
-    caseRow.patient_profile?.primary_diagnosis
-  );
-
-  if (primaryDiagnosis) {
-    return {
-      label: "Available clinical context",
-      value: primaryDiagnosis,
-    };
-  }
-
   return {
-    label: "Available clinical context",
-    value: "Clinical treatment frame not documented",
+    label: "Treatment frame",
+    value: "Treatment frame not documented",
   };
 }
 
