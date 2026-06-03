@@ -14,6 +14,37 @@ It represents the current project reality and approved direction.
 
 ---
 
+# Current Project State
+
+The project has transitioned from:
+
+Architecture Discovery
+
+to:
+
+Workflow Optimization
+
+The major architecture-discovery workstreams are stabilized. Current work should focus on clinician workflow quality, intake fidelity, contradiction prevention, scanability, and cognitive load reduction rather than new platform architecture.
+
+Completed implementation reality now includes:
+
+* Patient Entry Phase 1.
+* Patient Entry Phase 1.1 fallback and hierarchy corrections.
+* Patient Entry Phase 2A Quick Preview primitives.
+* Reference Workspace cleanup and boundary clarification.
+* Intake Fidelity Audit.
+* Intake Fidelity Normalization Specification.
+* Intake Fidelity Phase 1A.
+
+Current active focus:
+
+* Intake Fidelity Phase 1B.
+* Contradiction Guardrails Planning.
+
+Near-term implementation should preserve the completed Patient Entry and Reference Workspace work while strengthening intake quality and preventing clinically meaningful contradictions before generation.
+
+---
+
 # Current Product Identity
 
 The OT Clinical Assistant is no longer primarily:
@@ -261,51 +292,19 @@ Reference Workspace should not compete with Command Center orientation.
 
 ---
 
-# Current Migration State
+# Completed Navigation and Workspace Reality
 
-Navigation planning is complete.
+Patient-centric navigation and workspace separation are now implemented.
 
-Navigation readiness audits are complete.
+Completed navigation reality includes:
 
-Patient-centric ownership audits are complete.
+* Patient Entry surface on `/cases`.
+* Command Center route for primary clinician workflow orientation.
+* Reference Workspace route for review, context, investigation, historical snapshots, generated outputs, and deeper longitudinal review.
+* Shared workspace rendering with mode-specific Command Center and Reference Workspace presentation.
+* Recent orientation support through Patient Entry Quick Preview primitives.
 
-Implementation planning is complete.
-
-The project is entering navigation migration implementation.
-
----
-
-# Approved Migration Sequence
-
-Phase 1
-
-Ownership Separation
-
-Command Center vs Reference Workspace ownership established inside existing page.
-
----
-
-Phase 2
-
-Reference Workspace Extraction
-
-Reference content moved into dedicated workspace.
-
----
-
-Phase 3
-
-Command Center Stabilization
-
-Primary workflow surface refined around clinician orientation.
-
----
-
-Phase 4
-
-Recent Visit History Promotion
-
-Recent longitudinal changes promoted into orientation workflow.
+The current project limitation is no longer navigation architecture or workspace separation. The current limitation is workflow optimization, especially intake fidelity and contradiction prevention.
 
 ---
 
@@ -319,10 +318,10 @@ Major architecture work is largely complete.
 
 Remaining work is concentrated around:
 
-* navigation migration
+* intake fidelity
+* contradiction prevention
 * workflow refinement
 * historical review usability
-* operational editing completion
 * external clinician validation
 
 These are workflow completion problems, not architecture problems.
@@ -355,19 +354,24 @@ Focus on execution.
 
 # Current Best Next Action
 
-Navigation Migration Implementation
+Intake Fidelity Phase 1B
 
 Current implementation focus:
 
-Phase 1
+Contradiction Guardrails Planning
 
-Ownership Separation
+within the existing intake workflow and clinical reasoning architecture.
 
-inside:
+Near-term work should strengthen:
 
-src/app/cases/[id]/page.tsx
+* contradiction classification
+* blocking validation
+* warning validation
+* caregiver consistency validation
+* environmental consistency validation
+* transfer consistency validation
 
-without route changes or workflow changes.
+without route changes, API contract changes, persistence changes, or architecture redesign.
 
 ---
 
@@ -563,14 +567,14 @@ Outcome:
 - Corrected Phase 1.1 fallback hierarchy:
   - Case title becomes primary identity when patient name is unavailable.
   - Treatment-frame fallback hierarchy improved.
-- No Quick Preview implemented.
-- No additional clinical data loading implemented.
+- Patient Entry Phase 2A Quick Preview primitives implemented.
+- Additional preview loading supports rapid orientation before opening the Command Center.
 
 Notes:
 
-Patient Entry now functions as an orientation surface but remains constrained by currently available /cases data.
+Patient Entry now functions as an orientation surface with subordinate Quick Preview support.
 
-Future value will come from Quick Preview and access to current clinical state data.
+Quick Preview should remain lightweight and should not become a second Command Center.
 
 Patient Entry card context deduplication completed.
 Treatment frame and clinical context now represent distinct information.

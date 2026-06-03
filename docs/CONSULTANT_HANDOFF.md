@@ -68,7 +68,7 @@ The current UI already contains:
 - Caregiver, environmental, transfer/mobility, structured plan, and historical snapshot sections.
 - Clinical display-language compression helpers for Command Center readability.
 
-Important documentation mismatch: `docs/foundation/active_roadmap.md` still frames Patient Entry Phase 2A Quick Preview as the highest-priority approved implementation, with Quick Preview listed as not yet implemented. The current code already implements Quick Preview primitives in `src/app/cases/page.tsx`, `src/app/cases/PatientEntryCard.tsx`, and `src/app/cases/patientEntryPreview.ts`. Treat this as implemented reality unless later product review says otherwise.
+Documentation alignment note: `docs/foundation/active_roadmap.md` now treats Patient Entry Phase 1, Phase 1.1, and Phase 2A Quick Preview as completed reality. The current active focus is Intake Fidelity Phase 1B and contradiction guardrails planning.
 
 ---
 
@@ -238,9 +238,7 @@ Items in `docs/future_opportunities.md` are intentionally not active roadmap wor
 
 Deferred opportunities include:
 
-- Patient Entry Card context deduplication.
-- Broader Patient Preview / Visit Preparation experience beyond the implemented Quick Preview primitives.
-- Richer Patient Entry Experience evolution.
+- Expanded Visit Preparation experience beyond the implemented Quick Preview primitives.
 - Broader Intake Fidelity Optimization beyond the active Phase 1B scope.
 - Workflow Actions Consolidation.
 - Current Focus adaptive typography.
@@ -281,7 +279,7 @@ Use this for product identity, validated systems, current migration posture, com
 
 - `docs/foundation/active_roadmap.md`
 
-Use this for active priorities, but compare it to implementation reality. At the time of this handoff, its Patient Entry Quick Preview section appears behind the current code.
+Use this for active priorities. It now identifies Intake Fidelity Normalization as the primary roadmap initiative, with Phase 1B contradiction guardrails as the current focus.
 
 ### Future / Deferred Ideas
 
@@ -395,10 +393,9 @@ If the answer is no, defer it.
 
 ## Known Documentation Versus Implementation Notes
 
-1. `docs/foundation/active_roadmap.md` describes Patient Entry Phase 2A Quick Preview as approved but not yet implemented. Current code already includes Quick Preview state management, preview loading, derived preview signals, and Patient Entry card rendering.
-2. `docs/PROJECT_STATUS_AND_DIRECTION.md` states navigation migration implementation is focused on ownership separation inside `src/app/cases/[id]/page.tsx`. Current code already has separate Command Center and Reference Workspace routes with a shared `CaseWorkspaceClient` and `workspaceMode` prop.
-3. Some AGENTS source-of-truth paths mention older document locations such as `docs/active_roadmap.md` and `docs/system_architecture.md`; the current repository stores these under `docs/foundation/` and `docs/architecture/`. Use the current paths listed in this handoff.
-4. Legacy pathway fields still exist in generated-output types and rendering compatibility paths. This is transitional semantic debt, not permission to rebuild pathway-centric UX.
+1. Some AGENTS source-of-truth paths mention older document locations such as `docs/active_roadmap.md` and `docs/system_architecture.md`; the current repository stores these under `docs/foundation/` and `docs/architecture/`. Use the current paths listed in this handoff.
+2. Legacy pathway fields still exist in generated-output types and rendering compatibility paths. This is transitional semantic debt, not permission to rebuild pathway-centric UX.
+3. Patient Entry, Quick Preview, Reference Workspace cleanup, and Intake Fidelity Phase 1A are completed reality; do not restart them as future discovery work unless explicitly reopened.
 
 ---
 
