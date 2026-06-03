@@ -16,6 +16,8 @@ const requiredFieldCompleteClass =
   "rounded-xl border border-gray-800/80 p-3 transition-colors scroll-mt-28";
 const requiredControlBaseClass =
   "w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3";
+const highImpactSectionClass =
+  "rounded-2xl border border-sky-500/35 bg-sky-950/5 p-6";
 
 function getRequiredFieldClass(isComplete: boolean) {
   return isComplete ? requiredFieldCompleteClass : requiredFieldBaseClass;
@@ -1127,7 +1129,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </section>
 
           {/* FUNCTIONAL SEVERITY */}
-          <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+          <section className={highImpactSectionClass}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
               Functional Severity
             </p>
@@ -1138,7 +1140,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
 
             <div className="space-y-5">
-              <div>
+              <div className={requiredFieldBaseClass}>
                 <label className="mb-2 block text-sm font-medium">
                   Assistance Needed for Primary Activity
                 </label>
@@ -1156,7 +1158,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Bed Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.bed_transfer}
@@ -1171,7 +1173,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   </select>
                 </div>
 
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Toilet Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.toilet_transfer}
@@ -1186,7 +1188,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   </select>
                 </div>
 
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Shower Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.shower_transfer}
@@ -1204,9 +1206,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="key-barrier"
-                className={getRequiredFieldClass(
-                  keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0
-                )}
+                className={requiredFieldBaseClass}
               >
                 <HighImpactFieldLabel>Key Barriers</HighImpactFieldLabel>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1317,7 +1317,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </section>
 
           {/* CAREGIVER REALITY */}
-          <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+          <section className={highImpactSectionClass}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
               Caregiver Reality
             </p>
@@ -1330,7 +1330,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             <div className="grid gap-4 md:grid-cols-2">
               <div
                 id="caregiver-availability"
-                className={getRequiredFieldClass(caregiverAvailability.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">Caregiver Availability</label>
                 <select
@@ -1349,7 +1349,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="caregiver-assist-ability"
-                className={getRequiredFieldClass(caregiverPhysicalCapacity.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">
                   Caregiver Ability to Physically Assist
@@ -1370,7 +1370,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="caregiver-confidence"
-                className={getRequiredFieldClass(caregiverConfidence.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">Caregiver Confidence</label>
                 <select
@@ -1386,7 +1386,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div>
+              <div className={requiredFieldBaseClass}>
                 <label className="mb-2 block text-sm font-medium">Caregiver Training Level</label>
                 <select
                   value={caregiverTrainingLevel}
@@ -1402,7 +1402,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div className="md:col-span-2">
+              <div className={`${requiredFieldBaseClass} md:col-span-2`}>
                 <textarea
                   placeholder="Caregiver priorities (optional)"
                   value={caregiverPriorities}
