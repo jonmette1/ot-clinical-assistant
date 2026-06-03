@@ -725,9 +725,11 @@ const buildReportedProgressionChanges = (
 export function CaseWorkspaceClient({
   params,
   workspaceMode,
+  snapshotGenerationId,
 }: {
   params: Promise<{ id: string }>;
   workspaceMode: "command" | "reference";
+  snapshotGenerationId?: string | null;
 }) {
 
 // ==============================
@@ -836,6 +838,7 @@ const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<Longitu
   useEffect(() => {
     async function loadCase() {
       const resolvedParams = await params;
+      let loadedCurrentGenerationId: string | null = null;
       const { data, error } = await supabase
         .from("cases")
         .select("*")
@@ -917,6 +920,7 @@ const savedEquipmentFeasibility =
 
 setEquipmentFeasibility(savedEquipmentFeasibility || null);
 
+  loadedCurrentGenerationId = typedCase.current_generation_id;
   setCurrentGenerationId(typedCase.current_generation_id);
   console.log("Loaded current_generation_id:", typedCase.current_generation_id);
 }
@@ -933,6 +937,20 @@ setGenerations(gens);
 
 if (gens.length > 0) {
   setLatestGeneratedPlan(gens[0].output_payload as GeneratedPlan);
+}
+
+if (snapshotGenerationId) {
+  const requestedGeneration = gens.find(
+    (generation) => generation.id === snapshotGenerationId
+  );
+
+  setSelectedGeneration(
+    requestedGeneration && requestedGeneration.id !== loadedCurrentGenerationId
+      ? requestedGeneration
+      : null
+  );
+} else {
+  setSelectedGeneration(null);
 }
 }
 
@@ -953,7 +971,7 @@ if (!longitudinalEventError) {
     }
 
     loadCase();
-  }, [params]);
+  }, [params, snapshotGenerationId]);
 
   useEffect(() => {
     return () => {
@@ -1983,6 +2001,17 @@ const isViewingHistoricalVersion =
 const selectedSnapshotSavedAtLabel = isViewingHistoricalVersion
   ? formatDateTime(selectedGeneration?.created_at)
   : null;
+const returnToLiveCase = () => {
+  setSelectedGeneration(null);
+
+  if (caseData?.id) {
+    router.replace(
+      workspaceMode === "reference"
+        ? `/cases/${caseData.id}/reference`
+        : `/cases/${caseData.id}`
+    );
+  }
+};
 
 // ==============================
 // DERIVED DISPLAY MODEL
@@ -1999,8 +2028,11 @@ const displayCase = selectedGeneration?.input_payload
   : caseData;
 
 const generated = displayCase.generated_output as GeneratedOutput | null;
-const commandCenterHref = `/cases/${caseData.id}`;
-const referenceWorkspaceHref = `/cases/${caseData.id}/reference`;
+const selectedSnapshotQuery = isViewingHistoricalVersion
+  ? `?snapshot=${selectedGeneration?.id}`
+  : "";
+const commandCenterHref = `/cases/${caseData.id}${selectedSnapshotQuery}`;
+const referenceWorkspaceHref = `/cases/${caseData.id}/reference${selectedSnapshotQuery}`;
 
 const progressionState = generated?.progression_state;
 
@@ -3038,7 +3070,7 @@ return (
       title={displayCase.title}
       isViewingHistoricalVersion={isViewingHistoricalVersion}
       snapshotSavedAtLabel={selectedSnapshotSavedAtLabel}
-      onReturnToLiveCase={() => setSelectedGeneration(null)}
+      onReturnToLiveCase={returnToLiveCase}
     />
   </>
 )}
@@ -3070,7 +3102,7 @@ return (
       </div>
       <button
         type="button"
-        onClick={() => setSelectedGeneration(null)}
+        onClick={returnToLiveCase}
         className="rounded-lg border border-amber-300/50 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-900/40"
       >
         Return to Live Case
@@ -3422,7 +3454,7 @@ return (
       </p>
       <button
         type="button"
-        onClick={() => setSelectedGeneration(null)}
+        onClick={returnToLiveCase}
         className="mt-4 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-100 transition hover:border-blue-500 hover:bg-gray-900"
       >
         Return to Live Case
