@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,25 @@ function getRequiredControlClass(isComplete: boolean) {
   return `${requiredControlBaseClass} ${
     isComplete ? "" : "border-sky-500/45 shadow-[0_0_0_1px_rgba(14,165,233,0.08)]"
   }`;
+}
+
+function HighImpactSectionMarker() {
+  return (
+    <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
+      High Impact
+    </p>
+  );
+}
+
+function HighImpactFieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <label className="mb-2 flex items-center gap-2 text-sm font-medium">
+      <span>{children}</span>
+      <span className="rounded-full border border-sky-500/25 bg-sky-950/20 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sky-200/80">
+        High Impact
+      </span>
+    </label>
+  );
 }
 
 function scrollToCoreInputField(targetId: string) {
@@ -1082,7 +1102,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 id="primary-goal"
                 className={getRequiredFieldClass(primaryGoal.trim().length > 0)}
               >
-                <label className="mb-2 block text-sm font-medium">Primary Goal</label>
+                <HighImpactFieldLabel>Primary Goal</HighImpactFieldLabel>
                 <textarea
                   value={primaryGoal}
                   onChange={(e) => setPrimaryGoal(e.target.value)}
@@ -1112,6 +1132,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               Functional Severity
             </p>
             <h2 className="mb-1 text-xl font-semibold">How much help is needed?</h2>
+            <HighImpactSectionMarker />
             <p className="mb-5 text-sm text-gray-400">
               Drives safety risk, progression tracking, and treatment recommendations.
             </p>
@@ -1187,7 +1208,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0
                 )}
               >
-                <label className="mb-2 block text-sm font-medium">Key Barriers</label>
+                <HighImpactFieldLabel>Key Barriers</HighImpactFieldLabel>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {barriers.map((barrier) => (
                     <label
@@ -1301,6 +1322,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               Caregiver Reality
             </p>
             <h2 className="mb-1 text-xl font-semibold">What support is realistically available?</h2>
+            <HighImpactSectionMarker />
             <p className="mb-5 text-sm text-gray-400">
               Improves caregiver guidance, feasibility planning, and carryover recommendations.
             </p>
@@ -1411,7 +1433,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">Bathroom Setup</label>
+                <HighImpactFieldLabel>Bathroom Setup</HighImpactFieldLabel>
                 <select
                   value={bathroomType}
                   onChange={(e) => setBathroomType(e.target.value)}
@@ -1451,7 +1473,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">Equipment Access / DME Feasibility</label>
+                <HighImpactFieldLabel>Equipment Access / DME Feasibility</HighImpactFieldLabel>
                 <select
                   value={equipmentAccess}
                   onChange={(e) => setEquipmentAccess(e.target.value)}
@@ -1466,7 +1488,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium">Key Environmental Limitations</label>
+                <HighImpactFieldLabel>Key Environmental Limitations</HighImpactFieldLabel>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {hazardOptions.map((hazard) => (
                     <label
