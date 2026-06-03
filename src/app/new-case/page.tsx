@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,8 @@ const requiredFieldCompleteClass =
   "rounded-xl border border-gray-800/80 p-3 transition-colors scroll-mt-28";
 const requiredControlBaseClass =
   "w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3";
+const highImpactSectionClass =
+  "rounded-2xl border border-sky-500/35 bg-sky-950/5 p-6";
 
 function getRequiredFieldClass(isComplete: boolean) {
   return isComplete ? requiredFieldCompleteClass : requiredFieldBaseClass;
@@ -24,6 +27,25 @@ function getRequiredControlClass(isComplete: boolean) {
   return `${requiredControlBaseClass} ${
     isComplete ? "" : "border-sky-500/45 shadow-[0_0_0_1px_rgba(14,165,233,0.08)]"
   }`;
+}
+
+function HighImpactSectionMarker() {
+  return (
+    <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
+      High Impact
+    </p>
+  );
+}
+
+function HighImpactFieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <label className="mb-2 flex items-center gap-2 text-sm font-medium">
+      <span>{children}</span>
+      <span className="rounded-full border border-sky-500/25 bg-sky-950/20 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sky-200/80">
+        High Impact
+      </span>
+    </label>
+  );
 }
 
 function scrollToCoreInputField(targetId: string) {
@@ -1082,7 +1104,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 id="primary-goal"
                 className={getRequiredFieldClass(primaryGoal.trim().length > 0)}
               >
-                <label className="mb-2 block text-sm font-medium">Primary Goal</label>
+                <HighImpactFieldLabel>Primary Goal</HighImpactFieldLabel>
                 <textarea
                   value={primaryGoal}
                   onChange={(e) => setPrimaryGoal(e.target.value)}
@@ -1107,17 +1129,18 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </section>
 
           {/* FUNCTIONAL SEVERITY */}
-          <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+          <section className={highImpactSectionClass}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
               Functional Severity
             </p>
             <h2 className="mb-1 text-xl font-semibold">How much help is needed?</h2>
+            <HighImpactSectionMarker />
             <p className="mb-5 text-sm text-gray-400">
               Drives safety risk, progression tracking, and treatment recommendations.
             </p>
 
             <div className="space-y-5">
-              <div>
+              <div className={requiredFieldBaseClass}>
                 <label className="mb-2 block text-sm font-medium">
                   Assistance Needed for Primary Activity
                 </label>
@@ -1135,7 +1158,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Bed Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.bed_transfer}
@@ -1150,7 +1173,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   </select>
                 </div>
 
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Toilet Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.toilet_transfer}
@@ -1165,7 +1188,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   </select>
                 </div>
 
-                <div>
+                <div className={requiredFieldBaseClass}>
                   <label className="mb-2 block text-sm font-medium">Shower Transfer Assistance</label>
                   <select
                     value={adlAssistLevels.shower_transfer}
@@ -1183,11 +1206,9 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="key-barrier"
-                className={getRequiredFieldClass(
-                  keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0
-                )}
+                className={requiredFieldBaseClass}
               >
-                <label className="mb-2 block text-sm font-medium">Key Barriers</label>
+                <HighImpactFieldLabel>Key Barriers</HighImpactFieldLabel>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {barriers.map((barrier) => (
                     <label
@@ -1296,11 +1317,12 @@ setSaveMessage("Case generated with AI and saved successfully.");
           </section>
 
           {/* CAREGIVER REALITY */}
-          <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+          <section className={highImpactSectionClass}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
               Caregiver Reality
             </p>
             <h2 className="mb-1 text-xl font-semibold">What support is realistically available?</h2>
+            <HighImpactSectionMarker />
             <p className="mb-5 text-sm text-gray-400">
               Improves caregiver guidance, feasibility planning, and carryover recommendations.
             </p>
@@ -1308,7 +1330,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             <div className="grid gap-4 md:grid-cols-2">
               <div
                 id="caregiver-availability"
-                className={getRequiredFieldClass(caregiverAvailability.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">Caregiver Availability</label>
                 <select
@@ -1327,7 +1349,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="caregiver-assist-ability"
-                className={getRequiredFieldClass(caregiverPhysicalCapacity.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">
                   Caregiver Ability to Physically Assist
@@ -1348,7 +1370,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
               <div
                 id="caregiver-confidence"
-                className={getRequiredFieldClass(caregiverConfidence.trim().length > 0)}
+                className={requiredFieldBaseClass}
               >
                 <label className="mb-2 block text-sm font-medium">Caregiver Confidence</label>
                 <select
@@ -1364,7 +1386,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div>
+              <div className={requiredFieldBaseClass}>
                 <label className="mb-2 block text-sm font-medium">Caregiver Training Level</label>
                 <select
                   value={caregiverTrainingLevel}
@@ -1380,7 +1402,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div className="md:col-span-2">
+              <div className={`${requiredFieldBaseClass} md:col-span-2`}>
                 <textarea
                   placeholder="Caregiver priorities (optional)"
                   value={caregiverPriorities}
@@ -1411,7 +1433,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">Bathroom Setup</label>
+                <HighImpactFieldLabel>Bathroom Setup</HighImpactFieldLabel>
                 <select
                   value={bathroomType}
                   onChange={(e) => setBathroomType(e.target.value)}
@@ -1451,7 +1473,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">Equipment Access / DME Feasibility</label>
+                <HighImpactFieldLabel>Equipment Access / DME Feasibility</HighImpactFieldLabel>
                 <select
                   value={equipmentAccess}
                   onChange={(e) => setEquipmentAccess(e.target.value)}
@@ -1466,7 +1488,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium">Key Environmental Limitations</label>
+                <HighImpactFieldLabel>Key Environmental Limitations</HighImpactFieldLabel>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {hazardOptions.map((hazard) => (
                     <label
