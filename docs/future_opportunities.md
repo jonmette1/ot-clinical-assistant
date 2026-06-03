@@ -13,35 +13,24 @@ They should not be interpreted as active implementation priorities.
 An item may only move from this document into `active_roadmap.md` through explicit approval.
 
 ---
-## Patient Entry Card Context Deduplication
 
-Status: Backlog
+## Recently Completed
 
-Observation:
+The following items were previously tracked as opportunities but are now completed implementation reality or completed documentation/specification work. They should not be treated as deferred opportunities or future roadmap candidates unless explicitly reopened.
 
-Patient Entry cards currently display:
+* Patient Entry Experience.
+* Patient Entry Phase 1.1 fallback and hierarchy corrections.
+* Patient Entry Card context deduplication.
+* Patient Entry Phase 2A Quick Preview primitives.
+* Patient Orientation Layer through the implemented Patient Entry and Quick Preview surface.
+* Reference Workspace Cleanup.
+* Intake Fidelity Audit.
+* Intake Fidelity Normalization Specification.
+* Intake Fidelity Phase 1A.
 
-- Available Clinical Context
-- Clinical Context
-
-Certain cases resolve both sections to the same underlying diagnosis-level information, creating perceived duplication.
-
-Questions:
-
-- Are both sections required?
-- Should Treatment Frame become the primary orientation field?
-- Should diagnosis/context become secondary context?
-- Can duplication be eliminated without reducing orientation quality?
-
-Priority:
-
-Low
-
-Rationale:
-
-Does not block Quick Preview or patient-entry workflows.
 ---
-# Patient Preview / Visit Preparation Experience
+
+# Expanded Visit Preparation Experience Beyond Quick Preview
 
 ## Status
 
@@ -49,27 +38,27 @@ Deferred
 
 ## Source
 
-* Reference Workspace Cleanup Audit
+* Post-cleanup Reference Workspace Review
 * UX Normalization Phase 1
 * Longitudinal Workflow Reviews
 
 ## Observation
 
-Several pieces of information currently buried within the Reference Workspace appear highly valuable for rapid clinician orientation before entering a patient visit.
+Patient Entry and Quick Preview primitives now provide a lightweight orientation layer before opening the Command Center. Future opportunity remains only for expansion beyond that completed preview surface.
+
+Potential expansion content could include selected items that remain too detailed for the current Quick Preview but too orientation-oriented for deep reference review.
 
 Examples include:
 
 * Current Focus rationale
-* Latest Progression Event
+* Latest Progression Event details
 * Attention context
 * Operational Focus explanation
 * Recent meaningful change
 
-These items may have greater value as pre-visit orientation content than as deep reference content.
-
 ## Future Question
 
-Should clinicians have access to a lightweight patient preview experience before opening the Command Center?
+Should the implemented Quick Preview remain intentionally lightweight, or should a separate expanded visit-preparation experience be introduced later?
 
 ## Potential Preview Content
 
@@ -88,60 +77,17 @@ Should clinicians have access to a lightweight patient preview experience before
 
 ## Not Approved
 
-No implementation approved.
+No expanded implementation approved beyond the completed Quick Preview primitives.
 
 Requires future workflow validation.
 
 ---
 
-# Patient Entry Experience
+# Broader Intake Fidelity Optimization
 
 ## Status
 
-Deferred
-
-## Source
-
-* Patient-Centric Navigation Work
-* UX Reviews
-* Cases Page Discussions
-
-## Observation
-
-The current Cases page primarily functions as a case list.
-
-The long-term navigation direction of the platform is patient-centric rather than case-centric.
-
-The entry experience may eventually evolve into a richer patient access surface.
-
-## Future Questions
-
-* What information should be visible before opening a patient?
-* What information helps clinicians prioritize visits?
-* What information should remain hidden until deeper review?
-* How should historical context be surfaced?
-
-## Potential Areas
-
-* Recent visit activity
-* Current trajectory
-* Attention indicators
-* Snapshot previews
-* Quick-access navigation
-
-## Not Approved
-
-No implementation approved.
-
-Requires Patient Entry Experience Audit.
-
----
-
-# Intake Fidelity Optimization
-
-## Status
-
-Deferred
+Deferred beyond active Phase 1B contradiction guardrails
 
 ## Source
 
@@ -174,9 +120,9 @@ The current intake workflow also permits potentially conflicting clinical states
 
 ## Not Approved
 
-No implementation approved.
+No broader implementation is approved beyond active Phase 1B contradiction guardrails.
 
-Requires Intake Fidelity Audit.
+Intake Fidelity Audit and Phase 1A are complete. Broader optimization beyond active Phase 1B requires explicit approval.
 
 ---
 
@@ -260,7 +206,7 @@ Requires future UX validation.
 
 ---
 
-# Reference Workspace Evolution
+# Future Reference Workspace Enhancements
 
 ## Status
 
@@ -268,11 +214,11 @@ Deferred
 
 ## Source
 
-* Reference Workspace Cleanup Audit
+* Post-cleanup Reference Workspace Review
 
 ## Observation
 
-Several Reference Workspace sections contain valuable information but may not be organized according to their highest-value use case.
+Reference Workspace Cleanup is complete. Future enhancement work should only address remaining organization opportunities that do not compete with Command Center orientation.
 
 Operational Focus, progression context, and longitudinal summaries may represent a future orientation layer rather than purely reference content.
 

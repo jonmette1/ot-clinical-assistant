@@ -2,60 +2,56 @@
 
 ---
 
-## Current Highest-Priority Investigation
+## Current Highest-Priority Initiative
 
-### Patient Entry Phase 2A — Quick Preview Foundation
+### Intake Fidelity Normalization
 
 Objective:
 
-Define the safest implementation approach for introducing Quick Preview within the Patient Entry experience.
+Strengthen intake quality so downstream clinical reasoning receives clearer, higher-signal inputs with less clinician friction and fewer clinically meaningful contradictions.
 
 Purpose:
 
-Allow clinicians to rapidly orient around a patient before opening the Command Center while preserving the Command Center as the authoritative workflow surface.
-
-Key Questions:
-
-* What current-state information should be available from Quick Preview?
-* How should Current Focus be surfaced?
-* How should Attention Required be surfaced?
-* How should Since Last Visit be surfaced?
-* How should Next Action be surfaced?
-* How should Operational Focus be summarized?
-* What data already exists and can be reused?
-* What additional data loading is required?
-* How can Quick Preview avoid becoming a second Command Center?
-* What should remain exclusive to Command Center?
-* What should remain exclusive to Reference Workspace?
-
-Current State:
-
-Patient Entry Phase 1 completed.
-
-Completed:
-
-* PatientEntryCard implementation
-* Patient-oriented information hierarchy
-* Command Center entry emphasis
-* Patient identity hierarchy correction
-* Treatment-frame fallback correction
-
-Not Yet Implemented:
-
-* Quick Preview
-* Operational Focus preview
-* Current Focus preview
-* Attention Required preview
-* Since Last Visit preview
-* Next Action preview
+Support workflow optimization by improving the fidelity of information entering the clinical reasoning pipeline without changing architecture, routes, APIs, persistence, or generated-output contracts.
 
 Status:
 
-Implementation Approved
+Phase 1A Complete
+
+Current Focus:
+
+Phase 1B Contradiction Guardrails
+
+Completed:
+
+* Intake Fidelity Audit
+* Intake Fidelity Normalization Specification
+* Intake Fidelity Phase 1A
+* High-signal intake hierarchy
+* Minimum viable intake validation
+* Clinical Decision Inputs removal from the visible intake experience
+
+Planned:
+
+* contradiction classification
+* blocking validation
+* warning validation
+* caregiver consistency validation
+* environmental consistency validation
+* transfer consistency validation
+
+Implementation Guardrails:
+
+* Keep validation clinician-facing and workflow-supportive.
+* Avoid over-validating legitimate clinical complexity.
+* Preserve existing data model and API contracts unless explicitly approved.
+* Do not redesign the reasoning architecture.
+
+Patient Entry Phase 1, Phase 1.1, and Phase 2A Quick Preview are complete and should not be treated as the primary roadmap initiative.
 
 ---
 
-# ACTIVE ROADMAP — Longitudinal Workspace Design Transition
+# ACTIVE ROADMAP — Workflow Optimization
 
 ---
 
@@ -78,7 +74,7 @@ The following longitudinal authority documents are now considered established:
 - Longitudinal_State_Model.md
 - Progression_Check_UX_Architecture.md
 
-These documents should be treated as the governing authority for future longitudinal workspace design.
+These documents should be treated as stable foundation for current workflow optimization work.
 
 ---
 
@@ -95,7 +91,7 @@ The platform now possesses sufficient longitudinal architecture to answer:
 
 The primary limitation is no longer longitudinal architecture.
 
-The primary limitation is workspace design.
+The primary limitation is workflow optimization, especially intake fidelity and contradiction prevention.
 
 ---
 
@@ -201,7 +197,7 @@ Successfully completed:
 
 # Current Focus
 
-# Phase 5 — Longitudinal Workspace Design
+# Workflow Optimization — Intake Fidelity Phase 1B
 
 ## Status
 
@@ -211,7 +207,7 @@ ACTIVE
 
 ## Objective
 
-Transition the product from an intake-driven plan viewer into a longitudinal clinical guidance workspace.
+Improve intake fidelity and contradiction prevention within the existing longitudinal clinical guidance workspace.
 
 The workspace should help clinicians answer:
 
@@ -223,28 +219,30 @@ without requiring review of the full evaluation, intake, or historical documenta
 
 ---
 
-## Primary Design Focus
+## Primary Workflow Focus
 
-Design the workspace around:
+Strengthen intake fidelity around:
 
-1. Current Clinical Attention
-2. Current Operational Emphasis
-3. Current Progression Status
-4. Reassessment Status
-5. Most Recent Longitudinal Event
+1. Clinically meaningful contradiction classification
+2. Blocking validation for unsafe or impossible combinations
+3. Warning validation for lower-risk inconsistencies
+4. Caregiver consistency validation
+5. Environmental consistency validation
+6. Transfer consistency validation
 
-The workspace should prioritize:
+The workflow should prioritize:
 
-- clinical orientation
-- progression check workflows
-- attention-driven treatment decisions
-- continuity-aware treatment execution
+- high-signal intake data
+- clinician-facing validation language
+- minimal additional friction
+- continuity-aware downstream reasoning quality
 
 over:
 
-- plan consumption
-- intake review
-- historical report viewing
+- new architecture
+- new routes
+- API contract changes
+- persistence changes
 
 ---
 
@@ -262,16 +260,16 @@ These systems should be consumed by the workspace, not redefined by it.
 
 ---
 
-# Architectural Priority
+# Workflow Priority
 
-Future work should prioritize:
+Near-term work should prioritize:
 
-- progression check command center design
-- longitudinal workspace architecture
-- clinical attention surfacing
-- continuity-aware workflow guidance
-- progression event capture workflows
-- reassessment escalation workflows
+- contradiction classification
+- blocking validation
+- warning validation
+- caregiver consistency validation
+- environmental consistency validation
+- transfer consistency validation
 
 rather than:
 
@@ -280,6 +278,7 @@ rather than:
 - analytics-driven interfaces
 - plan-viewer expansion
 - additional pathway abstractions
+- new reasoning systems
 
 ---
 
