@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
+import { buildCommandCenterNextActions } from "@/lib/commandCenterNextAction";
 import {
   buildClinicalDecisionInputFromCase,
   buildClinicalNormalizationInsight,
@@ -30,7 +31,6 @@ import {
   compressCommandCenterList,
   compressCommandCenterSentence,
   compressCurrentFocusSentence,
-  compressNextActionList,
 } from "@/lib/clinicalDisplayLanguage";
 // ==============================
 // TYPES
@@ -661,21 +661,14 @@ const buildCommandCenterDeltaSnapshotFromCase = (
   const operationalReassessmentTriggers: string[] =
     operationalPrioritization?.reassessmentTriggers || [];
 
-  const nextActionItems = [
-    ...(structuredPlanDetails?.immediateActions || []),
-    ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
-    ...(progressionState?.reassessmentTriggers || []).map(
-      (trigger) => `Check progression if ${trigger}.`
-    ),
-    ...(clinicalAttentionRequiresOperationalReview
-      ? ["Review the current treatment focus."]
-      : []),
-    ...(clinicalAttentionReassessmentRecommended
-      ? ["Reassess before advancing the plan."]
-      : []),
-  ].filter(Boolean);
-
-  const commandCenterNextActionItems = compressNextActionList(nextActionItems, 3);
+  const commandCenterNextActions = buildCommandCenterNextActions({
+    structuredPlanDetails,
+    operationalPrioritization,
+    progressionState,
+    clinicalAttentionState,
+    currentLongitudinalState,
+    limit: 3,
+  });
   const dominantBarriers = operationalPrioritization?.dominantBarriers || [];
   const attentionStatement = readText(clinicalAttentionState, [
     "attentionStatement",
@@ -689,9 +682,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     attentionRequired:
       compressCommandCenterSentence(attentionStatement) ||
       "No clinical attention statement is available yet.",
-    nextAction:
-      commandCenterNextActionItems[0] ||
-      "Continue current focus. Update progression when new findings are available.",
+    nextAction: commandCenterNextActions.primaryAction,
     dominantBarrier:
       dominantBarriers[0] ||
       readText(currentLongitudinalState, [
@@ -2557,17 +2548,16 @@ const overallTrajectory: OverallTrajectory =
     ? "Stable"
     : "Not enough longitudinal data");
 
-const nextActionItems = [
-  ...(structuredPlanDetails?.immediateActions || []),
-  ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
-  ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Check progression if ${trigger}.`),
-  ...(clinicalAttentionRequiresOperationalReview ? ["Review the current treatment focus."] : []),
-  ...(clinicalAttentionReassessmentRecommended ? ["Reassess before advancing the plan."] : []),
-].filter(Boolean);
-
-const commandCenterNextActionItems = compressNextActionList(nextActionItems, 3);
-const primaryNextAction = commandCenterNextActionItems[0] || "";
-const supportingNextActions = commandCenterNextActionItems.slice(1);
+const commandCenterNextActions = buildCommandCenterNextActions({
+  structuredPlanDetails,
+  operationalPrioritization,
+  progressionState,
+  clinicalAttentionState,
+  currentLongitudinalState,
+  limit: 3,
+});
+const primaryNextAction = commandCenterNextActions.primaryAction;
+const supportingNextActions = commandCenterNextActions.supportingActions;
 
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
