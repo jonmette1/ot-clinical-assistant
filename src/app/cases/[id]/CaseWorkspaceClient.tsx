@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
@@ -668,7 +668,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
       (trigger) => `Check progression if ${trigger}.`
     ),
     ...(clinicalAttentionRequiresOperationalReview
-      ? ["Review the current treatment direction."]
+      ? ["Review the current treatment focus."]
       : []),
     ...(clinicalAttentionReassessmentRecommended
       ? ["Reassess before advancing the plan."]
@@ -725,7 +725,7 @@ const buildReportedProgressionChanges = (
     form.milestoneAchieved.trim()
       ? `Milestone: ${form.milestoneAchieved.trim()}`
       : null,
-    `Treatment direction changed: ${form.treatmentDirectionChanged ? "Yes" : "No"}`,
+    `Treatment focus change needed: ${form.treatmentDirectionChanged ? "Yes" : "No"}`,
     form.treatmentDirectionChanged && form.reasonTreatmentChanged.trim()
       ? `Reason: ${form.reasonTreatmentChanged.trim()}`
       : null,
@@ -830,6 +830,10 @@ const [isSubmittingProgressionCheck, setIsSubmittingProgressionCheck] = useState
 const [progressionCheckMessage, setProgressionCheckMessage] = useState("");
 const [progressionCheckError, setProgressionCheckError] = useState("");
 const [clinicalImpactSummary, setClinicalImpactSummary] = useState<ClinicalImpactSummary | null>(null);
+const [latestClinicalImpactSummary, setLatestClinicalImpactSummary] = useState<ClinicalImpactSummary | null>(null);
+const [highlightClinicalImpactSummary, setHighlightClinicalImpactSummary] = useState(false);
+const clinicalImpactSummaryRef = useRef<HTMLDivElement | null>(null);
+const clinicalImpactHighlightTimeoutRef = useRef<number | null>(null);
 const [latestLongitudinalEvent, setLatestLongitudinalEvent] = useState<LongitudinalEventRow | null>(null);
 const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<LongitudinalEventRow[]>([]);
 
@@ -960,6 +964,14 @@ if (!longitudinalEventError) {
     loadCase();
   }, [params]);
 
+  useEffect(() => {
+    return () => {
+      if (clinicalImpactHighlightTimeoutRef.current) {
+        window.clearTimeout(clinicalImpactHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // ==============================
 // OPERATIONAL HANDLERS
 // save / delete / restore / regenerate
@@ -1034,23 +1046,51 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
     const latestEvent = recentEvents[0] || null;
     setRecentLongitudinalEvents(recentEvents);
     setLatestLongitudinalEvent(latestEvent);
-    setClinicalImpactSummary(
-      buildClinicalImpactSummary({
-        eventId: latestEvent?.id,
-        eventCreatedAt: latestEvent?.created_at,
-        reportedChanges: buildReportedProgressionChanges(submittedProgressionCheck),
-        previousSnapshot,
-        currentSnapshot: buildCommandCenterDeltaSnapshotFromCase(typedCase),
-      })
-    );
+    const updatedClinicalImpactSummary = buildClinicalImpactSummary({
+      eventId: latestEvent?.id,
+      eventCreatedAt: latestEvent?.created_at,
+      reportedChanges: buildReportedProgressionChanges(submittedProgressionCheck),
+      previousSnapshot,
+      currentSnapshot: buildCommandCenterDeltaSnapshotFromCase(typedCase),
+    });
+    setClinicalImpactSummary(updatedClinicalImpactSummary);
+    setLatestClinicalImpactSummary(updatedClinicalImpactSummary);
     setProgressionCheckForm(emptyProgressionCheckForm);
-    setProgressionCheckMessage("Progression check saved. Clinical impact summary updated above.");
+    setProgressionCheckMessage(
+      updatedClinicalImpactSummary.changedConclusions.length > 0
+        ? "Clinical conclusions updated."
+        : "Progression check saved. Current conclusions confirmed."
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to submit progression check.";
     setProgressionCheckError(message);
   } finally {
     setIsSubmittingProgressionCheck(false);
   }
+}
+
+function handleClinicalImpactCtaClick() {
+  const summaryToShow = clinicalImpactSummary || latestClinicalImpactSummary;
+
+  if (!summaryToShow) return;
+
+  setClinicalImpactSummary(summaryToShow);
+  setHighlightClinicalImpactSummary(true);
+
+  window.setTimeout(() => {
+    clinicalImpactSummaryRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, 0);
+
+  if (clinicalImpactHighlightTimeoutRef.current) {
+    window.clearTimeout(clinicalImpactHighlightTimeoutRef.current);
+  }
+
+  clinicalImpactHighlightTimeoutRef.current = window.setTimeout(() => {
+    setHighlightClinicalImpactSummary(false);
+  }, 2400);
 }
 
   async function handleDeleteCase() {
@@ -2073,13 +2113,13 @@ const currentLongitudinalRows: SummaryRow[] = [
     value: readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]),
   },
   {
-    label: "Treatment direction changed",
+    label: "Treatment focus change needed",
     value: formatBoolean(
       readBoolean(currentLongitudinalState, ["treatmentDirectionChanged", "treatment_direction_changed"])
     ),
   },
   {
-    label: "Reason treatment changed",
+    label: "Reason treatment focus should change",
     value: readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]),
   },
   {
@@ -2227,9 +2267,9 @@ const lastVisitTreatmentDirectionChanged =
 
 const lastVisitTreatmentDirection =
   lastVisitTreatmentDirectionChanged === true
-    ? "Treatment direction changed"
+    ? "Treatment focus should change"
     : lastVisitTreatmentDirectionChanged === false
-    ? "Treatment direction unchanged"
+    ? "Treatment focus unchanged"
     : null;
 
 const lastVisitReasonTreatmentChanged =
@@ -2344,11 +2384,11 @@ const sinceLastVisitSummaryItems = [
     : null,
   sinceLastVisitMilestone ? `A milestone was noted: ${sinceLastVisitMilestone}.` : null,
   sinceLastVisitTreatmentDirectionChanged === true
-    ? `Treatment direction changed${
+    ? `Treatment focus should change${
         sinceLastVisitReasonTreatmentChanged ? ` because ${sinceLastVisitReasonTreatmentChanged}` : ""
       }.`
     : sinceLastVisitTreatmentDirectionChanged === false
-    ? "Treatment direction remains consistent with the prior visit."
+    ? "Treatment focus remains consistent with the prior visit."
     : null,
   sinceLastVisitLimitingFactor || sinceLastVisitProgressionStatus
     ? `Current visit context centers on ${[
@@ -2371,6 +2411,11 @@ const attentionStatement = readText(clinicalAttentionState, [
 const commandCenterAttentionStatement =
   compressCommandCenterSentence(attentionStatement);
 
+const clinicalAttentionDrivers = readTextList(clinicalAttentionState, [
+  "attentionDrivers",
+  "attention_drivers",
+]);
+
 const attentionRequiredMetadataRows: SummaryRow[] = [
   {
     label: "Category",
@@ -2378,7 +2423,7 @@ const attentionRequiredMetadataRows: SummaryRow[] = [
   },
   {
     label: "Drivers",
-    value: readTextList(clinicalAttentionState, ["attentionDrivers", "attention_drivers"]),
+    value: clinicalAttentionDrivers,
   },
   {
     label: "Review flag",
@@ -2418,6 +2463,60 @@ const clinicalStatusExplanation =
     : clinicalStatus === "Monitor Closely"
     ? "The plan remains usable, but active pressures should be watched during the visit."
     : "The current plan appears appropriate for the available case information.";
+
+const clinicalStatusSignalText = [
+  sinceLastVisitProgressionStatus,
+  readText(currentLongitudinalState, ["progressionStatus", "progression_status"]),
+  readText(clinicalAttentionState, ["progressionStatus", "progression_status"]),
+  progressionState?.advancementReadiness,
+  sinceLastVisitReasonTreatmentChanged,
+  ...sinceLastVisitFunctionalChanges,
+  ...clinicalAttentionDrivers,
+].join(" ");
+
+const normalizedClinicalStatusSignals = normalizeTrajectorySource(clinicalStatusSignalText);
+const combinedReassessmentTriggers = [
+  ...operationalReassessmentTriggers,
+  ...(progressionState?.reassessmentTriggers || []),
+].filter(Boolean);
+
+const clinicalStatusTriggerCandidates = [
+  normalizedClinicalStatusSignals.includes("regression") ? "Regression detected" : null,
+  normalizedClinicalStatusSignals.includes("plateau") ? "Plateau emerging" : null,
+  /\b(medical|injury|injuries|fall|falls|hospital|pain|symptom|status change)\b/.test(
+    normalizedClinicalStatusSignals
+  )
+    ? "Medical change reported"
+    : null,
+  sinceLastVisitTreatmentDirectionChanged === true ? "Treatment focus change documented" : null,
+  clinicalAttentionRequiresOperationalReview ? "Treatment review flagged" : null,
+  clinicalAttentionReassessmentRecommended || combinedReassessmentTriggers.length > 0
+    ? "Reassessment signal active"
+    : null,
+  /\b(caregiver|caregiver support|support availability)\b/.test(normalizedClinicalStatusSignals)
+    ? "Caregiver context changed"
+    : null,
+  /\b(environment|home setup|equipment|bathroom|stairs|space)\b/.test(normalizedClinicalStatusSignals)
+    ? "Environmental context changed"
+    : null,
+  combinedReassessmentTriggers[0]
+    ? `Reassessment trigger noted: ${combinedReassessmentTriggers[0]}`
+    : null,
+  displayCase.reasoning_stale || displayCase.plan_stale || displayCase.modules_stale
+    ? "Plan information requires review"
+    : null,
+]
+  .filter((trigger): trigger is string => Boolean(trigger))
+  .filter((trigger, index, triggers) => triggers.indexOf(trigger) === index)
+  .slice(0, 3);
+
+const clinicalStatusRecommendedAction = clinicalAttentionReassessmentRecommended
+  ? "Complete reassessment before advancing the plan."
+  : clinicalStatus === "Needs Reassessment"
+  ? "Review treatment focus before the next visit."
+  : clinicalStatus === "Monitor Closely"
+  ? "Monitor the current limiting factor during today’s visit."
+  : "Continue current treatment focus.";
 
 const caregiverGuidance: string[] =
   generated?.caregiverGuidance?.length
@@ -2462,7 +2561,7 @@ const nextActionItems = [
   ...(structuredPlanDetails?.immediateActions || []),
   ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
   ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Check progression if ${trigger}.`),
-  ...(clinicalAttentionRequiresOperationalReview ? ["Review the current treatment direction."] : []),
+  ...(clinicalAttentionRequiresOperationalReview ? ["Review the current treatment focus."] : []),
   ...(clinicalAttentionReassessmentRecommended ? ["Reassess before advancing the plan."] : []),
 ].filter(Boolean);
 
@@ -2975,10 +3074,17 @@ return (
 
   <div className="grid gap-4 lg:grid-cols-2">
     {clinicalImpactSummary ? (
-      <ClinicalImpactSummaryPanel
-        summary={clinicalImpactSummary}
-        onDismiss={() => setClinicalImpactSummary(null)}
-      />
+      <div
+        ref={clinicalImpactSummaryRef}
+        className={`lg:col-span-2 rounded-2xl transition duration-500 ${
+          highlightClinicalImpactSummary ? "ring-2 ring-blue-300/80 ring-offset-2 ring-offset-gray-950" : "ring-0"
+        }`}
+      >
+        <ClinicalImpactSummaryPanel
+          summary={clinicalImpactSummary}
+          onDismiss={() => setClinicalImpactSummary(null)}
+        />
+      </div>
     ) : null}
 
     <article className="rounded-3xl border border-gray-700/80 bg-gray-950/75 p-5 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-6">
@@ -3043,6 +3149,31 @@ return (
           <p className="mt-2 text-xs leading-relaxed text-gray-400">
             {clinicalStatusExplanation}
           </p>
+          <div className="mt-3 space-y-3 rounded-lg border border-gray-800/80 bg-gray-950/50 p-3 text-xs leading-relaxed text-gray-400">
+            <div>
+              <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">
+                Triggered by
+              </p>
+              {clinicalStatusTriggerCandidates.length > 0 ? (
+                <ul className="mt-2 space-y-1">
+                  {clinicalStatusTriggerCandidates.map((trigger) => (
+                    <li key={trigger} className="flex gap-2">
+                      <span className="text-gray-600">•</span>
+                      <span>{trigger}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2">No specific review trigger is currently documented.</p>
+              )}
+            </div>
+            <div>
+              <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">
+                Recommended action
+              </p>
+              <p className="mt-1 text-gray-300">{clinicalStatusRecommendedAction}</p>
+            </div>
+          </div>
         </div>
       </div>
     </article>
@@ -3245,7 +3376,7 @@ return (
       Quick progression validation
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Minimal entry point for recording whether the current treatment direction still matches the case.
+      Minimal entry point for recording whether the current treatment focus still matches the case.
     </p>
   </div>
 
@@ -3275,7 +3406,7 @@ return (
           Current limiting factor
         </label>
         <p className="mt-1 text-xs text-gray-500">
-          Optional unless treatment direction changed.
+          Optional unless treatment focus should change.
         </p>
         <input
           id="currentDominantBarrier"
@@ -3338,33 +3469,51 @@ return (
       />
     </div>
 
-    <label className="flex items-start gap-3 rounded-lg border border-gray-800 bg-gray-950/70 p-3 text-sm text-gray-300">
-      <input
-        type="checkbox"
-        checked={progressionCheckForm.treatmentDirectionChanged}
-        onChange={(event) =>
-          setProgressionCheckForm((previous) => ({
-            ...previous,
-            treatmentDirectionChanged: event.target.checked,
-            reasonTreatmentChanged: event.target.checked
-              ? previous.reasonTreatmentChanged
-              : "",
-          }))
-        }
-        className="mt-1"
-      />
-      <span>
-        Treatment direction changed
-        <span className="block text-xs text-gray-500">
-          Check only if the operational emphasis should be refreshed from this progression check.
-        </span>
-      </span>
-    </label>
+    <fieldset className="rounded-lg border border-gray-800 bg-gray-950/70 p-3 text-sm text-gray-300">
+      <legend className="text-sm font-medium text-gray-200">
+        Does today’s update require a change in treatment focus?
+      </legend>
+      <p className="mt-1 text-xs leading-relaxed text-gray-500">
+        Choose Yes when safety, function, caregiver support, environment, or medical status means current priorities should be reconsidered.
+      </p>
+      <div className="mt-3 space-y-2">
+        <label className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="treatmentDirectionChanged"
+            checked={!progressionCheckForm.treatmentDirectionChanged}
+            onChange={() =>
+              setProgressionCheckForm((previous) => ({
+                ...previous,
+                treatmentDirectionChanged: false,
+                reasonTreatmentChanged: "",
+              }))
+            }
+          />
+          <span>No, current treatment focus remains appropriate</span>
+        </label>
+        <label className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="treatmentDirectionChanged"
+            checked={progressionCheckForm.treatmentDirectionChanged}
+            onChange={() =>
+              setProgressionCheckForm((previous) => ({
+                ...previous,
+                treatmentDirectionChanged: true,
+                reasonTreatmentChanged: previous.reasonTreatmentChanged,
+              }))
+            }
+          />
+          <span>Yes, treatment focus should change</span>
+        </label>
+      </div>
+    </fieldset>
 
     {progressionCheckForm.treatmentDirectionChanged && (
       <div>
         <label htmlFor="reasonTreatmentChanged" className="text-sm font-medium text-gray-200">
-          Reason Treatment Changed
+          Why should treatment focus change?
         </label>
         <textarea
           id="reasonTreatmentChanged"
@@ -3378,12 +3527,12 @@ return (
           }
           rows={3}
           className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-          placeholder="Briefly explain why the treatment direction changed."
+          placeholder="Briefly note what changed and why current priorities need to be reconsidered."
         />
       </div>
     )}
 
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
       <button
         type="submit"
         disabled={isSubmittingProgressionCheck}
@@ -3392,9 +3541,30 @@ return (
         {isSubmittingProgressionCheck ? "Saving..." : "Save progression check"}
       </button>
 
-      {progressionCheckMessage && (
-        <p className="text-sm text-green-400">{progressionCheckMessage}</p>
-      )}
+      {progressionCheckMessage && latestClinicalImpactSummary ? (
+        <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3 text-sm text-gray-200">
+          <p className="font-semibold text-white">{progressionCheckMessage}</p>
+          {latestClinicalImpactSummary.changedConclusions.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-xs text-gray-400">
+              {latestClinicalImpactSummary.changedConclusions.slice(0, 3).map((change) => (
+                <li key={change.key} className="flex gap-2">
+                  <span className="text-blue-300/80">•</span>
+                  <span>{change.label} changed</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleClinicalImpactCtaClick}
+            className="mt-3 rounded-md border border-blue-500/50 px-3 py-1.5 text-xs font-semibold text-blue-200 transition hover:border-blue-300 hover:text-white"
+          >
+            {latestClinicalImpactSummary.changedConclusions.length > 0
+              ? "View Clinical Impact"
+              : "Review Clinical Impact"}
+          </button>
+        </div>
+      ) : null}
 
       {progressionCheckError && (
         <p className="text-sm text-red-400">{progressionCheckError}</p>
