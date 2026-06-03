@@ -1,580 +1,331 @@
-# PROJECT STATUS AND DIRECTION
+# Project Status and Direction
+
+Last updated: 2026-06-03
+
+---
 
 ## Purpose
 
-This document exists to rapidly orient future agents to the current state of the OT Clinical Assistant project.
+This document summarizes the current state, direction, validated decisions, and near-term priorities for the OT Clinical Assistant. It is intended to orient contributors without requiring them to read historical audit threads.
 
-It is not a roadmap.
-
-It is not an architecture document.
-
-It is not a decision log.
-
-It represents the current project reality and approved direction.
+For the fastest executive briefing, read `docs/PROJECT_SNAPSHOT.md` first.
 
 ---
 
-# Current Project State
+## Current Project State
 
-The project has transitioned from:
+The OT Clinical Assistant is a patient-centric, continuity-aware clinical command center for adult rehabilitation and home health occupational therapy.
 
-Architecture Discovery
+The project has completed major architecture stabilization. Current work is no longer primarily about inventing reasoning systems. It is about making the existing reasoning understandable, trustworthy, updateable, and useful in real clinical workflow.
 
-to:
+Completed implementation reality includes:
 
-Workflow Optimization
-
-The major architecture-discovery workstreams are stabilized. Current work should focus on clinician workflow quality, intake fidelity, contradiction prevention, scanability, and cognitive load reduction rather than new platform architecture.
-
-Completed implementation reality now includes:
-
-* Patient Entry Phase 1.
-* Patient Entry Phase 1.1 fallback and hierarchy corrections.
-* Patient Entry Phase 2A Quick Preview primitives.
-* Reference Workspace cleanup and boundary clarification.
-* Intake Fidelity Audit.
-* Intake Fidelity Normalization Specification.
-* Intake Fidelity Phase 1A.
+* deterministic clinical reasoning authority
+* continuity architecture
+* progression architecture
+* reassessment architecture
+* operational prioritization architecture
+* patient entry and Quick Preview
+* Command Center and Reference Workspace routes
+* Reference Workspace cleanup
+* Intake Fidelity Phase 1A
+* Clinical Language Compression Phase 1
+* Clinical Impact Summary
+* Clinical Status Explainability
+* Clinical Impact CTA
+* Treatment Focus refinement
+* Next Action Refresh
 
 Current active focus:
 
-* Intake Fidelity Phase 1B.
-* Contradiction Guardrails Planning.
-
-Near-term implementation should preserve the completed Patient Entry and Reference Workspace work while strengthening intake quality and preventing clinically meaningful contradictions before generation.
-
----
-
-# Current Product Identity
-
-The OT Clinical Assistant is no longer primarily:
-
-* an evaluation generator
-* a treatment plan generator
-* a documentation tool
-
-The product is evolving into:
-
-A Longitudinal Clinical Navigation Platform
-
-The purpose of the system is to reduce clinician cognitive burden across multiple visits by carrying continuity, progression, attention management, and clinical context forward over time.
+* Snapshot Awareness
+* Intake Fidelity validation
+* EMR / workflow integration research
+* clinician testing
+* Intake Fidelity Phase 1B contradiction guardrails as the next implementation candidate after validation
 
 ---
 
-# Current Product Evolution
+## Current Product Identity
 
-Phase 1
+The product is no longer primarily trying to answer:
 
-Evaluation Engine
+> Which treatment pathway should the clinician choose?
 
-↓
+It is no longer primarily trying to answer:
 
-Phase 2
+> What AI-generated plan should be shown?
 
-Generated Plan Engine
+It is now trying to answer:
 
-↓
+> What changed, what matters, what requires attention, and what should happen next?
 
-Phase 3
-
-Longitudinal Tracking Engine
-
-↓
-
-Current Direction
-
-Clinical Navigation Engine
-
-The product is now focused on helping clinicians answer:
-
-* What changed?
-* Why does it matter?
-* What requires attention?
-* What should I do next?
-
-without reconstructing prior visits from memory.
+The product should feel like a clinical operations command center, not a dashboard, analytics tool, or AI report.
 
 ---
 
-# What Has Been Validated
+## Current Product Evolution
 
-The following systems are considered implemented and largely validated:
+Previous state:
 
-## Deterministic Clinical Reasoning
+Case → Generated Plan → Review Information
 
-Authoritative clinical reasoning remains deterministic.
+Current state:
 
-AI is not allowed to invent reasoning.
+Patient → Orient → Understand Change → Determine Attention Needs → Act
 
-AI may assist with:
+Current authority model:
 
-* synthesis
-* explanation
-* communication
-* organization
-
----
-
-## Continuity Architecture
-
-Implemented.
-
-Validated.
-
-Supports longitudinal continuity and historical state preservation.
+Structured Intake / Case Data
+→ Deterministic Clinical Decision Inputs
+→ Clinical Decision Engine
+→ Progression and Continuity Interpretation
+→ Operational Prioritization
+→ Generated Plan Synthesis
+→ Command Center / Reference Workspace
+→ Progression Check Updates
+→ Longitudinal Event + Current State Refresh
 
 ---
 
-## Progression Architecture
+## What Has Been Validated
 
-Implemented.
+### Deterministic Clinical Reasoning
 
-Validated.
+Validated:
 
-Supports:
+* deterministic reasoning should remain the clinical authority layer
+* generated text should synthesize, explain, and organize deterministic outputs
+* AI should not independently decide clinical truth
 
-* improving
-* stable / plateau
-* declining
+### Continuity Architecture
 
-state classification.
+Validated:
 
----
+* current operational case state is live truth
+* historical generations are immutable snapshots
+* continuity changes must be governed to avoid corrupting prior reasoning
+* clinicians should not see internal continuity terminology as primary UI
 
-## Reassessment Architecture
+### Progression Architecture
 
-Implemented.
+Validated:
 
-Validated.
+* progression should support clinical orientation and reassessment-sensitive prioritization
+* progression should explain meaningful change, not forecast recovery
+* progression check updates should refresh current state and attention signals
 
-Supports reassessment recommendation and attention escalation.
+### Operational Prioritization
 
----
+Validated:
 
-## Longitudinal Event Architecture
+* Current Operational State / Treatment Focus is the primary workspace output
+* operational prioritization should dominate pathway-style alternatives
+* caregiver feasibility, environmental constraint, and transfer safety are core treatment-priority inputs
 
-Implemented.
+### Command Center Hierarchy
 
-Validated.
+Validated hierarchy:
 
-Progression updates create longitudinal events.
-
-Longitudinal events update:
-
-* current longitudinal state
-* clinical attention state
-* operational prioritization
-
-when appropriate.
-
----
-
-## Clinical Attention Architecture
-
-Implemented.
-
-Validated.
-
-Clinical attention now represents one of the primary clinician-facing outputs of the platform.
-
----
-
-## Operational Prioritization
-
-Implemented.
-
-Validated.
-
-Operational prioritization is continuity-aware and progression-aware.
-
----
-
-## Command Center Hierarchy
-
-Implemented.
-
-Validated.
-
-Current hierarchy:
-
-1. Case Status
-2. Since Last Visit
-3. Attention Required
-4. Current Focus
+1. Current Clinical Reality / Current Focus
+2. Case Status
+3. Since Last Visit
+4. Attention Required
 5. Next Action
+6. Recent Visit History / supporting orientation content
 
-This hierarchy should not be redesigned without strong justification.
+### Command Center / Reference Workspace Split
+
+Validated:
+
+* Command Center is the primary workflow surface for rapid orientation
+* Reference Workspace is for review, context, historical snapshots, generated outputs, and deeper investigation
+* Reference content should not compete with current orientation
+
+### Clinical Language Compression
+
+Validated:
+
+* clinician trust improved when report-style language was compressed into more direct clinical language
+* communication density was a larger usability issue than reasoning quality
+* future language changes should be scoped and validated, not automatically expanded
+
+### Longitudinal Clinical Delta Experience
+
+Validated directionally through implementation:
+
+* Clinical Impact Summary should explain what changed and what was confirmed after progression updates
+* Clinical Status should be explainable without exposing internal continuity classifications
+* Clinical Impact CTA should bring clinicians back to the delta summary
+* Treatment Focus should remain concise and operational
+* Next Action should reflect newer longitudinal meaning and avoid stale generated-plan actions when current updates supersede them
 
 ---
 
-# Current UX Objective
+## Current UX Objective
 
-The Command Center should allow a clinician to answer within approximately 5 seconds:
+The current UX objective remains Command Center normalization and clinician orientation.
 
-1. Is the patient improving, stable, or declining?
-2. What changed since the last visit?
-3. Why does that change matter?
-4. What requires attention today?
-5. What should I do next?
+The interface should prioritize:
 
-without reconstructing prior visits from memory.
+* hierarchy
+* scanability
+* cognitive load reduction
+* typography-driven organization
+* whitespace-driven organization
+* clinically meaningful color
+* workflow continuity
 
-The software should carry the continuity burden.
+Avoid:
 
-The clinician should not.
+* decorative color systems
+* category-based color systems
+* excessive card nesting
+* dashboard-style fragmentation
+* exposing system internals as workflow content
 
 ---
 
-# Approved Navigation Direction
+## Approved Navigation Direction
 
-The platform is transitioning from:
-
-Case-Centric Navigation
-
-to:
-
-Patient-Centric Navigation.
-
-Approved model:
+The approved navigation model is patient-centric:
 
 Patient
-
 ├── Command Center
 └── Reference Workspace
 
----
+### Command Center Purpose
 
-# Command Center Purpose
+The Command Center should allow a clinician to answer quickly:
 
-Current Clinical Reality
+* Is the patient improving, stable, or declining?
+* What changed since the last visit?
+* Why does that change matter?
+* What requires attention today?
+* What should I do next?
 
-The Command Center is the primary clinician workflow surface.
+### Command Center Content
 
-Examples of Command Center content:
+Command Center content should prioritize:
 
 * Case Status
 * Since Last Visit
 * Attention Required
-* Current Focus
+* Current Focus / Treatment Focus
 * Next Action
-* Progression Update
 * Recent Visit History
+* Clinical Impact Summary when a progression update has occurred
 
-Command Center exists to support:
+### Reference Workspace Purpose
 
-visit preparation
-visit execution
-visit updates
+Reference Workspace content includes:
 
----
+* evaluation
+* goals
+* caregiver context
+* environmental context
+* operational pressures
+* historical snapshots
+* version history
+* generated outputs
+* full longitudinal review
 
-# Reference Workspace Purpose
-
-Historical Context
-
-Clinical Context
-
-Deep Review
-
-Examples:
-
-* Evaluation
-* Goals
-* Caregiver Context
-* Environmental Context
-* Operational Pressures
-* Historical Snapshots
-* Version History
-* Generated Outputs
-* Clinical Reasoning Context
-
-Reference Workspace should not compete with Command Center orientation.
+Reference content supports orientation but should not compete with it.
 
 ---
 
-# Completed Navigation and Workspace Reality
-
-Patient-centric navigation and workspace separation are now implemented.
+## Completed Navigation and Workspace Reality
 
 Completed navigation reality includes:
 
-* Patient Entry surface on `/cases`.
-* Command Center route for primary clinician workflow orientation.
-* Reference Workspace route for review, context, investigation, historical snapshots, generated outputs, and deeper longitudinal review.
-* Shared workspace rendering with mode-specific Command Center and Reference Workspace presentation.
-* Recent orientation support through Patient Entry Quick Preview primitives.
+* patient entry list
+* PatientEntryCard presentation layer
+* Command Center route
+* Reference Workspace route
+* Quick Preview primitives
+* shared workspace renderer
+* Reference Workspace cleanup and boundary clarification
 
-The current project limitation is no longer navigation architecture or workspace separation. The current limitation is workflow optimization, especially intake fidelity and contradiction prevention.
-
----
-
-# Current MVP Assessment
-
-Approximate readiness:
-
-90–92%
-
-Major architecture work is largely complete.
-
-Remaining work is concentrated around:
-
-* intake fidelity
-* contradiction prevention
-* workflow refinement
-* historical review usability
-* external clinician validation
-
-These are workflow completion problems, not architecture problems.
+Patient Entry, Quick Preview, Reference Workspace cleanup, and Intake Fidelity Phase 1A are completed reality. Do not restart them as discovery work unless explicitly reopened.
 
 ---
 
-# Common Agent Failure Modes
+## Current MVP Assessment
 
-Do NOT:
+The MVP is directionally strong because it has:
 
-* reopen architecture discussions
-* redesign progression architecture
-* redesign continuity architecture
-* redesign reassessment architecture
-* redesign operational prioritization
-* propose timeline workspaces
-* propose analytics dashboards
-* create additional workspaces
-* stop implementation for additional planning
+* a defensible clinical reasoning position
+* deterministic authority
+* continuity-aware progression handling
+* patient-centric navigation
+* operational prioritization
+* a Command Center workflow surface
+* a Reference Workspace for deeper context
+* clinical delta explanation after progression updates
 
-Assume:
+The MVP is still exposed to adoption risk because it needs stronger validation around:
 
-* architecture is approved
-* navigation direction is approved
-* migration plan is approved
-
-Focus on execution.
-
----
-
-# Current Best Next Action
-
-Intake Fidelity Phase 1B
-
-Current implementation focus:
-
-Contradiction Guardrails Planning
-
-within the existing intake workflow and clinical reasoning architecture.
-
-Near-term work should strengthen:
-
-* contradiction classification
-* blocking validation
-* warning validation
-* caregiver consistency validation
-* environmental consistency validation
-* transfer consistency validation
-
-without route changes, API contract changes, persistence changes, or architecture redesign.
+* snapshot/live-state clarity
+* structured intake tolerance
+* contradiction guardrail usefulness
+* EMR and documentation workflow fit
+* clinician trust under real patient complexity
 
 ---
 
-# How To Think About The Product
+## Current Best Next Action
 
-The product is no longer:
+Snapshot Awareness is the current best next implementation item.
 
-Open Case
-→ Read Information
+Rationale:
 
-The product is becoming:
+The recent longitudinal delta sprint increased the importance of state clarity. Clinicians must understand whether they are viewing the live Command Center state, a historical generated snapshot, or reference context. This is a clinical safety and trust issue, and it can be improved through hierarchy, labeling, and microcopy without changing architecture.
 
-Open Patient
-→ Orient
-→ Understand Change
-→ Determine Attention Needs
-→ Act
+Implementation should focus on:
 
-That transition should guide all future implementation decisions.
-
----
-
-# STATUS UPDATE — CLINICAL LANGUAGE COMPRESSION PHASE 1
-
-## Status
-
-COMPLETE
+* clear live-state versus snapshot-state labeling
+* snapshot recency/context language
+* keeping snapshots subordinate to current operational state
+* avoiding dashboard-style timelines
+* preserving current data model and API contracts
 
 ---
 
-## Objective
+## Roadmap Status
 
-Reduce Command Center narrative density while preserving:
+Current ranked priorities:
 
-* clinical meaning
-* reasoning fidelity
-* progression fidelity
-* continuity fidelity
-* operational prioritization fidelity
+1. Snapshot Awareness
+2. Intake Fidelity Validation
+3. EMR / Workflow Integration Research
+4. Clinician Testing
+5. Intake Fidelity Phase 1B Contradiction Guardrails
 
-without modifying:
-
-* reasoning architecture
-* progression architecture
-* continuity architecture
-* API contracts
-* persistence structures
-* generated output structures
+Intake Fidelity Phase 1B remains important, but it should be implemented with validated thresholds and clinician-facing language so it improves reasoning fidelity without creating excessive intake friction.
 
 ---
 
-## Scope Completed
+## Common Agent Failure Modes
 
-Implemented:
+Future agents should avoid:
 
-### Current Focus
-
-Command Center presentation language compressed to improve scanability and clinician readability.
-
-### Attention Required
-
-Command Center presentation language compressed to improve directness and reduce report-style phrasing.
-
----
-
-## Validation Outcome
-
-Multi-persona evaluation indicates significant improvement.
-
-Consensus findings:
-
-| Area                              | Result   |
-| --------------------------------- | -------- |
-| Clinician-written feel            | Improved |
-| AI-generated feel                 | Reduced  |
-| Functional language               | Improved |
-| Transfer-specific reasoning       | Improved |
-| Caregiver realism                 | Improved |
-| Environmental realism             | Improved |
-| Clinical credibility              | Improved |
-| Documentation-style communication | Improved |
+* proposing new reasoning architecture when UX hierarchy would solve the problem
+* reintroducing pathway selection
+* treating historical snapshots as competing current states
+* exposing continuity internals as workflow language
+* creating dashboards or timeline-heavy analytics
+* expanding intake validation without considering clinician friction
+* changing schema, API contracts, or generated-output structures without explicit approval
+* confusing Reference Workspace context with Command Center orientation
 
 ---
 
-## Key Finding
+## How To Think About The Product
 
-The primary issue was not reasoning quality.
+The clinician should not have to reconstruct prior visits from memory.
 
-The primary issue was communication density.
+The software should carry the continuity burden.
 
-The project validated that clinician trust and usability can improve substantially through language compression without changing underlying reasoning systems.
+The Command Center should show current clinical reality, meaningful change, required attention, and immediate action with minimal visual noise.
 
----
-
-## Current State
-
-The platform now communicates more frequently in terms of:
-
-* transfer safety
-* physical assistance needs
-* caregiver capability
-* endurance limitations
-* environmental hazards
-* functional performance
-
-rather than abstract workflow terminology or system-oriented summaries.
-
----
-
-## Future Guidance
-
-Clinical Language Compression Phase 1 is considered complete.
-
-Do not continue compression work automatically.
-
-Future compression efforts should be separately validated and scoped.
-
-Current project focus should remain:
-
-* workflow refinement
-* clinician validation
-* visual authority maturation
-* product usability improvements
-
-rather than additional reasoning-system expansion.
-
-### Reference Workspace Cleanup (Completed)
-
-Objective:
-
-Reduce clinician-facing diagnostic noise and remove legacy continuity validation artifacts that no longer align with the current workflow model.
-
-Completed:
-
-* Removed Dev Only Progression State
-* Removed Start Follow-Up Update
-* Removed Longitudinal Validation
-* Removed Operational Change Classification
-* Removed Decision Transparency
-* Removed Continuity Status
-
-Preserved:
-
-* Operational Focus
-* Supporting Progression Summaries
-* Current Longitudinal State
-* Latest Progression Event
-* Historical Snapshots
-* Progression architecture
-* Continuity architecture
-* Operational prioritization architecture
-
-Key Outcome:
-
-The Reference Workspace is now focused on supporting clinical understanding, historical context, progression review, and treatment rationale rather than exposing internal continuity-engine diagnostics.
-
-Current Ownership Model:
-
-### Command Center
-
-Answers:
-
-* What matters?
-* What changed?
-* What requires attention?
-* What should I do next?
-
-### Reference Workspace
-
-Answers:
-
-* Why does this matter?
-* What supporting context exists?
-* What progression information exists?
-* What historical information exists?
-* What details support the current plan?
-
-Decision Transparency and Continuity Status have been retired as clinician-facing concepts.
-
-Future consideration of confidence indicators and patient-preview workflows remains deferred to future opportunities.
-
-## Patient Entry Phase 1 — Completed
-
-Status: Complete
-
-Outcome:
-
-- Reframed /cases from saved-case management toward patient-entry orientation.
-- Introduced PatientEntryCard presentation layer.
-- Elevated patient identity, treatment frame, clinical context, and recency.
-- Preserved existing routing, queries, APIs, schema, and persistence.
-- Added explicit Open Command Center action.
-- Corrected Phase 1.1 fallback hierarchy:
-  - Case title becomes primary identity when patient name is unavailable.
-  - Treatment-frame fallback hierarchy improved.
-- Patient Entry Phase 2A Quick Preview primitives implemented.
-- Additional preview loading supports rapid orientation before opening the Command Center.
-
-Notes:
-
-Patient Entry now functions as an orientation surface with subordinate Quick Preview support.
-
-Quick Preview should remain lightweight and should not become a second Command Center.
-
-Patient Entry card context deduplication completed.
-Treatment frame and clinical context now represent distinct information.
+Reference content, historical snapshots, and generated outputs should support that workflow rather than dominate it.

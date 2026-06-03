@@ -1,26 +1,153 @@
 # OT Clinical Reasoning Assistant — Active Roadmap
 
+Last updated: 2026-06-03
+
+---
+
+## Roadmap Status Summary
+
+The project has moved from architecture stabilization into workflow validation and adoption readiness.
+
+Completed foundations now include:
+
+* deterministic clinical reasoning authority
+* continuity architecture
+* progression architecture
+* operational prioritization architecture
+* reassessment architecture
+* mutation governance
+* patient-centric navigation
+* Command Center / Reference Workspace separation
+* Patient Entry and Quick Preview primitives
+* Intake Fidelity Phase 1A
+* Clinical Language Compression Phase 1
+* Reference Workspace cleanup
+* Clinical Impact Summary
+* Clinical Status Explainability
+* Clinical Impact CTA
+* Treatment Focus refinement
+* Next Action Refresh
+
+The current limiting question is no longer whether the platform has enough reasoning architecture. The current limiting question is whether clinicians can trust, update, and operationalize the longitudinal workflow inside real visit preparation.
+
 ---
 
 ## Current Highest-Priority Initiative
 
-### Intake Fidelity Normalization
-
-Objective:
-
-Strengthen intake quality so downstream clinical reasoning receives clearer, higher-signal inputs with less clinician friction and fewer clinically meaningful contradictions.
-
-Purpose:
-
-Support workflow optimization by improving the fidelity of information entering the clinical reasoning pipeline without changing architecture, routes, APIs, persistence, or generated-output contracts.
+### Snapshot Awareness
 
 Status:
 
-Phase 1A Complete
+ACTIVE
 
-Current Focus:
+Objective:
 
-Phase 1B Contradiction Guardrails
+Help clinicians understand whether they are looking at the current operational patient state or a historical/generated snapshot, and whether recent updates have changed what should guide treatment today.
+
+Purpose:
+
+Strengthen clinician trust and workflow safety by making live-state versus snapshot-state meaning obvious without exposing internal continuity architecture.
+
+Why now:
+
+* The Command Center now carries longitudinal change through Clinical Impact Summary, status explainability, refreshed Treatment Focus, and refreshed Next Action behavior.
+* Historical snapshots remain clinically useful, but their meaning must not be confused with current operational truth.
+* As longitudinal updates accumulate, adoption risk shifts from reasoning sufficiency to state awareness, trust, and workflow integration.
+
+Primary implementation focus:
+
+1. Clarify live Command Center state versus historical snapshot state.
+2. Make snapshot recency and restored/generated context easier to understand.
+3. Preserve Historical Snapshots as Reference Workspace support, not primary workflow content.
+4. Avoid adding dashboard-style timelines or exposing continuity internals.
+5. Preserve existing database schema, API contracts, and generated-output structures unless explicitly approved.
+
+Implementation guardrails:
+
+* Use clinician-facing labels and workflow language.
+* Prefer hierarchy, microcopy, state labels, and progressive disclosure over new systems.
+* Do not redesign continuity, progression, reassessment, or operational prioritization architecture.
+* Do not turn historical snapshots into editable competing current states.
+* Keep Current Operational State / Current Focus visually authoritative.
+
+---
+
+## Ranked Current Priorities
+
+1. **Snapshot Awareness** — clarify current-state versus historical-snapshot meaning now that longitudinal delta and refreshed next-action behavior are implemented.
+2. **Intake Fidelity Validation** — validate that short structured intake and contradiction guardrails improve downstream reasoning without adding unacceptable clinician friction.
+3. **EMR / Workflow Integration Research** — investigate how the workflow fits visit preparation, documentation, and update routines in real home health environments.
+4. **Clinician Testing** — test Command Center orientation, trust, and actionability with practicing clinicians.
+5. **Intake Fidelity Phase 1B Implementation** — continue contradiction guardrails once validation confirms the right validation thresholds and wording.
+
+---
+
+## Recently Completed Milestones
+
+### Orientation & Cognitive Compression
+
+Completed:
+
+* Command Center hierarchy stabilization.
+* Clinical Language Compression Phase 1.
+* Current Focus / Treatment Focus readability refinement.
+* Next Action Refresh.
+* Patient Entry Phase 1 and Phase 2A Quick Preview primitives.
+
+Outcome:
+
+The product more directly answers what matters now, what changed, and what should happen next without requiring the clinician to reconstruct the case from history.
+
+### Workflow Continuity Infrastructure
+
+Completed:
+
+* continuity architecture
+* canonical continuity state
+* live state versus immutable historical snapshot governance
+* longitudinal event handling
+* operational prioritization refresh from progression events
+* Reference Workspace cleanup and boundary clarification
+
+Outcome:
+
+The platform supports continuity-aware operational guidance while keeping historical snapshots subordinate to current workflow orientation.
+
+### Progression Foundations
+
+Completed:
+
+* deterministic progression architecture
+* progression check data model
+* current longitudinal state updates
+* clinical attention state
+* reassessment-sensitive progression interpretation
+
+Outcome:
+
+The platform can record structured follow-up updates and translate them into current clinical orientation, treatment focus, and attention signals.
+
+### Longitudinal Clinical Delta Experience
+
+Completed:
+
+* Clinical Impact Summary
+* Clinical Status Explainability
+* Clinical Impact CTA
+* Treatment Focus refinement
+* Next Action Refresh
+
+Outcome:
+
+Progression updates now produce a clinician-facing delta experience: what changed, what was confirmed, why it matters, and which next action should guide the visit.
+
+---
+
+## Intake Fidelity Normalization
+
+Status:
+
+VALIDATION / NEXT IMPLEMENTATION CANDIDATE
 
 Completed:
 
@@ -31,7 +158,7 @@ Completed:
 * Minimum viable intake validation
 * Clinical Decision Inputs removal from the visible intake experience
 
-Planned:
+Pending:
 
 * contradiction classification
 * blocking validation
@@ -40,80 +167,13 @@ Planned:
 * environmental consistency validation
 * transfer consistency validation
 
-Implementation Guardrails:
+Current guidance:
 
-* Keep validation clinician-facing and workflow-supportive.
-* Avoid over-validating legitimate clinical complexity.
-* Preserve existing data model and API contracts unless explicitly approved.
-* Do not redesign the reasoning architecture.
-
-Patient Entry Phase 1, Phase 1.1, and Phase 2A Quick Preview are complete and should not be treated as the primary roadmap initiative.
+Continue Intake Fidelity Phase 1B after Snapshot Awareness is addressed or in parallel only when implementation risk is low. The guardrails should remain clinician-facing and should not over-validate legitimate clinical complexity.
 
 ---
 
-# ACTIVE ROADMAP — Workflow Optimization
-
----
-
-# Longitudinal Foundation
-
-## Status
-
-COMPLETE
-
----
-
-## Established Foundation Artifacts
-
-The following longitudinal authority documents are now considered established:
-
-- Clinical_Progression_Model.md
-- Longitudinal_Data_Capture_Foundation.md
-- Progression_Check_Data_Model.md
-- Clinical_Attention_Model.md
-- Longitudinal_State_Model.md
-- Progression_Check_UX_Architecture.md
-
-These documents should be treated as stable foundation for current workflow optimization work.
-
----
-
-## Architectural Realization
-
-The platform now possesses sufficient longitudinal architecture to answer:
-
-- What changed?
-- Why does it matter?
-- What barrier became dominant?
-- What milestone was achieved?
-- What requires attention today?
-- What should treatment focus on next?
-
-The primary limitation is no longer longitudinal architecture.
-
-The primary limitation is workflow optimization, especially intake fidelity and contradiction prevention.
-
----
-
-# Current Product State
-
-The platform has successfully transitioned away from:
-
-- pathway-oriented recommendation synthesis
-- competing treatment philosophy generation
-- pathway-selection workflows
-- intake-driven plan viewing
-
-The platform is now evolving toward:
-
-- a continuity-aware operational prioritization system
-- a longitudinal clinical guidance system
-- a progression-driven treatment workspace
-- a clinical attention support system
-
----
-
-# Current Product Identity
+## Current Product Identity
 
 The system is no longer attempting to answer:
 
@@ -127,20 +187,19 @@ The system is now attempting to answer:
 
 > "What changed, what requires attention, and what should happen next?"
 
-This framing now governs:
+This framing governs:
 
-- progression interpretation
-- continuity interpretation
-- clinical attention
-- operational prioritization
-- reassessment escalation
-- workspace design
+* progression interpretation
+* continuity interpretation
+* clinical attention
+* operational prioritization
+* reassessment escalation
+* Command Center design
+* Reference Workspace boundaries
 
 ---
 
-# Current Architectural Model
-
-## Longitudinal Hierarchy
+## Current Architectural Model
 
 Barrier Evolution
 ↓
@@ -153,96 +212,10 @@ Clinical Attention
 Operational Emphasis
 ↓
 Treatment Focus
+↓
+Next Action
 
----
-
-# Completed Stabilization & Transition Work
-
-## Completed Architectural Transition
-
-Successfully completed:
-
-- removal of live selectedPathway authority
-- removal of pathway-centric rendering hierarchy
-- removal of visible competing treatment plans
-- operational prioritization restructuring
-- operational-state authority migration
-- continuity-oriented synthesis restructuring
-- executive briefing architecture replacement
-- instability-driver semantic migration
-- feasibility-constraint semantic migration
-- environmental-pressure semantic migration
-- execution-pressure-point semantic migration
-- recommendation-language suppression
-- directive-language suppression
-- operational observational-language enforcement
-
----
-
-## Completed Longitudinal Foundation Work
-
-Successfully completed:
-
-- deterministic progression architecture
-- continuity architecture
-- reassessment architecture
-- operational prioritization architecture
-- longitudinal data capture foundation
-- progression check data model
-- clinical attention model
-- longitudinal state model
-- progression check UX architecture
-
----
-
-# Current Focus
-
-# Workflow Optimization — Intake Fidelity Phase 1B
-
-## Status
-
-ACTIVE
-
----
-
-## Objective
-
-Improve intake fidelity and contradiction prevention within the existing longitudinal clinical guidance workspace.
-
-The workspace should help clinicians answer:
-
-- What changed?
-- What requires attention?
-- What should happen next?
-
-without requiring review of the full evaluation, intake, or historical documentation.
-
----
-
-## Primary Workflow Focus
-
-Strengthen intake fidelity around:
-
-1. Clinically meaningful contradiction classification
-2. Blocking validation for unsafe or impossible combinations
-3. Warning validation for lower-risk inconsistencies
-4. Caregiver consistency validation
-5. Environmental consistency validation
-6. Transfer consistency validation
-
-The workflow should prioritize:
-
-- high-signal intake data
-- clinician-facing validation language
-- minimal additional friction
-- continuity-aware downstream reasoning quality
-
-over:
-
-- new architecture
-- new routes
-- API contract changes
-- persistence changes
+The architecture should be consumed by workflow surfaces, not exposed as system status.
 
 ---
 
@@ -250,79 +223,44 @@ over:
 
 Do not:
 
-- redesign reasoning architecture
-- redesign progression architecture
-- redesign continuity architecture
-- redesign reassessment architecture
-- redesign operational prioritization
-
-These systems should be consumed by the workspace, not redefined by it.
-
----
-
-# Workflow Priority
-
-Near-term work should prioritize:
-
-- contradiction classification
-- blocking validation
-- warning validation
-- caregiver consistency validation
-- environmental consistency validation
-- transfer consistency validation
-
-rather than:
-
-- dashboard-heavy UX
-- timeline-heavy UX
-- analytics-driven interfaces
-- plan-viewer expansion
-- additional pathway abstractions
-- new reasoning systems
+* redesign reasoning architecture
+* redesign progression architecture
+* redesign continuity architecture
+* redesign reassessment architecture
+* redesign operational prioritization
+* introduce route, API, persistence, or generated-output changes unless explicitly approved
+* create dashboard-heavy longitudinal analytics
+* reintroduce pathway selection as the primary workflow
+* make historical snapshots compete with current operational truth
 
 ---
 
-# Deferred / Parking Lot
+## Deferred / Parking Lot
 
 The following concepts remain intentionally deferred:
 
-- predictive analytics
-- autonomous recommendation systems
-- timeline-heavy progression systems
-- large longitudinal dashboards
-- adaptive learning systems
-- multi-user collaboration systems
-- advanced reporting systems
-- automated discharge prediction
-- cross-patient pattern intelligence
+* predictive analytics
+* autonomous recommendation systems
+* timeline-heavy progression systems
+* large longitudinal dashboards
+* adaptive learning systems
+* multi-user collaboration systems
+* advanced reporting systems
+* automated discharge prediction
+* cross-patient pattern intelligence
 
-These may be revisited later only if they support:
-
-- workflow clarity
-- clinician trust
-- operational usefulness
-
-without increasing:
-
-- cognitive burden
-- architectural instability
-- workflow complexity
+These may be revisited later only if they support workflow clarity, clinician trust, and operational usefulness without increasing cognitive burden, architectural instability, or workflow complexity.
 
 ---
 
-# Roadmap Governance Rule
+## Roadmap Governance Rule
 
-Before adding new workspace functionality, ask:
+Before adding workspace functionality, ask whether it helps the clinician determine:
 
-Does this help the clinician determine:
+* what changed?
+* what matters?
+* what requires attention?
+* what should happen next?
+* am I viewing current operational truth or historical/reference context?
 
-- what changed?
-- what matters?
-- what requires attention?
-- what should happen next?
-
-If not:
-
-- simplify it
-- defer it
-- or reject it
+If not, simplify it, defer it, or reject it.

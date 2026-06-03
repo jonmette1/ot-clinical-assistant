@@ -33,10 +33,13 @@ not:
 
 Before making architectural or UX decisions, review:
 
-- docs/north_star.md
-- docs/system_architecture.md
-- docs/active_roadmap.md
-- docs/decision_log.md
+- docs/PROJECT_SNAPSHOT.md
+- docs/CONSULTANT_HANDOFF.md
+- docs/PROJECT_STATUS_AND_DIRECTION.md
+- docs/foundation/north_star.md
+- docs/foundation/active_roadmap.md
+- docs/foundation/decision_log.md
+- docs/architecture/system_architecture.md
 
 For Workspace V2 work also review:
 
@@ -45,10 +48,8 @@ For Workspace V2 work also review:
 
 For longitudinal workflows also review:
 
-- docs/Longitudinal Progression Architecture.md
-- docs/progression_display_principles.md
-
-When conflicts exist:
+- docs/architecture/longitudinal_progression_architecture.md
+- docs/UX/progression_display_principles.md
 
 When conflicts exist:
 
@@ -56,6 +57,7 @@ When conflicts exist:
 2. Active Roadmap
 3. System Architecture
 4. UX Documents
+5. Project Snapshot / Consultant Handoff
 
 # Longitudinal UX Rule
 
@@ -104,17 +106,38 @@ For major document revisions:
 
 # Current Project State
 
-The project has completed major architectural stabilization.
+The project has completed major architectural stabilization and is now in workflow validation / adoption-readiness maturation.
 
 The following systems are considered authoritative:
 
+- deterministic clinical reasoning architecture
 - continuity architecture
 - progression architecture
 - operational prioritization architecture
 - reassessment architecture
 - mutation governance architecture
+- patient-centric Command Center / Reference Workspace navigation
 
-Assume these systems are stable unless explicitly instructed otherwise.
+Recently completed work includes:
+
+- Clinical Impact Summary
+- Clinical Status Explainability
+- Clinical Impact CTA
+- Treatment Focus refinement
+- Next Action Refresh
+- Patient Entry and Quick Preview primitives
+- Intake Fidelity Phase 1A
+- Reference Workspace cleanup
+
+Current priorities are:
+
+1. Snapshot Awareness
+2. Intake Fidelity Validation
+3. EMR / Workflow Integration Research
+4. Clinician Testing
+5. Intake Fidelity Phase 1B contradiction guardrails
+
+Assume stable systems should be consumed by workflow surfaces rather than redesigned unless explicitly instructed otherwise.
 
 ---
 
@@ -188,7 +211,7 @@ to answer those questions.
 ---
 # Patient-Centric Navigation Rule
 
-The product is transitioning from:
+The product has transitioned from:
 
 Case-Centric Navigation
 
@@ -236,6 +259,7 @@ Command Center content should prioritize:
 * Attention Required
 * Current Focus
 * Next Action
+* Clinical Impact Summary when recent progression updates changed or confirmed clinical conclusions
 * Recent Visit History
 
 Recent visit history is considered orientation content, not historical reference content.
@@ -338,22 +362,25 @@ Examples:
 
 - Detail Modules
 - Historical Snapshots
-- Decision Transparency
+- Generated Outputs
 - Advanced Configuration
 
 ---
 
-# Historical Snapshot Rule
+# Historical Snapshot and Snapshot Awareness Rule
 
 Historical snapshots are continuity tools.
 
-They are not primary workflow content.
+They are not primary workflow content and should not compete with live Command Center authority.
 
 History should support:
 
 - review
 - continuity
 - restoration
+- auditability
+
+Snapshot Awareness is now an active roadmap priority. Clinicians must be able to tell whether they are viewing current operational truth, a historical/generated snapshot, or reference context without understanding continuity internals.
 
 History should not dominate workspace hierarchy.
 
@@ -501,7 +528,7 @@ without explicit approval.
 
 # Longitudinal Workflow Rule
 
-The product is transitioning toward continuity-aware longitudinal workflows.
+The product has transitioned toward continuity-aware longitudinal workflows.
 
 Do not revert toward:
 
@@ -637,7 +664,7 @@ Whenever hierarchy decisions are made, determine the information authority level
 
 The project is currently executing:
 
-Command Center UX Normalization
+Command Center UX Normalization and Snapshot Awareness
 
 Primary objectives:
 
@@ -646,5 +673,6 @@ Primary objectives:
 * move hierarchy from containers to typography
 * reduce decorative color usage
 * strengthen workflow-oriented scanning
+* clarify live current-state versus historical snapshot context
 
-Do not propose architecture, navigation, workflow, or ownership changes as part of UX normalization efforts.
+Do not propose architecture, navigation, workflow, or ownership changes as part of UX normalization or Snapshot Awareness efforts.
