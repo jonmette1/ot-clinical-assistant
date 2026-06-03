@@ -1171,6 +1171,9 @@ setGeneralMobility({
 
                 <div className="md:col-span-2 pt-4 border-t border-gray-800">
                   <h3 className="text-lg font-semibold">Caregiver Information</h3>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Improves caregiver guidance, feasibility planning, and carryover recommendations.
+                  </p>
                 </div>
 
                 <input
@@ -1448,7 +1451,10 @@ setGeneralMobility({
             </section>
 
             <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-6">
-              <h2 className="text-xl font-semibold mb-4">Functional Status</h2>
+              <h2 className="mb-1 text-xl font-semibold">Functional Status</h2>
+              <p className="mb-4 text-sm text-gray-400">
+                Drives safety risk, progression tracking, and treatment recommendations.
+              </p>
 
               <div className="space-y-6">
                 <div>
@@ -1541,7 +1547,10 @@ setGeneralMobility({
             </section>
 
             <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-6">
-              <h2 className="text-xl font-semibold mb-4">Home Assessment</h2>
+              <h2 className="mb-1 text-xl font-semibold">Home Assessment</h2>
+              <p className="mb-4 text-sm text-gray-400">
+                Improves safety recommendations and environmental modification guidance.
+              </p>
 
               <div className="space-y-8">
                 <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4">
