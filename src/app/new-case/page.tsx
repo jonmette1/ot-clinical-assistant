@@ -26,7 +26,7 @@ function getRequiredControlClass(isComplete: boolean) {
   }`;
 }
 
-function scrollToPlanReadinessField(targetId: string) {
+function scrollToCoreInputField(targetId: string) {
   const target = document.getElementById(targetId);
 
   if (!target) return;
@@ -446,7 +446,7 @@ function updateAdlAssistLevel(
   }));
 }
 
-  const planReadinessItems = useMemo(
+  const coreInputItems = useMemo(
     () => [
       {
         id: "client-name",
@@ -495,10 +495,11 @@ function updateAdlAssistLevel(
       primaryGoal,
     ]
   );
-  const completedReadinessItems = planReadinessItems.filter(
+  const completedCoreInputItems = coreInputItems.filter(
     (item) => item.isComplete
   ).length;
-  const isPlanReady = completedReadinessItems === planReadinessItems.length;
+  const firstIncompleteCoreInput = coreInputItems.find((item) => !item.isComplete);
+  const areCoreInputsComplete = completedCoreInputItems === coreInputItems.length;
 
   // ==============================
   // GENERATE PLAN + SAVE CASE
@@ -957,7 +958,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
   // ==============================
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-28">
+    <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-40">
       <div className="mx-auto max-w-4xl">
         <h1 className="mb-2 text-3xl font-bold">New OT Case</h1>
         <p className="mb-8 text-gray-400">
@@ -978,50 +979,6 @@ setSaveMessage("Case generated with AI and saved successfully.");
         )}
 
         <form className="space-y-8">
-          <section
-            aria-labelledby="plan-readiness-heading"
-            className="rounded-2xl border border-sky-500/30 bg-sky-950/10 p-5 shadow-sm"
-          >
-            <div className="flex flex-col gap-2 border-b border-sky-500/15 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-200">
-                  Plan Readiness
-                </p>
-                <h2 id="plan-readiness-heading" className="text-xl font-semibold">
-                  {isPlanReady ? "Ready to generate" : "Required clinical inputs"}
-                </h2>
-              </div>
-              <p className="text-sm font-medium text-sky-100">
-                {completedReadinessItems} of {planReadinessItems.length} complete
-              </p>
-            </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {planReadinessItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => scrollToPlanReadinessField(item.id)}
-                  className="flex items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left text-sm text-gray-200 transition hover:border-sky-500/25 hover:bg-sky-950/20 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
-                  aria-label={`Jump to ${item.label}`}
-                >
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                      item.isComplete
-                        ? "border-sky-300/60 bg-sky-400/10 text-sky-100"
-                        : "border-gray-600 text-gray-500"
-                    }`}
-                    aria-hidden="true"
-                  >
-                    {item.isComplete ? "✓" : ""}
-                  </span>
-                  <span className={item.isComplete ? "text-gray-100" : "text-gray-400"}>
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-
           {/* PATIENT SNAPSHOT */}
           <section className="rounded-2xl border border-blue-500/30 bg-blue-950/10 p-6 shadow-sm">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
@@ -2057,6 +2014,36 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
             </div>
           </section>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (firstIncompleteCoreInput) {
+                scrollToCoreInputField(firstIncompleteCoreInput.id);
+              }
+            }}
+            className={`fixed bottom-20 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-xl border px-4 py-2 text-sm shadow-lg backdrop-blur transition sm:w-auto ${
+              areCoreInputsComplete
+                ? "cursor-default border-gray-700 bg-gray-950/90 text-gray-200"
+                : "border-sky-500/35 bg-gray-950/95 text-sky-100 hover:border-sky-400/60 hover:bg-sky-950/70"
+            }`}
+            aria-label={
+              firstIncompleteCoreInput
+                ? `Jump to next core input: ${firstIncompleteCoreInput.label}`
+                : "Core inputs complete"
+            }
+          >
+            <span className="font-semibold">
+              {areCoreInputsComplete
+                ? "Core Inputs Complete"
+                : `Core Inputs: ${completedCoreInputItems} / ${coreInputItems.length} Complete`}
+            </span>
+            <span className="text-gray-400">
+              {firstIncompleteCoreInput
+                ? ` · Next: ${firstIncompleteCoreInput.label}`
+                : " · Additional details improve plan quality"}
+            </span>
+          </button>
 
           <button
             type="button"
