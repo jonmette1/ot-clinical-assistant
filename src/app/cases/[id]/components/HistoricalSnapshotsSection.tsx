@@ -168,7 +168,8 @@ export function HistoricalSnapshotsSection({
       </span>
     )}
 
-                  {selectedGeneration?.id === generation.id && (
+                  {selectedGeneration?.id === generation.id &&
+                    currentGenerationId !== generation.id && (
                     <span className="rounded-full border border-blue-700 bg-blue-900/30 px-2 py-0.5 text-xs text-blue-300">
                       Viewing
                     </span>
@@ -230,18 +231,19 @@ export function HistoricalSnapshotsSection({
     )}
     </div>
 
-    {selectedGeneration && Boolean(selectedGeneration.output_payload) && (
+    {selectedGeneration &&
+      currentGenerationId !== selectedGeneration.id &&
+      Boolean(selectedGeneration.output_payload) && (
       <div className="mt-6 space-y-6">
         <div className="rounded-xl border border-blue-800 bg-gray-900 p-6">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
     <h2 className="text-2xl font-semibold">
-      Previewing Prior Clinical Plan
+      Historical Snapshot Preview
     </h2>
 
     <p className="text-sm text-gray-400 mt-1">
-      This is a read-only saved snapshot from{" "}
-      {new Date(selectedGeneration.created_at).toLocaleString()}.
+      Saved {new Date(selectedGeneration.created_at).toLocaleString()}. This is a read-only historical reference and may not reflect current progression updates.
     </p>
             </div>
 
@@ -252,7 +254,7 @@ export function HistoricalSnapshotsSection({
                 disabled={isRestoringVersion}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
               >
-                {isRestoringVersion ? "Restoring..." : "Make Current Plan"}
+                {isRestoringVersion ? "Restoring..." : "Restore as Live Case"}
               </button>
 
               <button
@@ -266,7 +268,7 @@ export function HistoricalSnapshotsSection({
           </div>
 
           <p className="text-xs text-gray-500">
-            Making this version the current plan will replace the live plan with this saved version.
+            Restoring this snapshot will replace the live case with this saved version.
           </p>
         </div>
       </div>
