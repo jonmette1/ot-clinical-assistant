@@ -1307,13 +1307,19 @@ modules_stale: true,
 
 
 function buildCaseSummaryText() {
-  if (!caseData) return "";
+  if (!displayCase) return "";
 
-  const generated = caseData.generated_output as GeneratedOutput | null;
+  const generated = displayCase.generated_output as GeneratedOutput | null;
+  const stateLabel = isViewingHistoricalVersion
+    ? `HISTORICAL SNAPSHOT
+Saved: ${selectedSnapshotSavedAtLabel || "Unknown"}
+Read-only historical reference; may not reflect current progression updates.`
+    : "LIVE CASE";
 
   return `
 ==============================
-CASE: ${caseData.title || "Untitled Case"}
+CASE: ${displayCase.title || "Untitled Case"}
+VIEWED STATE: ${stateLabel}
 ==============================
 
 CLINICAL FOCUS
@@ -1533,8 +1539,16 @@ ${item.clinicalDecision || item.costComparisonNote || "—"}
 }
 
 function buildRecommendedApproachSummary() {
+  const stateLabel = isViewingHistoricalVersion
+    ? `HISTORICAL SNAPSHOT
+Saved: ${selectedSnapshotSavedAtLabel || "Unknown"}
+Read-only historical reference; may not reflect current progression updates.
+
+`
+    : "";
+
   return `
-CURRENT OPERATIONAL EMPHASIS
+${stateLabel}CURRENT OPERATIONAL EMPHASIS
 ----------------------------
 ${currentOperationalEmphasis || "—"}
 
@@ -1586,7 +1600,7 @@ const summary = buildCaseSummaryText();
   if (!summary) return;
 
   await navigator.clipboard.writeText(summary);
-  setCopyMessage("Clinical summary copied.");
+  setCopyMessage(isViewingHistoricalVersion ? "Snapshot summary copied." : "Clinical summary copied.");
 
   setTimeout(() => setCopyMessage(""), 2000);
 }
@@ -1621,7 +1635,7 @@ function handleDownloadSummary() {
     caseData.title?.replace(/[^a-z0-9]/gi, "_").toLowerCase() ||
     "case_summary";
 
-  link.download = `${safeTitle}_summary.txt`;
+  link.download = `${safeTitle}_${isViewingHistoricalVersion ? "snapshot" : "summary"}.txt`;
 
   document.body.appendChild(link);
   link.click();
@@ -1966,6 +1980,9 @@ if (loading) {
   }
 const isViewingHistoricalVersion =
   Boolean(selectedGeneration) && selectedGeneration?.id !== currentGenerationId;
+const selectedSnapshotSavedAtLabel = isViewingHistoricalVersion
+  ? formatDateTime(selectedGeneration?.created_at)
+  : null;
 
 // ==============================
 // DERIVED DISPLAY MODEL
@@ -3020,6 +3037,8 @@ return (
     <StickyOperationalHeader
       title={displayCase.title}
       isViewingHistoricalVersion={isViewingHistoricalVersion}
+      snapshotSavedAtLabel={selectedSnapshotSavedAtLabel}
+      onReturnToLiveCase={() => setSelectedGeneration(null)}
     />
   </>
 )}
@@ -3034,6 +3053,31 @@ return (
     {workspaceMode === "command" ? "Reference Workspace" : "Command Center"}
   </Link>
 </nav>
+
+{workspaceMode === "command" && isViewingHistoricalVersion ? (
+  <div className="rounded-2xl border border-amber-500/50 bg-amber-950/25 p-4 text-sm text-amber-50 shadow-sm shadow-black/10">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/90">
+          Viewing Historical Snapshot
+        </p>
+        <p className="mt-1 font-medium text-amber-50">
+          Saved {selectedSnapshotSavedAtLabel || "date unavailable"}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
+          This is a read-only historical reference and may not reflect current progression updates.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setSelectedGeneration(null)}
+        className="rounded-lg border border-amber-300/50 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-900/40"
+      >
+        Return to Live Case
+      </button>
+    </div>
+  </div>
+) : null}
 
 {workspaceMode === "command" && (
 <>
@@ -3370,6 +3414,21 @@ return (
     </p>
   </div>
 
+  {isViewingHistoricalVersion ? (
+    <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-300">
+      <p className="font-semibold text-white">Return to Live Case to record progression updates.</p>
+      <p className="mt-2 text-xs leading-relaxed text-gray-500">
+        Historical snapshots are read-only references and may not reflect current progression updates.
+      </p>
+      <button
+        type="button"
+        onClick={() => setSelectedGeneration(null)}
+        className="mt-4 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-100 transition hover:border-blue-500 hover:bg-gray-900"
+      >
+        Return to Live Case
+      </button>
+    </div>
+  ) : (
   <form onSubmit={handleSubmitProgressionCheck} className="space-y-4">
     <div>
       <label htmlFor="functionalChanges" className="text-sm font-medium text-gray-200">
@@ -3561,6 +3620,7 @@ return (
       )}
     </div>
   </form>
+  )}
 
 </section>
 
@@ -4576,7 +4636,14 @@ return (
   showAllVersions={showAllVersions}
   isRestoringVersion={isRestoringVersion}
   onToggleShowAllVersions={() => setShowAllVersions((prev) => !prev)}
-  onSelectGeneration={(generation) => setSelectedGeneration(generation as GenerationRow)}
+  onSelectGeneration={(generation) => {
+    if (generation.id === currentGenerationId) {
+      setSelectedGeneration(null);
+      return;
+    }
+
+    setSelectedGeneration(generation as GenerationRow);
+  }}
   onDeleteGeneration={handleDeleteGeneration}
   onRestoreSelectedVersion={handleRestoreSelectedVersion}
   onClosePreview={() => setSelectedGeneration(null)}
@@ -4643,7 +4710,7 @@ return (
     onClick={handleCopySummary}
     className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
   >
-    Copy
+    {isViewingHistoricalVersion ? "Copy Snapshot" : "Copy"}
   </button>
 
   <button
@@ -4651,7 +4718,7 @@ return (
     onClick={handleDownloadSummary}
     className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
   >
-    Download
+    {isViewingHistoricalVersion ? "Download Snapshot" : "Download"}
   </button>
 </div>
 
