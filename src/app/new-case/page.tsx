@@ -1113,7 +1113,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
             <h2 className="mb-1 text-xl font-semibold">How much help is needed?</h2>
             <p className="mb-5 text-sm text-gray-400">
-              Prioritize current assistance and transfer demands before detailed home context.
+              Drives safety risk, progression tracking, and treatment recommendations.
             </p>
 
             <div className="space-y-5">
@@ -1302,7 +1302,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
             <h2 className="mb-1 text-xl font-semibold">What support is realistically available?</h2>
             <p className="mb-5 text-sm text-gray-400">
-              Elevate support availability and capacity before administrative caregiver details.
+              Improves caregiver guidance, feasibility planning, and carryover recommendations.
             </p>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -1406,7 +1406,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
             <h2 className="mb-1 text-xl font-semibold">Will the home setup support the plan?</h2>
             <p className="mb-5 text-sm text-gray-400">
-              Surface the environmental constraints that shape feasibility before detailed measurements.
+              Improves safety recommendations and environmental modification guidance.
             </p>
 
             <div className="grid gap-4 md:grid-cols-2">
