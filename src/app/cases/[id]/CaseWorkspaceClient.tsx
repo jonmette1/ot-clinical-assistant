@@ -20,6 +20,12 @@ import { EnvironmentalPressureCard } from "./components/EnvironmentalPressureCar
 import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
 import { TransferMobilityPressureCard } from "./components/TransferMobilityPressureCard";
 import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSection";
+import { ClinicalImpactSummaryPanel } from "./components/ClinicalImpactSummaryPanel";
+import {
+  buildClinicalImpactSummary,
+  type ClinicalImpactSummary,
+  type CommandCenterDeltaSnapshot,
+} from "@/lib/clinicalDelta/buildClinicalImpactSummary";
 import {
   compressCommandCenterList,
   compressCommandCenterSentence,
@@ -253,6 +259,7 @@ type ProgressionCheckFormState = {
   reasonTreatmentChanged: string;
   milestoneAchieved: string;
 };
+
 
 type LongitudinalEventRow = {
   id?: string;
@@ -577,6 +584,153 @@ detail_modules?: {
 } | null;
 };
 
+const buildCommandCenterDeltaSnapshotFromCase = (
+  sourceCase: CaseDetail
+): CommandCenterDeltaSnapshot => {
+  const generated = sourceCase.generated_output as GeneratedOutput | null;
+  const operationalPrioritization = generated?.operational_prioritization;
+  const structuredPlanDetails = generated?.structured_plan_details;
+  const progressionState = generated?.progression_state;
+  const clinicalAttentionState = sourceCase.clinical_attention_state;
+  const currentLongitudinalState = sourceCase.current_longitudinal_state;
+
+  const currentOperationalEmphasis =
+    operationalPrioritization?.currentOperationalEmphasis ||
+    "No operational emphasis generated";
+
+  const clinicalAttentionRequiresOperationalReview = readBoolean(
+    clinicalAttentionState,
+    ["requiresOperationalReview", "requires_operational_review"]
+  );
+
+  const clinicalAttentionReassessmentRecommended = readBoolean(
+    clinicalAttentionState,
+    ["reassessmentRecommended", "reassessment_recommended"]
+  );
+
+  const continuityInterpretation = generated?.continuity_interpretation || {};
+  const reassessmentPressureLevel =
+    continuityInterpretation?.reassessmentPressureLevel || "low";
+
+  const clinicalStatus =
+    sourceCase.reasoning_stale ||
+    sourceCase.plan_stale ||
+    reassessmentPressureLevel === "high"
+      ? "Needs Reassessment"
+      : sourceCase.modules_stale || reassessmentPressureLevel === "moderate"
+      ? "Monitor Closely"
+      : "On Track";
+
+  const longitudinalProgressionStatus = readText(currentLongitudinalState, [
+    "progressionStatus",
+    "progression_status",
+  ]);
+
+  const clinicalAttentionProgressionStatus = readText(clinicalAttentionState, [
+    "progressionStatus",
+    "progression_status",
+  ]);
+
+  const progressionAdvancementReadiness =
+    progressionState?.advancementReadiness || null;
+
+  const explicitTrajectoryFromProgressionStatus =
+    mapProgressionStatusToTrajectory(longitudinalProgressionStatus) ||
+    mapProgressionStatusToTrajectory(clinicalAttentionProgressionStatus) ||
+    mapProgressionStatusToTrajectory(progressionAdvancementReadiness);
+
+  const sinceLastVisitTreatmentDirectionChanged = readBoolean(
+    currentLongitudinalState,
+    ["treatmentDirectionChanged", "treatment_direction_changed"]
+  );
+
+  const hasHighRegressionOrReassessmentSignal =
+    clinicalAttentionReassessmentRecommended === true &&
+    (clinicalAttentionRequiresOperationalReview === true ||
+      sinceLastVisitTreatmentDirectionChanged === true ||
+      clinicalStatus === "Needs Reassessment");
+
+  const overallTrajectory: OverallTrajectory =
+    explicitTrajectoryFromProgressionStatus ||
+    (hasHighRegressionOrReassessmentSignal
+      ? "Declining"
+      : sinceLastVisitTreatmentDirectionChanged === false
+      ? "Stable"
+      : "Not enough longitudinal data");
+
+  const operationalReassessmentTriggers: string[] =
+    operationalPrioritization?.reassessmentTriggers || [];
+
+  const nextActionItems = [
+    ...(structuredPlanDetails?.immediateActions || []),
+    ...operationalReassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
+    ...(progressionState?.reassessmentTriggers || []).map(
+      (trigger) => `Check progression if ${trigger}.`
+    ),
+    ...(clinicalAttentionRequiresOperationalReview
+      ? ["Review the current treatment direction."]
+      : []),
+    ...(clinicalAttentionReassessmentRecommended
+      ? ["Reassess before advancing the plan."]
+      : []),
+  ].filter(Boolean);
+
+  const commandCenterNextActionItems = compressNextActionList(nextActionItems, 3);
+  const dominantBarriers = operationalPrioritization?.dominantBarriers || [];
+  const attentionStatement = readText(clinicalAttentionState, [
+    "attentionStatement",
+    "attention_statement",
+  ]);
+
+  return {
+    overallTrajectory,
+    clinicalStatus,
+    currentFocus: compressCurrentFocusSentence(currentOperationalEmphasis),
+    attentionRequired:
+      compressCommandCenterSentence(attentionStatement) ||
+      "No clinical attention statement is available yet.",
+    nextAction:
+      commandCenterNextActionItems[0] ||
+      "Continue current focus. Update progression when new findings are available.",
+    dominantBarrier:
+      dominantBarriers[0] ||
+      readText(currentLongitudinalState, [
+        "currentDominantBarrier",
+        "current_dominant_barrier",
+        "currentLimitingFactor",
+        "current_limiting_factor",
+      ]) ||
+      undefined,
+    reassessmentNeed: clinicalAttentionReassessmentRecommended
+      ? "Reassessment recommended"
+      : operationalReassessmentTriggers[0]
+      ? `Monitor reassessment trigger: ${operationalReassessmentTriggers[0]}`
+      : "No reassessment need flagged",
+  };
+};
+
+const buildReportedProgressionChanges = (
+  form: ProgressionCheckFormState
+): string[] =>
+  [
+    form.progressionStatus.trim()
+      ? `Progression status: ${form.progressionStatus.trim()}`
+      : null,
+    form.currentDominantBarrier.trim()
+      ? `Current limiting factor: ${form.currentDominantBarrier.trim()}`
+      : null,
+    form.functionalChanges.trim()
+      ? `Functional change: ${form.functionalChanges.trim()}`
+      : null,
+    form.milestoneAchieved.trim()
+      ? `Milestone: ${form.milestoneAchieved.trim()}`
+      : null,
+    `Treatment direction changed: ${form.treatmentDirectionChanged ? "Yes" : "No"}`,
+    form.treatmentDirectionChanged && form.reasonTreatmentChanged.trim()
+      ? `Reason: ${form.reasonTreatmentChanged.trim()}`
+      : null,
+  ].filter((item): item is string => Boolean(item));
+
 export function CaseWorkspaceClient({
   params,
   workspaceMode,
@@ -675,6 +829,7 @@ const [progressionCheckForm, setProgressionCheckForm] = useState<ProgressionChec
 const [isSubmittingProgressionCheck, setIsSubmittingProgressionCheck] = useState(false);
 const [progressionCheckMessage, setProgressionCheckMessage] = useState("");
 const [progressionCheckError, setProgressionCheckError] = useState("");
+const [clinicalImpactSummary, setClinicalImpactSummary] = useState<ClinicalImpactSummary | null>(null);
 const [latestLongitudinalEvent, setLatestLongitudinalEvent] = useState<LongitudinalEventRow | null>(null);
 const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<LongitudinalEventRow[]>([]);
 
@@ -818,9 +973,12 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
   setIsSubmittingProgressionCheck(true);
   setProgressionCheckMessage("");
   setProgressionCheckError("");
+  setClinicalImpactSummary(null);
 
-  const currentDominantBarrier = progressionCheckForm.currentDominantBarrier.trim();
-  const treatmentDirectionChanged = progressionCheckForm.treatmentDirectionChanged;
+  const submittedProgressionCheck = progressionCheckForm;
+  const previousSnapshot = buildCommandCenterDeltaSnapshotFromCase(caseData);
+  const currentDominantBarrier = submittedProgressionCheck.currentDominantBarrier.trim();
+  const treatmentDirectionChanged = submittedProgressionCheck.treatmentDirectionChanged;
 
   try {
     const response = await fetch("/api/progression-check", {
@@ -830,16 +988,16 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
       },
       body: JSON.stringify({
         caseId: caseData.id,
-        functionalChanges: progressionCheckForm.functionalChanges.trim() || null,
+        functionalChanges: submittedProgressionCheck.functionalChanges.trim() || null,
         currentDominantBarrier:
           currentDominantBarrier ||
           (treatmentDirectionChanged ? "" : "No new dominant barrier identified"),
-        progressionStatus: progressionCheckForm.progressionStatus.trim(),
+        progressionStatus: submittedProgressionCheck.progressionStatus.trim(),
         treatmentDirectionChanged,
         reasonTreatmentChanged: treatmentDirectionChanged
-          ? progressionCheckForm.reasonTreatmentChanged.trim()
+          ? submittedProgressionCheck.reasonTreatmentChanged.trim()
           : null,
-        milestoneAchieved: progressionCheckForm.milestoneAchieved.trim() || null,
+        milestoneAchieved: submittedProgressionCheck.milestoneAchieved.trim() || null,
       }),
     });
 
@@ -873,10 +1031,20 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
     if (longitudinalEventError) throw longitudinalEventError;
 
     const recentEvents = (longitudinalEvents as LongitudinalEventRow[]) || [];
+    const latestEvent = recentEvents[0] || null;
     setRecentLongitudinalEvents(recentEvents);
-    setLatestLongitudinalEvent(recentEvents[0] || null);
+    setLatestLongitudinalEvent(latestEvent);
+    setClinicalImpactSummary(
+      buildClinicalImpactSummary({
+        eventId: latestEvent?.id,
+        eventCreatedAt: latestEvent?.created_at,
+        reportedChanges: buildReportedProgressionChanges(submittedProgressionCheck),
+        previousSnapshot,
+        currentSnapshot: buildCommandCenterDeltaSnapshotFromCase(typedCase),
+      })
+    );
     setProgressionCheckForm(emptyProgressionCheckForm);
-    setProgressionCheckMessage("Progression check saved and case data refreshed.");
+    setProgressionCheckMessage("Progression check saved. Clinical impact summary updated above.");
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to submit progression check.";
     setProgressionCheckError(message);
@@ -2806,6 +2974,13 @@ return (
   </div>
 
   <div className="grid gap-4 lg:grid-cols-2">
+    {clinicalImpactSummary ? (
+      <ClinicalImpactSummaryPanel
+        summary={clinicalImpactSummary}
+        onDismiss={() => setClinicalImpactSummary(null)}
+      />
+    ) : null}
+
     <article className="rounded-3xl border border-gray-700/80 bg-gray-950/75 p-5 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         1. Current Focus
