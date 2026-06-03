@@ -1,12 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
 import type { ClinicalDecisionInput, ClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
 import { buildClinicalDecisionInputFromCase } from "@/lib/buildClinicalDecisionInput";
 import { buildProgressionState } from "@/lib/buildProgressionState";
+
+
+const requiredFieldBaseClass =
+  "rounded-xl border border-sky-500/35 bg-sky-950/5 p-3 transition-colors scroll-mt-28";
+const requiredFieldCompleteClass =
+  "rounded-xl border border-gray-800/80 p-3 transition-colors scroll-mt-28";
+const requiredControlBaseClass =
+  "w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3";
+
+function getRequiredFieldClass(isComplete: boolean) {
+  return isComplete ? requiredFieldCompleteClass : requiredFieldBaseClass;
+}
+
+function getRequiredControlClass(isComplete: boolean) {
+  return `${requiredControlBaseClass} ${
+    isComplete ? "" : "border-sky-500/45 shadow-[0_0_0_1px_rgba(14,165,233,0.08)]"
+  }`;
+}
+
+function scrollToCoreInputField(targetId: string) {
+  const target = document.getElementById(targetId);
+
+  if (!target) return;
+
+  const stickyHeaderOffset = 96;
+  const targetTop = target.getBoundingClientRect().top + window.scrollY;
+
+  window.scrollTo({
+    top: Math.max(targetTop - stickyHeaderOffset, 0),
+    behavior: "smooth",
+  });
+}
 
 export default function NewCasePage() {
 
@@ -413,6 +445,61 @@ function updateAdlAssistLevel(
     [field]: value,
   }));
 }
+
+  const coreInputItems = useMemo(
+    () => [
+      {
+        id: "client-name",
+        label: "Client Name",
+        isComplete: clientName.trim().length > 0,
+      },
+      {
+        id: "primary-diagnosis",
+        label: "Diagnosis",
+        isComplete: primaryDiagnosis.trim().length > 0,
+      },
+      {
+        id: "primary-goal",
+        label: "Primary Goal",
+        isComplete: primaryGoal.trim().length > 0,
+      },
+      {
+        id: "key-barrier",
+        label: "Key Barrier",
+        isComplete: keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0,
+      },
+      {
+        id: "caregiver-availability",
+        label: "Caregiver Availability",
+        isComplete: caregiverAvailability.trim().length > 0,
+      },
+      {
+        id: "caregiver-assist-ability",
+        label: "Assist Ability",
+        isComplete: caregiverPhysicalCapacity.trim().length > 0,
+      },
+      {
+        id: "caregiver-confidence",
+        label: "Caregiver Confidence",
+        isComplete: caregiverConfidence.trim().length > 0,
+      },
+    ],
+    [
+      caregiverAvailability,
+      caregiverConfidence,
+      caregiverPhysicalCapacity,
+      clientName,
+      keyBarriers,
+      otherKeyBarriers,
+      primaryDiagnosis,
+      primaryGoal,
+    ]
+  );
+  const completedCoreInputItems = coreInputItems.filter(
+    (item) => item.isComplete
+  ).length;
+  const firstIncompleteCoreInput = coreInputItems.find((item) => !item.isComplete);
+  const areCoreInputsComplete = completedCoreInputItems === coreInputItems.length;
 
   // ==============================
   // GENERATE PLAN + SAVE CASE
@@ -871,7 +958,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
   // ==============================
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-28">
+    <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-40">
       <div className="mx-auto max-w-4xl">
         <h1 className="mb-2 text-3xl font-bold">New OT Case</h1>
         <p className="mb-8 text-gray-400">
@@ -903,14 +990,17 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
+              <div
+                id="client-name"
+                className={getRequiredFieldClass(clientName.trim().length > 0)}
+              >
                 <label className="mb-2 block text-sm font-medium">Client Name</label>
                 <input
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Client Name"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={getRequiredControlClass(clientName.trim().length > 0)}
                 />
               </div>
 
@@ -932,14 +1022,17 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div className="md:col-span-2">
+              <div
+                id="primary-diagnosis"
+                className={`${getRequiredFieldClass(primaryDiagnosis.trim().length > 0)} md:col-span-2`}
+              >
                 <label className="mb-2 block text-sm font-medium">Primary Diagnosis</label>
                 <input
                   type="text"
                   value={primaryDiagnosis}
                   onChange={(e) => setPrimaryDiagnosis(e.target.value)}
                   placeholder="Primary Diagnosis"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={getRequiredControlClass(primaryDiagnosis.trim().length > 0)}
                 />
               </div>
             </div>
@@ -985,13 +1078,16 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 />
               </div>
 
-              <div>
+              <div
+                id="primary-goal"
+                className={getRequiredFieldClass(primaryGoal.trim().length > 0)}
+              >
                 <label className="mb-2 block text-sm font-medium">Primary Goal</label>
                 <textarea
                   value={primaryGoal}
                   onChange={(e) => setPrimaryGoal(e.target.value)}
                   placeholder="e.g. Independent shower transfer with improved safety"
-                  className="min-h-[120px] w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={`${getRequiredControlClass(primaryGoal.trim().length > 0)} min-h-[120px]`}
                 />
               </div>
 
@@ -1085,7 +1181,12 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </div>
               </div>
 
-              <div>
+              <div
+                id="key-barrier"
+                className={getRequiredFieldClass(
+                  keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0
+                )}
+              >
                 <label className="mb-2 block text-sm font-medium">Key Barriers</label>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {barriers.map((barrier) => (
@@ -1107,7 +1208,9 @@ setSaveMessage("Case generated with AI and saved successfully.");
                   placeholder="Other key barriers (comma-separated, optional)"
                   value={otherKeyBarriers}
                   onChange={(e) => setOtherKeyBarriers(e.target.value)}
-                  className="mt-3 w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={`${getRequiredControlClass(
+                    keyBarriers.length > 0 || otherKeyBarriers.trim().length > 0
+                  )} mt-3`}
                 />
               </div>
             </div>
@@ -1203,12 +1306,15 @@ setSaveMessage("Case generated with AI and saved successfully.");
             </p>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
+              <div
+                id="caregiver-availability"
+                className={getRequiredFieldClass(caregiverAvailability.trim().length > 0)}
+              >
                 <label className="mb-2 block text-sm font-medium">Caregiver Availability</label>
                 <select
                   value={caregiverAvailability}
                   onChange={(e) => setCaregiverAvailability(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={getRequiredControlClass(caregiverAvailability.trim().length > 0)}
                 >
                   <option value="">Select caregiver availability</option>
                   <option value="full_time_available">Full-time available</option>
@@ -1219,14 +1325,17 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div>
+              <div
+                id="caregiver-assist-ability"
+                className={getRequiredFieldClass(caregiverPhysicalCapacity.trim().length > 0)}
+              >
                 <label className="mb-2 block text-sm font-medium">
                   Caregiver Ability to Physically Assist
                 </label>
                 <select
                   value={caregiverPhysicalCapacity}
                   onChange={(e) => setCaregiverPhysicalCapacity(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={getRequiredControlClass(caregiverPhysicalCapacity.trim().length > 0)}
                 >
                   <option value="">Select caregiver ability</option>
                   <option value="cannot_provide_physical_assist">Cannot provide physical assist</option>
@@ -1237,12 +1346,15 @@ setSaveMessage("Case generated with AI and saved successfully.");
                 </select>
               </div>
 
-              <div>
+              <div
+                id="caregiver-confidence"
+                className={getRequiredFieldClass(caregiverConfidence.trim().length > 0)}
+              >
                 <label className="mb-2 block text-sm font-medium">Caregiver Confidence</label>
                 <select
                   value={caregiverConfidence}
                   onChange={(e) => setCaregiverConfidence(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+                  className={getRequiredControlClass(caregiverConfidence.trim().length > 0)}
                 >
                   <option value="">Select caregiver confidence</option>
                   <option value="low_confidence">Low confidence</option>
@@ -1902,6 +2014,36 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
             </div>
           </section>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (firstIncompleteCoreInput) {
+                scrollToCoreInputField(firstIncompleteCoreInput.id);
+              }
+            }}
+            className={`fixed bottom-20 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-xl border px-4 py-2 text-sm shadow-lg backdrop-blur transition sm:w-auto ${
+              areCoreInputsComplete
+                ? "cursor-default border-gray-700 bg-gray-950/90 text-gray-200"
+                : "border-sky-500/35 bg-gray-950/95 text-sky-100 hover:border-sky-400/60 hover:bg-sky-950/70"
+            }`}
+            aria-label={
+              firstIncompleteCoreInput
+                ? `Jump to next core input: ${firstIncompleteCoreInput.label}`
+                : "Core inputs complete"
+            }
+          >
+            <span className="font-semibold">
+              {areCoreInputsComplete
+                ? "Core Inputs Complete"
+                : `Core Inputs: ${completedCoreInputItems} / ${coreInputItems.length} Complete`}
+            </span>
+            <span className="text-gray-400">
+              {firstIncompleteCoreInput
+                ? ` · Next: ${firstIncompleteCoreInput.label}`
+                : " · Additional details improve plan quality"}
+            </span>
+          </button>
 
           <button
             type="button"
