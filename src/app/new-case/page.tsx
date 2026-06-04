@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
@@ -63,6 +63,14 @@ function scrollToCoreInputField(targetId: string) {
 }
 
 export default function NewCasePage() {
+  return (
+    <Suspense fallback={null}>
+      <NewCaseContent />
+    </Suspense>
+  );
+}
+
+function NewCaseContent() {
 
   // ==============================
   // STATE: CASE BASICS
