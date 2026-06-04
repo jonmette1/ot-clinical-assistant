@@ -144,12 +144,26 @@ const getNestedRecord = (source: unknown, keys: string[]): Record<string, unknow
 
 const getVisitSnapshotContext = (generation: HistoricalSnapshotGeneration) => {
   const output = generation.output_payload;
+  const input = generation.input_payload;
   const operationalPrioritization = getNestedRecord(output, ["operational_prioritization", "operationalPrioritization"]);
   const progressionState = getNestedRecord(output, ["progression_state", "progressionState"]);
   const structuredPlanDetails = getNestedRecord(output, ["structured_plan_details", "structuredPlanDetails"]);
   const clinicalDecisionModel = getNestedRecord(output, ["clinicalDecisionModelUsed", "clinical_decision_model_used"]);
+  const currentLongitudinalState =
+    getNestedRecord(input, ["current_longitudinal_state", "currentLongitudinalState"]) ||
+    getNestedRecord(output, ["current_longitudinal_state", "currentLongitudinalState"]);
+  const clinicalAttentionState =
+    getNestedRecord(input, ["clinical_attention_state", "clinicalAttentionState"]) ||
+    getNestedRecord(output, ["clinical_attention_state", "clinicalAttentionState"]);
+  const eventPayload = getNestedRecord(input, ["event_payload", "eventPayload"]);
 
   const visitStatus =
+    readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
+    readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
+    readText(eventPayload, ["progressionStatus", "progression_status"]) ||
+    readText(progressionState, ["progressionStatus", "progression_status"]) ||
+    readText(output, ["progressionStatus", "progression_status"]) ||
+    readText(input, ["progressionStatus", "progression_status"]) ||
     readText(progressionState, ["advancementReadiness", "advancement_readiness"]) ||
     readText(progressionState, ["currentPhase", "current_phase"]) ||
     readText(output, ["focusApplied", "focus_applied"]) ||
