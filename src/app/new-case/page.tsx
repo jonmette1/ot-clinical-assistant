@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
 import type { ClinicalDecisionInput, ClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
 import { buildClinicalDecisionInputFromCase } from "@/lib/buildClinicalDecisionInput";
@@ -74,7 +74,10 @@ export default function NewCasePage() {
   // ROUTER
   // ==============================
   
-  const router = useRouter();
+const router = useRouter();
+const searchParams = useSearchParams();
+const discipline = searchParams.get("discipline") === "pt" ? "pt" : "ot";
+const isPT = discipline === "pt";
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState("");
  const [targetActivity, setTargetActivity] = useState("Bathing");
 const [assistanceLevel, setAssistanceLevel] = useState("3");
@@ -982,9 +985,13 @@ setSaveMessage("Case generated with AI and saved successfully.");
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-40">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-2 text-3xl font-bold">New OT Case</h1>
+        <h1 className="mb-2 text-3xl font-bold">
+  New {isPT ? "PT" : "OT"} Case
+</h1>
         <p className="mb-8 text-gray-400">
-          Enter the highest-signal clinical details first so the generated plan reflects the current patient picture.
+{isPT
+  ? "Enter the highest-signal mobility details first so the generated plan reflects the current patient picture."
+  : "Enter the highest-signal clinical details first so the generated plan reflects the current patient picture."}
         </p>
 
         {validationErrors.length > 0 && (
@@ -1001,6 +1008,210 @@ setSaveMessage("Case generated with AI and saved successfully.");
         )}
 
         <form className="space-y-8">
+  {isPT ? (
+    <>
+      {/* PT INTAKE V1 */}
+      <section className="rounded-2xl border border-emerald-500/30 bg-emerald-950/10 p-6 shadow-sm">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+          Patient Context
+        </p>
+        <h2 className="mb-1 text-xl font-semibold">Who is this mobility case?</h2>
+        <p className="mb-5 text-sm text-gray-400">
+          Capture only the high-signal information needed for PT visit orientation.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div id="client-name" className={getRequiredFieldClass(clientName.trim().length > 0)}>
+            <label className="mb-2 block text-sm font-medium">Client Name</label>
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Client Name"
+              className={getRequiredControlClass(clientName.trim().length > 0)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Age Range</label>
+            <select
+              value={ageRange}
+              onChange={(e) => setAgeRange(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option>Under 18</option>
+              <option>18-39</option>
+              <option>40-49</option>
+              <option>50-59</option>
+              <option>60-69</option>
+              <option>70-79</option>
+              <option>80-89</option>
+              <option>90+</option>
+            </select>
+          </div>
+
+          <div id="primary-diagnosis" className={`${getRequiredFieldClass(primaryDiagnosis.trim().length > 0)} md:col-span-2`}>
+            <label className="mb-2 block text-sm font-medium">Primary Diagnosis / Referral Reason</label>
+            <input
+              type="text"
+              value={primaryDiagnosis}
+              onChange={(e) => setPrimaryDiagnosis(e.target.value)}
+              placeholder="e.g. Parkinson's disease with mobility decline"
+              className={getRequiredControlClass(primaryDiagnosis.trim().length > 0)}
+            />
+          </div>
+
+          <div id="primary-goal" className={`${getRequiredFieldClass(primaryGoal.trim().length > 0)} md:col-span-2`}>
+            <label className="mb-2 block text-sm font-medium">Primary Mobility Goal</label>
+            <textarea
+              value={primaryGoal}
+              onChange={(e) => setPrimaryGoal(e.target.value)}
+              placeholder="e.g. Improve household mobility and reduce fall risk"
+              className={`${getRequiredControlClass(primaryGoal.trim().length > 0)} min-h-[100px]`}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+          Functional Mobility Reality
+        </p>
+        <h2 className="mb-1 text-xl font-semibold">How is the patient moving right now?</h2>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Current Mobility Level</label>
+            <select
+              value={indoorMobilityLevel}
+              onChange={(e) => setIndoorMobilityLevel(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="independent">Independent</option>
+              <option value="modified_independent">Modified Independent</option>
+              <option value="supervision">Supervision</option>
+              <option value="standby_assist">Standby Assist</option>
+              <option value="contact_guard_assist">Contact Guard Assist</option>
+              <option value="minimal_assist">Minimal Assist</option>
+              <option value="moderate_assist">Moderate Assist</option>
+              <option value="max_assist">Max Assist</option>
+              <option value="unsafe">Dependent / Unsafe</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Transfer Status</label>
+            <select
+              value={assistanceLevel}
+              onChange={(e) => setAssistanceLevel(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              {assistLevelOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Primary Assistive Device</label>
+            <select
+              value={mobilityDevice}
+              onChange={(e) => setMobilityDevice(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="none">None</option>
+              <option value="single_point_cane">Single Point Cane</option>
+              <option value="quad_cane">Quad Cane</option>
+              <option value="walker">Front-Wheeled Walker</option>
+              <option value="rollator">Rollator</option>
+              <option value="wheelchair">Wheelchair</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+          Safety, Tolerance, Support, Environment
+        </p>
+        <h2 className="mb-1 text-xl font-semibold">What changes the visit priority?</h2>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Falls History</label>
+            <select
+              value={recentFalls}
+              onChange={(e) => setRecentFalls(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="no">No recent falls</option>
+              <option value="yes">Recent fall</option>
+              <option value="multiple">2+ recent falls</option>
+              <option value="near_falls">Near falls reported</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Endurance / Activity Tolerance</label>
+            <select
+              value={mobilityEndurance}
+              onChange={(e) => setMobilityEndurance(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="low">Limited by fatigue / symptoms</option>
+              <option value="moderate">Moderate tolerance</option>
+              <option value="good">Good tolerance</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Caregiver Availability</label>
+            <select
+              value={caregiverAvailability}
+              onChange={(e) => setCaregiverAvailability(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="">Select caregiver availability</option>
+              <option value="full_time_available">Full-time available</option>
+              <option value="part_time_available">Part-time available</option>
+              <option value="intermittent_availability">Intermittent / limited availability</option>
+              <option value="rarely_available">Rarely available</option>
+              <option value="lives_alone">Patient lives alone</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Mobility Change Since Last Visit</label>
+            <select
+              value={targetActivity}
+              onChange={(e) => setTargetActivity(e.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            >
+              <option value="Improved">Improved</option>
+              <option value="Stable">Stable</option>
+              <option value="Declined">Declined</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-medium">Environmental Mobility Barriers</label>
+            <textarea
+              value={otherSafetyHazards}
+              onChange={(e) => setOtherSafetyHazards(e.target.value)}
+              placeholder="e.g. stairs to bedroom, thresholds, cluttered pathways, narrow hallway"
+              className="min-h-[100px] w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3"
+            />
+          </div>
+        </div>
+      </section>
+    </>
+  ) : (
+    <>
+
+          
           {/* PATIENT SNAPSHOT */}
           <section className="rounded-2xl border border-blue-500/30 bg-blue-950/10 p-6 shadow-sm">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
@@ -2036,6 +2247,8 @@ setSaveMessage("Case generated with AI and saved successfully.");
               </div>
             </div>
           </section>
+    </>
+  )}
 
           <button
             type="button"
