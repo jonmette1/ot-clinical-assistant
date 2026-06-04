@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -2031,8 +2030,9 @@ const generated = displayCase.generated_output as GeneratedOutput | null;
 const selectedSnapshotQuery = isViewingHistoricalVersion
   ? `?snapshot=${selectedGeneration?.id}`
   : "";
+const liveCaseHref = `/cases/${caseData.id}`;
 const commandCenterHref = `/cases/${caseData.id}${selectedSnapshotQuery}`;
-const referenceWorkspaceHref = `/cases/${caseData.id}/reference${selectedSnapshotQuery}`;
+const patientHistoryHref = `/cases/${caseData.id}/reference${selectedSnapshotQuery}`;
 
 const progressionState = generated?.progression_state;
 
@@ -3063,28 +3063,19 @@ setCaseData({
 
 return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
-{workspaceMode === "command" && (
-  <>
-    {/* OWNERSHIP: Patient Command Center — sticky orientation header for current case context. */}
-    <StickyOperationalHeader
-      title={displayCase.title}
-      isViewingHistoricalVersion={isViewingHistoricalVersion}
-      snapshotSavedAtLabel={selectedSnapshotSavedAtLabel}
-      onReturnToLiveCase={returnToLiveCase}
-    />
-  </>
-)}
+{/* OWNERSHIP: Patient workspace — sticky navigation keeps Live Case, Command Center, and Patient History available while scrolling. */}
+<StickyOperationalHeader
+  title={displayCase.title}
+  workspaceMode={workspaceMode}
+  isViewingHistoricalVersion={isViewingHistoricalVersion}
+  snapshotSavedAtLabel={selectedSnapshotSavedAtLabel}
+  liveCaseHref={liveCaseHref}
+  commandCenterHref={commandCenterHref}
+  patientHistoryHref={patientHistoryHref}
+  onReturnToLiveCase={returnToLiveCase}
+/>
 
-<div className={`max-w-5xl mx-auto space-y-6 ${workspaceMode === "command" ? "pt-28 sm:pt-20" : "pt-8"}`}>
-
-<nav aria-label="Patient workspace navigation" className="flex justify-end">
-  <Link
-    href={workspaceMode === "command" ? referenceWorkspaceHref : commandCenterHref}
-    className="inline-flex items-center rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition hover:border-blue-500 hover:bg-gray-800"
-  >
-    {workspaceMode === "command" ? "Reference Workspace" : "Command Center"}
-  </Link>
-</nav>
+<div className="max-w-5xl mx-auto space-y-6 pt-36 sm:pt-28 md:pt-24">
 
 {workspaceMode === "command" && isViewingHistoricalVersion ? (
   <div className="rounded-2xl border border-amber-500/50 bg-amber-950/25 p-4 text-sm text-amber-50 shadow-sm shadow-black/10">
@@ -3136,6 +3127,12 @@ return (
         First-read orientation for what is happening, what needs attention, what treatment should focus on, and what should happen next.
       </p>
     </div>
+    <a
+      href="#visit-history"
+      className="inline-flex shrink-0 items-center rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition hover:border-blue-500 hover:bg-gray-900"
+    >
+      Review Visit History
+    </a>
   </div>
 
   <div className="grid gap-4 lg:grid-cols-2">
@@ -3619,7 +3616,7 @@ return (
         disabled={isSubmittingProgressionCheck}
         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmittingProgressionCheck ? "Saving..." : "Save progression check"}
+        {isSubmittingProgressionCheck ? "Saving..." : "Save Progression"}
       </button>
 
       {progressionCheckMessage && latestClinicalImpactSummary ? (
@@ -3656,6 +3653,29 @@ return (
 
 </section>
 
+{/* OWNERSHIP: Patient Command Center — visit history is available here to reduce workspace switching for prior-visit review. */}
+<section data-ownership="patient-command-center" id="visit-history">
+  <HistoricalSnapshotsSection
+    generations={generations}
+    currentGenerationId={currentGenerationId}
+    selectedGeneration={selectedGeneration}
+    showAllVersions={showAllVersions}
+    isRestoringVersion={isRestoringVersion}
+    onToggleShowAllVersions={() => setShowAllVersions((prev) => !prev)}
+    onSelectGeneration={(generation) => {
+      if (generation.id === currentGenerationId) {
+        setSelectedGeneration(null);
+        return;
+      }
+
+      setSelectedGeneration(generation as GenerationRow);
+    }}
+    onDeleteGeneration={handleDeleteGeneration}
+    onRestoreSelectedVersion={handleRestoreSelectedVersion}
+    onClosePreview={() => setSelectedGeneration(null)}
+  />
+</section>
+
 
 </>
 )}
@@ -3664,23 +3684,23 @@ return (
 <>
 
 {/* ==============================
-    OWNERSHIP: PATIENT REFERENCE WORKSPACE
+    OWNERSHIP: PATIENT HISTORY
     Review, generated, context-heavy, transparency, module, snapshot, and history content retained in place for Phase 1 ownership classification.
 ============================== */}
 
 <section
-  data-ownership="patient-reference-workspace"
+  data-ownership="patient-history"
   className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5"
 >
   <div>
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-      Reference Workspace
+      Patient History
     </p>
     <h2 className="mt-1 text-xl font-semibold text-white">
       Collapsed supporting information
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Open these sections when you need case details, generated report content, modules, or history.
+      Open these sections when you need case details, generated report content, modules, or deeper history.
     </p>
   </div>
 
@@ -4661,6 +4681,7 @@ return (
 
         {/* VERSION HISTORY */}
 
+<div id="visit-history">
 <HistoricalSnapshotsSection
   generations={generations}
   currentGenerationId={currentGenerationId}
@@ -4680,12 +4701,13 @@ return (
   onRestoreSelectedVersion={handleRestoreSelectedVersion}
   onClosePreview={() => setSelectedGeneration(null)}
 />
+</div>
 </section>
 </>
 )}
 </div>
 {/* CASE ACTION BUTTONS */}
-<div className="fixed bottom-4 left-4 right-4 z-40 grid grid-cols-2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur sm:left-1/2 sm:right-auto sm:flex sm:-translate-x-1/2 sm:flex-nowrap">
+<div className="fixed bottom-4 left-4 right-4 z-40 grid grid-cols-2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur sm:left-1/2 sm:right-auto sm:flex sm:-translate-x-1/2 sm:flex-nowrap sm:items-center">
 
   {!isEditing ? (
     <button
@@ -4721,9 +4743,9 @@ return (
     type="button"
     onClick={handleRegenerateCurrentPlan}
     disabled={isRegeneratingPlan || isViewingHistoricalVersion}
-    className="min-w-[96px] rounded-lg bg-purple-700 px-3 py-2 text-xs font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+    className="min-w-[168px] rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
   >
-    {isRegeneratingPlan ? "Generating..." : "Regenerate"}
+    {isRegeneratingPlan ? "Refreshing..." : "Refresh Clinical Guidance"}
   </button>
 <button
   type="button"
@@ -4733,24 +4755,24 @@ return (
     isViewingHistoricalVersion ||
     !caseData?.generated_output
   }
-  className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+  className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs font-medium text-gray-100 hover:border-emerald-500 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
 >
-  {isSavingCurrentVersion ? "Saving..." : "Save Snapshot"}
+  {isSavingCurrentVersion ? "Saving..." : "Save Clinical Snapshot"}
 </button>
   <button
     type="button"
     onClick={handleCopySummary}
-    className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+    className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs font-medium text-gray-300 hover:border-gray-600 hover:text-white sm:text-sm"
   >
-    {isViewingHistoricalVersion ? "Copy Snapshot" : "Copy"}
+    Copy Snapshot
   </button>
 
   <button
     type="button"
     onClick={handleDownloadSummary}
-    className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+    className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs font-medium text-gray-300 hover:border-gray-600 hover:text-white sm:text-sm"
   >
-    {isViewingHistoricalVersion ? "Download Snapshot" : "Download"}
+    Download Snapshot
   </button>
 </div>
 
