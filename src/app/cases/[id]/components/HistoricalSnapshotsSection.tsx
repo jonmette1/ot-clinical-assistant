@@ -32,10 +32,10 @@ type HistoricalSnapshotsSectionProps = {
 };
 
 const getSnapshotTypeLabel = (promptVersion?: string | null) => {
-  if (!promptVersion) return "Saved Plan Snapshot";
+  if (!promptVersion) return "Saved Clinical Snapshot";
 
   if (promptVersion.includes("manual-snapshot")) {
-    return "Manual Snapshot";
+    return "Clinical Snapshot";
   }
 
   if (promptVersion.includes("continuity-save")) {
@@ -43,7 +43,7 @@ const getSnapshotTypeLabel = (promptVersion?: string | null) => {
   }
 
   if (promptVersion.includes("regenerated")) {
-    return "Regenerated Plan";
+    return "Refreshed Clinical Guidance";
   }
 
   if (promptVersion.includes("transfers_mobility")) {
@@ -58,7 +58,7 @@ const getSnapshotTypeLabel = (promptVersion?: string | null) => {
     return "ADL / Home Safety Focus";
   }
 
-  return "Saved Plan Snapshot";
+  return "Saved Clinical Snapshot";
 };
 
 const getSnapshotReasonLabel = (promptVersion?: string | null) => {
@@ -119,20 +119,20 @@ export function HistoricalSnapshotsSection({
     <details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
       <summary className="flex cursor-pointer items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Historical Snapshots</h2>
-          <p className="mt-1 text-sm text-gray-400">Saved plans, preview, restore, and delete controls.</p>
+          <h2 className="text-xl font-semibold text-white">Visit History</h2>
+          <p className="mt-1 text-sm text-gray-400">Prior clinical snapshots, preview, restore, and delete controls.</p>
         </div>
         <span className="text-xs tracking-wide text-gray-300">Show</span>
       </summary>
 
       <div className="mt-6">
-      <h3 className="text-xl font-semibold mb-3">Clinical Plan History</h3>
+      <h3 className="text-xl font-semibold mb-3">Saved Visit Snapshots</h3>
       <button
       type="button"
       onClick={onToggleShowAllVersions}
       className="text-xs text-blue-400 hover:underline mb-3"
     >
-      {showAllVersions ? "Show fewer versions" : "Show all versions"}
+      {showAllVersions ? "Show fewer visits" : "Show all visits"}
     </button>
       <p className="text-xs text-gray-500 mb-4">
      Showing the 5 most recent saved clinical snapshots.
@@ -239,7 +239,7 @@ export function HistoricalSnapshotsSection({
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
     <h2 className="text-2xl font-semibold">
-      Historical Snapshot Preview
+      Visit Snapshot Preview
     </h2>
 
     <p className="text-sm text-gray-400 mt-1">
