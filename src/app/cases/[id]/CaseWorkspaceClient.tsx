@@ -3190,8 +3190,8 @@ return (
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         2. Case Status
       </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-[0.9fr_1.1fr] sm:divide-x sm:divide-gray-800">
-        <div className="sm:pr-4">
+      <div className="mt-4 space-y-5 text-sm leading-relaxed">
+        <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Overall Trajectory
           </p>
@@ -3201,43 +3201,44 @@ return (
           <p className="mt-2 text-xs leading-relaxed text-gray-400">
             Based on current longitudinal progression signals.
           </p>
-        </div>
-        <div className="border-t border-gray-800 pt-4 sm:border-t-0 sm:pl-4 sm:pt-0">
+        </section>
+
+        <section className="border-t border-gray-800 pt-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Clinical Status
           </p>
           <p className="mt-1 text-base font-semibold text-white">
             {clinicalStatus}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+          <p className="mt-2 text-sm leading-relaxed text-gray-300">
             {clinicalStatusExplanation}
           </p>
-          <div className="mt-3 space-y-3 rounded-lg border border-gray-800/80 bg-gray-950/50 p-3 text-xs leading-relaxed text-gray-400">
-            <div>
-              <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">
-                Triggered by
-              </p>
-              {clinicalStatusTriggerCandidates.length > 0 ? (
-                <ul className="mt-2 space-y-1">
-                  {clinicalStatusTriggerCandidates.map((trigger) => (
-                    <li key={trigger} className="flex gap-2">
-                      <span className="text-gray-600">•</span>
-                      <span>{trigger}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2">No specific review trigger is currently documented.</p>
-              )}
-            </div>
-            <div>
-              <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">
-                Recommended action
-              </p>
-              <p className="mt-1 text-gray-300">{clinicalStatusRecommendedAction}</p>
-            </div>
-          </div>
-        </div>
+        </section>
+
+        <section className="border-t border-gray-800 pt-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Triggered by
+          </p>
+          {clinicalStatusTriggerCandidates.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-gray-300">
+              {clinicalStatusTriggerCandidates.map((trigger) => (
+                <li key={trigger} className="flex gap-2">
+                  <span className="text-gray-600">•</span>
+                  <span>{trigger}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-gray-400">No specific review trigger is currently documented.</p>
+          )}
+        </section>
+
+        <section className="border-t border-gray-800 pt-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Recommended Action
+          </p>
+          <p className="mt-2 text-gray-200">{clinicalStatusRecommendedAction}</p>
+        </section>
       </div>
     </article>
 
@@ -3303,16 +3304,19 @@ return (
         ) : null}
       </div>
       {hasAnySummaryValue(commandCenterLastVisitSummaryRows) ? (
-        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-gray-200 md:grid-cols-3">
-          {commandCenterLastVisitSummaryRows.map((row) => (
-            <div key={row.label} className="rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+        <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-200">
+          {commandCenterLastVisitSummaryRows.map((row, index) => (
+            <section
+              key={row.label}
+              className={index === 0 ? undefined : "border-t border-gray-800 pt-4"}
+            >
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
                 {row.label}
               </p>
               <div className="mt-2 text-gray-100">
                 {renderSummaryValue(row.value)}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       ) : (
@@ -3329,14 +3333,12 @@ return (
       <h2 className="mt-1 text-xl font-semibold leading-snug text-white">
         {commandCenterAttentionStatement || "No clinical attention statement is available yet."}
       </h2>
-      <details className="mt-4 rounded-2xl border border-red-900/30 bg-gray-950/30 p-3">
-        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-red-200/70">
+      <div className="mt-4 border-t border-red-900/30 pt-4 opacity-90">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-200/70">
           Supporting attention details
-        </summary>
-        <div className="mt-3 opacity-80">
-          {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
-        </div>
-      </details>
+        </p>
+        {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
+      </div>
     </article>
 
     <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">

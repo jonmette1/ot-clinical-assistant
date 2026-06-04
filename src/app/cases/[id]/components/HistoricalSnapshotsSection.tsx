@@ -91,6 +91,105 @@ const getSnapshotReasonLabel = (promptVersion?: string | null) => {
   return "Saved clinical reasoning snapshot.";
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readUnknown = (source: unknown, keys: string[]): unknown => {
+  if (!isRecord(source)) return undefined;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+
+  return undefined;
+};
+
+const readText = (source: unknown, keys: string[]): string | null => {
+  const value = readUnknown(source, keys);
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+
+  return null;
+};
+
+const readTextList = (source: unknown, keys: string[]): string[] => {
+  const value = readUnknown(source, keys);
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string | number | boolean =>
+        typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+      )
+      .map(String)
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.trim()) return [value];
+
+  return [];
+};
+
+const formatVisitSnapshotDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+};
+
+const getNestedRecord = (source: unknown, keys: string[]): Record<string, unknown> | null => {
+  const value = readUnknown(source, keys);
+  return isRecord(value) ? value : null;
+};
+
+const getVisitSnapshotContext = (generation: HistoricalSnapshotGeneration) => {
+  const output = generation.output_payload;
+  const input = generation.input_payload;
+  const operationalPrioritization = getNestedRecord(output, ["operational_prioritization", "operationalPrioritization"]);
+  const progressionState = getNestedRecord(output, ["progression_state", "progressionState"]);
+  const structuredPlanDetails = getNestedRecord(output, ["structured_plan_details", "structuredPlanDetails"]);
+  const clinicalDecisionModel = getNestedRecord(output, ["clinicalDecisionModelUsed", "clinical_decision_model_used"]);
+  const currentLongitudinalState =
+    getNestedRecord(input, ["current_longitudinal_state", "currentLongitudinalState"]) ||
+    getNestedRecord(output, ["current_longitudinal_state", "currentLongitudinalState"]);
+  const clinicalAttentionState =
+    getNestedRecord(input, ["clinical_attention_state", "clinicalAttentionState"]) ||
+    getNestedRecord(output, ["clinical_attention_state", "clinicalAttentionState"]);
+  const eventPayload = getNestedRecord(input, ["event_payload", "eventPayload"]);
+
+  const visitStatus =
+    readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
+    readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
+    readText(eventPayload, ["progressionStatus", "progression_status"]) ||
+    readText(progressionState, ["progressionStatus", "progression_status"]) ||
+    readText(output, ["progressionStatus", "progression_status"]) ||
+    readText(input, ["progressionStatus", "progression_status"]) ||
+    readText(progressionState, ["advancementReadiness", "advancement_readiness"]) ||
+    readText(progressionState, ["currentPhase", "current_phase"]) ||
+    readText(output, ["focusApplied", "focus_applied"]) ||
+    getSnapshotTypeLabel(generation.prompt_version);
+
+  const clinicalReality =
+    readText(operationalPrioritization, ["currentOperationalEmphasis", "current_operational_emphasis"]) ||
+    readText(output, ["patientSnapshot", "patient_snapshot"]) ||
+    readText(clinicalDecisionModel, ["dominantBarrier", "dominant_barrier"]) ||
+    readTextList(output, ["clinicalPriorities", "clinical_priorities"])[0] ||
+    getSnapshotReasonLabel(generation.prompt_version);
+
+  const recommendedNextAction =
+    readTextList(structuredPlanDetails, ["immediateActions", "immediate_actions"])[0] ||
+    readTextList(output, ["firstSessionPriorities", "first_session_priorities"])[0] ||
+    readTextList(output, ["sessionPlan", "session_plan"])[0] ||
+    readTextList(output, ["taskBreakdown", "task_breakdown"])[0] ||
+    "Open snapshot preview for full clinical context.";
+
+  return {
+    visitStatus,
+    clinicalReality,
+    recommendedNextAction,
+  };
+};
+
 export function HistoricalSnapshotsSection({
   generations,
   currentGenerationId,
@@ -112,8 +211,8 @@ export function HistoricalSnapshotsSection({
     ? orderedGenerations
     : orderedGenerations.slice(0, 5);
 
-  const getVersionNumber = (generationId: string) =>
-    orderedGenerations.findIndex((g) => g.id === generationId) + 1;
+  const getVisitNumber = (generationId: string) =>
+    orderedGenerations.length - orderedGenerations.findIndex((g) => g.id === generationId);
 
   return (
     <details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
@@ -126,23 +225,30 @@ export function HistoricalSnapshotsSection({
       </summary>
 
       <div className="mt-6">
-      <h3 className="text-xl font-semibold mb-3">Saved Visit Snapshots</h3>
-      <button
-      type="button"
-      onClick={onToggleShowAllVersions}
-      className="text-xs text-blue-400 hover:underline mb-3"
-    >
-      {showAllVersions ? "Show fewer visits" : "Show all visits"}
-    </button>
-      <p className="text-xs text-gray-500 mb-4">
-     Showing the 5 most recent saved clinical snapshots.
-    </p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-xl font-semibold">Saved Visit Snapshots</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Showing the 5 most recent saved clinical snapshots.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleShowAllVersions}
+          className="text-xs text-blue-400 hover:underline"
+        >
+          {showAllVersions ? "Show fewer visits" : "Show all visits"}
+        </button>
+      </div>
 
      {generations.length === 0 ? (
       <p className="text-sm text-gray-400">No saved clinical snapshots yet.</p>
     ) : (
       <ul className="space-y-3 text-sm text-gray-300">
-      {visibleGenerations.map((generation) => (
+      {visibleGenerations.map((generation) => {
+        const snapshotContext = getVisitSnapshotContext(generation);
+
+        return (
           <li
             key={generation.id}
     className={`rounded-lg px-4 py-3 transition ${
@@ -159,8 +265,8 @@ export function HistoricalSnapshotsSection({
                 onClick={() => onSelectGeneration(generation)}
                 className="text-left flex-1"
               >
-                <p className="flex items-center gap-2">
-                  <strong>Version {getVersionNumber(generation.id)}:</strong>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-base text-white">Visit {getVisitNumber(generation.id)}</strong>
 
                   {currentGenerationId === generation.id && (
       <span className="rounded-full border border-green-400 bg-green-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
@@ -175,42 +281,27 @@ export function HistoricalSnapshotsSection({
                     </span>
                   )}
 
-                  <span>
-                     {getSnapshotTypeLabel(generation.prompt_version)}
-                  </span>
-
                   <span className="text-xs text-gray-500">
-                    {generation.prompt_version?.includes("transfers_mobility")
-                      ? "Transfers"
-                      : generation.prompt_version?.includes("caregiver_training")
-                      ? "Caregiver"
-                      : generation.prompt_version?.includes("adl_home_safety")
-                      ? "ADL"
-                      : ""}
+                    {formatVisitSnapshotDate(generation.created_at)}
                   </span>
-                </p>
-    <p className="mt-2 text-xs text-gray-500">
-      {getSnapshotReasonLabel(generation.prompt_version)}
-    </p>
-                <p className="text-gray-400">
-                  {new Date(generation.created_at).toLocaleString()}
-                </p>
-                <div className="mt-2 space-y-1 text-xs text-gray-400">
-      <p>
-        <strong>Client:</strong>{" "}
-        {generation.input_payload?.client_info?.client_name || "—"}
-      </p>
+                </div>
 
-      <p>
-        <strong>Caregiver:</strong>{" "}
-        {generation.input_payload?.caregiver_info?.caregiver_name || "—"}
-      </p>
+                <div className="mt-3 space-y-3 text-xs leading-relaxed text-gray-400">
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Visit Status</p>
+                    <p className="mt-1 text-sm text-gray-200">{snapshotContext.visitStatus}</p>
+                  </div>
 
-      <p className="line-clamp-2">
-        <strong>Notes:</strong>{" "}
-        {generation.input_payload?.clinician_notes || "—"}
-      </p>
-    </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Clinical Reality</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.clinicalReality}</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Recommended Next Action</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.recommendedNextAction}</p>
+                  </div>
+                </div>
               </button>
 
     <button
@@ -226,7 +317,8 @@ export function HistoricalSnapshotsSection({
 
             </div>
           </li>
-        ))}
+        );
+      })}
       </ul>
     )}
     </div>
