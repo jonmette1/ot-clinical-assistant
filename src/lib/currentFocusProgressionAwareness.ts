@@ -196,64 +196,61 @@ const addArea = (areas: string[], area: string) => {
   if (!areas.includes(area)) areas.push(area);
 };
 
+const sourceHas = (source: string, terms: string[]) =>
+  terms.some((term) => source.includes(term));
+
 const deriveAttentionAreas = ({
   currentFocus,
   dominantBarriers,
+  trend,
 }: {
   currentFocus: string;
   dominantBarriers?: unknown;
+  trend: Exclude<AwarenessTrend, null>;
 }) => {
   const sourceItems = [...asTextList(dominantBarriers), currentFocus];
   const source = normalize(sourceItems.join(" "));
   const areas: string[] = [];
+  const hasTransfer = sourceHas(source, ["transfer", "mobility"]);
+  const hasMovement = sourceHas(source, ["balance", "strength", "movement"]);
+  const hasBathroom = sourceHas(source, ["bathroom", "shower", "toilet"]);
+  const hasCaregiver = sourceHas(source, ["caregiver", "support"]);
+  const hasEnvironment = sourceHas(source, ["environment", "equipment", "setup"]);
 
-  if (source.includes("transfer") || source.includes("mobility")) {
-    addArea(areas, "transfer stability");
-  }
-
-  if (source.includes("balance") || source.includes("strength") || source.includes("movement")) {
-    addArea(areas, "physical movement control");
-  }
-
-  if (source.includes("caregiver") || source.includes("support")) {
-    addArea(areas, "caregiver-supported consistency");
-  }
-
-  if (
-    source.includes("bathroom") ||
-    source.includes("shower") ||
-    source.includes("toilet") ||
-    source.includes("environment") ||
-    source.includes("equipment") ||
-    source.includes("setup")
-  ) {
-    addArea(areas, "environmental safety");
-  }
-
-  if (source.includes("sequencing") || source.includes("cue") || source.includes("cognitive")) {
-    addArea(areas, "task sequencing reliability");
-  }
-
-  if (source.includes("endurance") || source.includes("fatigue")) {
-    addArea(areas, "activity tolerance");
-  }
-
-  if (source.includes("safety") || areas.length < 2) {
+  if (trend === "regression") {
+    if (hasTransfer) addArea(areas, "transfer stability");
+    if (hasCaregiver) addArea(areas, "caregiver support");
     addArea(areas, "safety preservation");
+    return areas.slice(0, 3);
   }
+
+  if (trend === "stabilization") {
+    if (hasTransfer) addArea(areas, "consistency");
+    if (hasMovement) addArea(areas, "movement control");
+    if (hasBathroom || hasEnvironment) addArea(areas, "environmental safety");
+    if (hasCaregiver) addArea(areas, "caregiver reliability");
+    addArea(areas, "safety preservation");
+    return areas.slice(0, 3);
+  }
+
+  if (hasTransfer) addArea(areas, "transfer stability");
+  if (hasBathroom) addArea(areas, "bathroom safety");
+  else if (hasEnvironment) addArea(areas, "environmental safety");
+  if (hasCaregiver) addArea(areas, "caregiver-supported consistency");
+  if (hasMovement) addArea(areas, "movement control");
+  if (areas.length < 2) addArea(areas, "safety preservation");
 
   return areas.slice(0, 3);
 };
 
-const deriveProgressEvidence = (signal: ProgressionAwarenessSignal) => {
-  if (signal.milestoneAchieved) return `, with documented milestone: ${signal.milestoneAchieved}`;
-  if (signal.functionalChange) return `, with documented change: ${signal.functionalChange}`;
+const deriveReliabilityTarget = (subject: string) => {
+  const normalized = normalize(subject);
 
-  const readiness = normalize(signal.advancementReadiness);
-  if (readiness === "high") return ", with stronger advancement readiness requiring clinician review";
-  if (readiness === "partial") return ", with emerging advancement readiness requiring clinician review";
+  if (normalized.includes("transfer")) return "transfer reliability";
+  if (normalized.includes("bath") || normalized.includes("shower")) return "bathing reliability";
+  if (normalized.includes("toilet")) return "toileting reliability";
 
-  return "";
+  return `${subject.toLowerCase()} reliability`;
 };
 
 const buildProgressionSignal = ({
@@ -323,21 +320,24 @@ export function buildProgressionAwareCurrentFocus({
   const subject = deriveSubject(trimmedFocus);
   const subjectIsPlural = normalize(subject).endsWith("skills");
   const movementVerb = subjectIsPlural ? "are" : "is";
-  const fragileVerb = subjectIsPlural ? "remain" : "remains";
-  const attentionAreas = deriveAttentionAreas({ currentFocus: trimmedFocus, dominantBarriers });
+  const attentionAreas = deriveAttentionAreas({
+    currentFocus: trimmedFocus,
+    dominantBarriers,
+    trend: signal.trend,
+  });
   const attentionText = joinReadableList(attentionAreas);
 
   if (signal.trend === "regression") {
-    return `Recent setbacks suggest ${subject.toLowerCase()} ${movementVerb} becoming less reliable. Focus should return to ${attentionText} before pursuing advancement goals.`;
+    return `Recent setbacks have reduced ${deriveReliabilityTarget(subject)}. Attention should return to ${attentionText}.`;
   }
 
   if (signal.trend === "stabilization") {
-    return `${subject} ${fragileVerb} clinically fragile. Focus remains on ${attentionText} before advancing treatment expectations.`;
+    return `Progress remains limited and ${subject.toLowerCase()} ${movementVerb} still clinically fragile. Focus should remain on ${attentionText}.`;
   }
 
   if (signal.trend === "faster_progress") {
-    return `${subject} ${movementVerb} moving ahead faster than expected${deriveProgressEvidence(signal)}, while clinical caution remains appropriate. Upcoming focus is centered on ${attentionText}.`;
+    return `${subject} ${movementVerb} progressing faster than expected, with clinician review still needed before advancement. Focus should remain on ${attentionText}.`;
   }
 
-  return `${subject} ${movementVerb} moving in the right direction${deriveProgressEvidence(signal)}, while clinical caution remains appropriate. Upcoming focus is centered on ${attentionText}.`;
+  return `${subject} ${movementVerb} moving in the right direction. Focus should remain on ${attentionText}.`;
 }
