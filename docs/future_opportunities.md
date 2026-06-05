@@ -1,298 +1,259 @@
-# Future Opportunities
+# OT Clinical Assistant — Future Opportunities
 
-## Purpose
-
-This document captures validated observations, opportunities, and future product directions that have emerged during development, audits, clinician simulations, and UX reviews.
-
-Items in this document are intentionally deferred.
-
-They are not approved roadmap work.
-
-They should not be interpreted as active implementation priorities.
-
-An item may only move from this document into `active_roadmap.md` through explicit approval.
+Last updated: 2026-06-04
 
 ---
 
-## Recently Completed
+## Purpose of This Document
 
-The following items were previously tracked as opportunities but are now completed implementation reality or completed documentation/specification work. They should not be treated as deferred opportunities or future roadmap candidates unless explicitly reopened.
+This document captures ideas that are directionally relevant but not currently active roadmap commitments.
 
-* Patient Entry Experience.
-* Patient Entry Phase 1.1 fallback and hierarchy corrections.
-* Patient Entry Card context deduplication.
-* Patient Entry Phase 2A Quick Preview primitives.
-* Patient Orientation Layer through the implemented Patient Entry and Quick Preview surface.
-* Reference Workspace Cleanup.
-* Intake Fidelity Audit.
-* Intake Fidelity Normalization Specification.
-* Intake Fidelity Phase 1A.
+Items should not move from this document into implementation unless explicitly approved and added to `docs/foundation/active_roadmap.md`.
 
 ---
 
-# Expanded Visit Preparation Experience Beyond Quick Preview
+## Recently Completed / No Longer Future Opportunities
 
-## Status
+The following are now completed implementation or documentation reality and should not be treated as deferred ideas unless explicitly reopened:
 
-Deferred
+* Snapshot Awareness Phase 1
+* Clinical Impact Summary
+* Command Center delta visibility
+* refreshed Next Action derivation
+* Intake Prioritization Phase 1
+* Intake Prioritization Phase 2
+* High Impact intake hierarchy
+* Workflow Simplification / Navigation Normalization
+* Patient History terminology update
+* Visit History access from Command Center
+* Clinical Briefing UX Normalization
+* Visit History reorientation from software versions to visit-based clinical summaries
+* Patient Entry Experience
+* Patient Entry Phase 2A Quick Preview primitives
+* Patient History cleanup and boundary clarification
+* Intake Fidelity Audit and initial normalization work
 
-## Source
+---
 
-* Post-cleanup Reference Workspace Review
-* UX Normalization Phase 1
-* Longitudinal Workflow Reviews
+## Active Roadmap Adjacent but Not Yet Approved
 
-## Observation
+### Longitudinal Visibility / Continuity Compression
 
-Patient Entry and Quick Preview primitives now provide a lightweight orientation layer before opening the Command Center. Future opportunity remains only for expansion beyond that completed preview surface.
+Status: Future opportunity
 
-Potential expansion content could include selected items that remain too detailed for the current Quick Preview but too orientation-oriented for deep reference review.
+Directionally aligned with platform strategy.
 
-Examples include:
+Potential value:
+
+* compress longitudinal change into clinical meaning
+* show what changed and why it matters
+* clarify what should be done differently
+* identify approaching progression transitions
+* support continuity without exposing continuity architecture
+
+Important distinction:
+
+* This is aligned: **Longitudinal Visibility / Continuity Compression**.
+* This is not current direction: **Longitudinal Intelligence / Analytics**.
+
+Not approved:
+
+* analytics dashboards
+* reporting views
+* population analytics
+* autonomous prediction systems
+* clinician performance tracking
+
+---
+
+## MVP-Critical Cleanup Candidates Tracked Elsewhere
+
+The following are likely near-term adoption-readiness candidates and are summarized in the active roadmap. They are listed here only for continuity:
+
+* Progression Check discoverability / sticky navigation jump
+* action bar cleanup / overflow menu
+* responsive UX / mobile-desktop polish
+
+---
+
+## Workflow Actions Consolidation
+
+Status: Deferred unless moved to active roadmap
+
+Observation:
+
+The platform currently exposes multiple actions, including Refresh Clinical Guidance, Save Clinical Snapshot, Copy Snapshot, Download Snapshot, and progression-check save behavior.
+
+Potential opportunity:
+
+* Separate primary clinical actions from secondary administrative/export actions.
+* Move Copy / Download into secondary or overflow actions.
+* Reduce bottom action bar crowding.
+
+Guardrails:
+
+* Preserve existing capabilities unless explicitly approved for removal.
+* Do not change API contracts or generated output structures as part of visual cleanup.
+
+---
+
+## Standardized Snapshot Summary Payload
+
+Status: Future opportunity
+
+Observation:
+
+Visit History quality depends on available snapshot payload fields. Older snapshots may have weaker clinical context because they were generated before visit-oriented summary expectations were normalized.
+
+Potential opportunity:
+
+Create a standardized snapshot summary payload so Visit History cards can consistently display:
+
+* visit status
+* clinical reality
+* recommended next action
+* meaningful change
+* snapshot source/context
+
+Guardrails:
+
+* This may affect persistence or generated output structure.
+* Do not implement without explicit schema/API/output approval.
+
+---
+
+## Expanded Visit Preparation Experience Beyond Quick Preview
+
+Status: Deferred
+
+Observation:
+
+Patient Entry and Quick Preview primitives already provide lightweight orientation before opening the Command Center. Future expansion should only be considered if clinician validation shows a gap between Quick Preview and Command Center.
+
+Potential content:
 
 * Current Focus rationale
-* Latest Progression Event details
-* Attention context
-* Operational Focus explanation
-* Recent meaningful change
+* latest progression event details
+* attention context
+* operational focus explanation
+* recent meaningful change
 
-## Future Question
+Not approved:
 
-Should the implemented Quick Preview remain intentionally lightweight, or should a separate expanded visit-preparation experience be introduced later?
-
-## Potential Preview Content
-
-* Current Focus
-* Attention Required
-* Latest Progression Event
-* Operational Focus rationale
-* Recent meaningful change
-* Current trajectory
-
-## Potential Benefits
-
-* Faster pre-visit orientation
-* Better patient prioritization
-* Reduced need to enter multiple screens before treatment
-
-## Not Approved
-
-No expanded implementation approved beyond the completed Quick Preview primitives.
-
-Requires future workflow validation.
+No expanded visit-preparation implementation is approved.
 
 ---
 
-# Broader Intake Fidelity Optimization
+## Broader Intake Optimization
 
-## Status
+Status: Deferred beyond completed Intake Prioritization work
 
-Deferred beyond active Phase 1B contradiction guardrails
+Observation:
 
-## Source
+The intake workflow has been prioritized around high-impact clinical fields, but future optimization could still investigate conditional fields, contradiction guardrails, and field-level output influence.
 
-* Intake Form Reviews
-* Clinical Reasoning Reviews
-* UX Discussions
+Potential goals:
 
-## Observation
+* reduce conflicting inputs
+* improve reasoning fidelity
+* reduce unnecessary intake burden
+* improve clinician trust
 
-Not all intake fields contribute equally to output quality.
+Not approved:
 
-Some fields have significant influence on reasoning quality while others have relatively minor impact.
-
-The current intake workflow also permits potentially conflicting clinical states.
-
-## Future Questions
-
-* Which fields most influence output quality?
-* Which fields rarely affect reasoning outcomes?
-* Which combinations create contradictory states?
-* Which fields should become conditional?
-* Which fields should be visually prioritized?
-
-## Potential Goals
-
-* Reduce conflicting inputs
-* Improve reasoning fidelity
-* Improve clinician confidence
-* Reduce unnecessary intake burden
-
-## Not Approved
-
-No broader implementation is approved beyond active Phase 1B contradiction guardrails.
-
-Intake Fidelity Audit and Phase 1A are complete. Broader optimization beyond active Phase 1B requires explicit approval.
+No broad intake redesign is approved.
 
 ---
 
-# Workflow Actions Consolidation
+## Current Focus Adaptive Typography
 
-## Status
+Status: Deferred
 
-Deferred
+Observation:
 
-## Source
+Current Focus performs well as a concise operational emphasis, but longer statements can become visually heavy.
 
-* UX Normalization Reviews
-* Workflow Discussions
+Potential opportunity:
 
-## Observation
+Dynamically scale typography based on content length.
 
-The platform currently contains multiple action systems and workflow controls.
-
-Examples include:
-
-* Edit Case
-* Regenerate
-* Save Snapshot
-* Copy
-* Download
-* Save Progression Check
-
-As functionality expands, action density may become a source of workflow friction.
-
-## Future Questions
-
-* Which actions are operational?
-* Which actions are administrative?
-* Which actions are historical?
-* Which actions are rarely used?
-* Which actions should be grouped together?
-
-## Potential Goal
-
-Create a clearer action hierarchy without reducing capability.
-
-## Not Approved
-
-No implementation approved.
-
-Requires Workflow Actions Audit.
-
----
-
-# Current Focus Adaptive Typography
-
-## Status
-
-Deferred
-
-## Source
-
-* UX Normalization Phase 1 Review
-
-## Observation
-
-Current Focus performs well for concise operational emphasis statements.
-
-Long operational emphasis statements can become visually overwhelming at the current headline size.
-
-## Future Question
-
-Should Current Focus typography scale dynamically based on content length?
-
-## Potential Benefits
-
-* Improved readability
-* Reduced visual fatigue
-* Better information density management
-
-## Not Approved
-
-No implementation approved.
+Not approved:
 
 Requires future UX validation.
 
 ---
 
-# Future Reference Workspace Enhancements
+## Patient History Enhancements
 
-## Status
+Status: Deferred
 
-Deferred
+Observation:
 
-## Source
+Patient History is the supporting-context surface. It should not compete with Command Center clinical briefing authority.
 
-* Post-cleanup Reference Workspace Review
+Potential future questions:
 
-## Observation
+* What context is genuinely deep reference?
+* What should be promoted to Command Center or Quick Preview?
+* What should remain collapsed?
+* How can Patient History support review without fragmenting attention?
 
-Reference Workspace Cleanup is complete. Future enhancement work should only address remaining organization opportunities that do not compete with Command Center orientation.
+Not approved:
 
-Operational Focus, progression context, and longitudinal summaries may represent a future orientation layer rather than purely reference content.
-
-## Future Questions
-
-* What is true deep-reference information?
-* What is pre-visit orientation information?
-* What belongs in Command Center?
-* What belongs in a future preview experience?
-
-Investigate whether Operational Focus, Latest Progression Event, and other orientation-oriented Reference Workspace content should be surfaced through a future Patient Preview / Visit Preparation experience or compressed Command Center orientation layer.
-
-## Potential Outcome
-
-Further distinction between:
-
-### Orientation Content
-
-Information needed before or immediately upon opening a patient.
-
-### Reference Content
-
-Information used for deeper review and investigation.
-
-## Not Approved
-
-No implementation approved.
-
-Requires future workflow validation.
+No broad Patient History reorganization is approved.
 
 ---
 
-# Historical Snapshot Experience Enhancements
+## PT Platform Configuration Validation
 
-## Status
+Status: Post-MVP expansion research
 
-Deferred
+Observation:
 
-## Source
+The broader rehabilitation Clinical Assistant Platform direction may support PT if discipline-specific configuration can preserve reasoning quality and workflow relevance.
 
-* Reference Workspace Reviews
-* Longitudinal Workflow Discussions
+Future validation questions:
 
-## Observation
+* Which OT reasoning primitives transfer directly?
+* Which PT-specific intake fields are required?
+* How should PT progression signals differ?
+* Can platform-level architecture remain stable while discipline configuration changes?
 
-Historical Snapshots are one of the strongest longitudinal workflow features in the platform.
+Not approved:
 
-The current implementation is functional but may not represent the final user experience.
-
-## Future Questions
-
-* How should snapshot comparison evolve?
-* What information should be previewed before restoration?
-* How should longitudinal progression be reviewed over time?
-
-## Potential Goal
-
-Improve historical review without increasing cognitive burden.
-
-## Not Approved
-
-No implementation approved.
-
-Requires future review.
+No PT implementation is approved.
 
 ---
 
-# Promotion Rules
+## SLP Feasibility Review
 
-An item may only move from this document into `active_roadmap.md` when:
+Status: Post-MVP expansion research
 
-1. The opportunity has been validated.
-2. The problem is clearly defined.
-3. The expected value is understood.
-4. Explicit approval has been given.
+Observation:
 
-Ideas should remain here until they become priorities.
+SLP may require substantially different clinical taxonomies, environmental/contextual signals, and output structures.
+
+Future validation questions:
+
+* Is the Clinical Attention System model applicable to SLP workflows?
+* What discipline-specific reasoning authority would be required?
+* Which longitudinal signals matter most?
+* Would SLP require a separate configuration model?
+
+Not approved:
+
+No SLP implementation is approved.
+
+---
+
+## Product Boundaries
+
+Future opportunities should preserve the platform as a Clinical Attention System.
+
+Do not expand toward:
+
+* EMR replacement
+* documentation replacement
+* analytics dashboard
+* reporting platform
+* autonomous clinician
