@@ -1,250 +1,219 @@
 # OT Clinical Assistant — Project Snapshot
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ---
 
-## Product Purpose
+## One-Screen Current Summary
 
-The OT Clinical Assistant is a clinical workflow tool for adult rehabilitation and home health occupational therapy. It helps clinicians convert fragmented evaluation, caregiver, environmental, and follow-up information into continuity-aware treatment prioritization.
+The OT Clinical Assistant is an adult rehabilitation / home health clinical workflow assistant. It compresses fragmented intake, visit updates, caregiver context, environmental barriers, and longitudinal changes into clinician-facing attention guidance.
 
-The product is intended to feel like a clinician command center, not an AI-generated report. Its core job is to help a therapist rapidly answer:
+The product should be understood as a **Clinical Attention System**. Its core value is:
 
-1. Is the patient improving, stable, or declining?
-2. What changed since the last visit?
-3. Why does that change matter?
-4. What requires attention today?
-5. What should I do next?
+* cognitive compression
+* rapid orientation
+* continuity awareness
+* change detection
+* treatment prioritization
+* clinician attention management
+
+The product is not intended to become an EMR, documentation replacement, analytics dashboard, reporting platform, or autonomous clinician.
 
 ---
 
 ## Current Product State
 
-### Maturity Level
+The OT MVP now includes:
 
-The project is past architecture discovery and is in workflow validation / adoption-readiness maturation.
+* structured New Case intake
+* high-impact intake hierarchy
+* deterministic clinical reasoning inputs and decision model
+* Command Center clinical briefing surface
+* Patient History for deeper supporting context
+* Visit History for saved visit-oriented clinical snapshots
+* Clinical Impact Summary after meaningful progression updates
+* progression checks and longitudinal state updates
+* historical snapshot awareness with read-only protections
+* clinical briefing-style Command Center layout
+* visit-oriented snapshot cards
+* refreshed clinical guidance and next-action derivation
+* longitudinal continuity support
 
-Major architecture is stable. Current work should emphasize clinician orientation, state awareness, intake fidelity, trust, and real-world workflow fit rather than new reasoning systems.
-
-### What Works Today
-
-The implemented product supports:
-
-* patient entry and lightweight Quick Preview
-* a patient Command Center for current orientation
-* a Reference Workspace for context, review, snapshots, generated outputs, and deeper investigation
-* deterministic clinical reasoning inputs and operational prioritization
-* generated plan synthesis constrained by deterministic reasoning
-* progression-check capture
-* longitudinal event creation
-* current longitudinal state refresh
-* clinical attention state
-* Clinical Impact Summary after progression updates
-* Clinical Status Explainability
-* Clinical Impact CTA behavior
-* refined Treatment Focus presentation
-* refreshed Next Action behavior that accounts for newer longitudinal meaning
-
-### What Is Validated
-
-Validated directionally:
-
-* deterministic reasoning should remain authoritative while AI supports synthesis and communication
-* clinicians need cognitive compression more than narrative richness
-* environmental barriers and caregiver feasibility are core to treatment prioritization
-* current operational state should be more prominent than historical or configuration content
-* Command Center / Reference Workspace separation fits the patient-centric workflow direction
-* language compression improves clinician trust without changing reasoning architecture
-* longitudinal delta support is necessary for continuity-aware use
-
-### What Remains Uncertain
-
-Still needs validation:
-
-* whether clinicians tolerate the current structured intake burden in real workflows
-* how much contradiction validation is helpful before it feels obstructive
-* whether longitudinal value justifies added update behavior during busy home health routines
-* whether snapshot/live-state awareness is sufficient to prevent confusion
-* how the product should integrate with EMR, documentation, and visit preparation workflows
-* whether clinical trust holds across varied patient complexity and clinician experience levels
+Recent completed work includes Snapshot Awareness Phase 1, Clinical Impact Summary, Command Center delta visibility, refreshed Next Action derivation, Intake Prioritization Phase 1, Intake Prioritization Phase 2, High Impact intake hierarchy, Workflow Simplification / Navigation Normalization, Patient History terminology update, Visit History access from Command Center, Clinical Briefing UX Normalization, and Visit History reorientation from software versions to visit-based clinical summaries.
 
 ---
 
-## Architecture Summary
+## Current Workflow
 
-The system uses deterministic reasoning as the clinical authority layer and AI-generated text as a constrained synthesis layer.
+The current case workflow is:
 
-High-level flow:
+1. Create a case through New Case intake.
+2. Generate clinical guidance.
+3. Use the Command Center as the clinical briefing surface.
+4. Use Progression Check to update longitudinal state.
+5. Use Clinical Impact Summary after updates to understand what changed, what was confirmed, and what should be done differently.
+6. Use Visit History to review previous saved clinical snapshots.
+7. Use Patient History for deeper supporting context.
+8. Use historical snapshot mode with read-only protections when reviewing prior visits.
 
-Structured Intake / Case Data
-→ Deterministic Clinical Decision Inputs
-→ Clinical Decision Engine
-→ Progression and Continuity Interpretation
-→ Operational Prioritization
-→ Generated Plan Synthesis
-→ Command Center / Reference Workspace
-→ Progression Check Updates
-→ Longitudinal Event + Current State Refresh
+The Command Center should help a clinician answer quickly:
 
-Key concepts:
-
-* **Deterministic reasoning** establishes stable clinical signals, priorities, and constraints.
-* **Generated plan** organizes and communicates the deterministic outputs; it is not the source of clinical authority.
-* **Longitudinal workflow** carries current patient reality forward across visits.
-* **Operational prioritization** identifies what treatment should focus on right now.
-* **Progression check workflow** captures follow-up changes and refreshes clinical attention, treatment focus, and next action.
-* **Command Center** is the primary orientation surface for current clinical reality.
-* **Reference Workspace** is for deeper review, historical snapshots, generated outputs, and supporting context.
-
-The architecture should remain mostly invisible to clinicians. Clinicians should see clear status, change, attention, focus, and next action rather than internal continuity terminology.
+* What is happening now?
+* What changed since the last visit?
+* Why does that matter?
+* What needs attention today?
+* What should I do next?
 
 ---
 
-## Major Completed Milestones
+## Current Navigation and Terminology
 
-### Orientation & Cognitive Compression
+Current clinician-facing terminology:
 
-Completed:
+* **Patient History**, not Reference Workspace.
+* **Visit History**, not Historical Snapshots or Version History where clinician-facing.
+* **Refresh Clinical Guidance**, not Regenerate.
+* **Save Clinical Snapshot**, not Save Snapshot.
+* **Clinical Briefing**, when describing the current Command Center presentation model.
 
-* Command Center hierarchy stabilization
-* Clinical Language Compression Phase 1
-* Patient Entry Phase 1
-* Patient Entry Quick Preview primitives
-* Reference Workspace boundary clarification
-* Treatment Focus refinement
-* Next Action Refresh
+Current navigation model:
 
-### Workflow Continuity Infrastructure
+Patient
+├── Command Center
+└── Patient History
 
-Completed:
+Command Center is the primary workflow surface. Patient History is supporting context and should not compete with current clinical orientation.
 
+---
+
+## Implementation Reality to Preserve
+
+Current implementation reflects the above direction:
+
+* `CaseWorkspaceClient.tsx` renders the patient workspace, Command Center, Progression Check, Patient History section, Visit History access, Refresh Clinical Guidance, Save Clinical Snapshot, Copy Snapshot, and Download Snapshot actions.
+* `StickyOperationalHeader.tsx` provides sticky patient workspace navigation for Live Case, Command Center, and Patient History, plus live-versus-historical status labeling.
+* `HistoricalSnapshotsSection.tsx` presents Visit History, saved visit snapshots, read-only historical preview context, and restore controls.
+* `src/app/new-case/page.tsx` remains the structured intake entry point.
+* `src/app/cases/[id]/edit/page.tsx` remains the existing edit/update workflow and still contains some older regeneration-oriented language.
+* API routes include plan generation, detail-module generation, progression checks, seed progression checks, test OpenAI, and development test-case seeding.
+
+This snapshot is descriptive. It does not approve product behavior changes, schema changes, or API contract changes.
+
+---
+
+## Architecture That Remains Authoritative
+
+The following remain stable authority layers:
+
+* deterministic clinical reasoning architecture
 * continuity architecture
-* canonical continuity state
-* live current-state authority
-* immutable historical snapshot governance
-* mutation governance
-* longitudinal event handling
-* operational prioritization refresh after progression events
+* progression architecture
+* operational prioritization architecture
+* reassessment architecture
+* mutation governance architecture
+* patient-centric Command Center / Patient History navigation
 
-### Progression Foundations
+Generated language should synthesize and explain deterministic outputs. It should not independently become the source of clinical truth.
+
+---
+
+## Current UX Direction
+
+The current Command Center presentation model is a **Clinical Briefing**.
+
+The interface should feel like:
+
+* calm clinical mission control
+* restrained and professional
+* focused on what matters now
+* typography- and whitespace-driven
+* clinically meaningful rather than decorative
+
+The interface should avoid:
+
+* dashboard-heavy fragmentation
+* decorative color systems
+* exposing continuity internals
+* equal visual authority for all information
+* AI-report aesthetics
+
+Information authority should reinforce:
+
+1. Current clinical reality
+2. Meaningful change
+3. Required attention
+4. Immediate action
+5. Supporting context
+
+---
+
+## Roadmap Snapshot
 
 Completed:
 
-* deterministic progression model
-* progression check data model
-* progression check UX architecture
-* current longitudinal state refresh
-* clinical attention model
-* reassessment-sensitive progression interpretation
+* Snapshot Awareness Phase 1
+* Intake Prioritization Phase 1
+* Intake Prioritization Phase 2
+* Workflow Simplification / Navigation Normalization
+* Clinical Briefing UX Normalization
 
-### Longitudinal Clinical Delta Experience
+MVP-critical cleanup candidates:
 
-Completed:
+* Progression Check discoverability / sticky navigation jump
+* action bar cleanup / overflow menu
+* responsive UX / mobile-desktop polish
 
-* Clinical Impact Summary
-* Clinical Status Explainability
-* Clinical Impact CTA
-* Treatment Focus refinement
-* Next Action Refresh
+Future opportunities:
 
-These milestones make the Command Center capable of showing what changed, what was confirmed, why it matters, and what should guide today’s visit after a progression update.
+* Longitudinal Visibility / Continuity Compression
+* standardized snapshot summary payload if Visit History quality requires it
 
----
+Post-MVP expansion:
 
-## Current Priorities
-
-1. **Snapshot Awareness** — clarify when the clinician is viewing current operational truth versus historical/generated snapshot context.
-2. **Intake Fidelity Validation** — validate high-signal intake and contradiction guardrails without adding excessive friction.
-3. **EMR / Workflow Integration Research** — understand fit with visit preparation, documentation, and home health update routines.
-4. **Clinician Testing** — test Command Center orientation, trust, state awareness, and next-action usability with practicing clinicians.
-5. **Intake Fidelity Phase 1B** — implement contradiction guardrails once validation confirms thresholds and clinician-facing wording.
+* PT platform configuration validation
+* SLP feasibility review
 
 ---
 
-## Known Product Risks
+## Platform Direction
 
-### Clinical Risks
+The platform is moving from an OT-only MVP toward a broader rehabilitation-focused Clinical Assistant Platform.
 
-* Reasoning may appear more certain than the underlying intake supports.
-* Contradiction guardrails could block legitimate clinical nuance if over-designed.
-* Snapshot confusion could lead clinicians to rely on outdated generated context.
-* Next Action language could be over-followed unless it remains framed as clinician decision support.
+The aligned future direction is **Longitudinal Visibility / Continuity Compression**: helping clinicians understand what changed, why it changed, what is approaching, and what treatment implication follows.
 
-### Workflow Risks
-
-* Structured intake and progression updates may be too much friction for real home health cadence.
-* Clinicians may not consistently update progression data unless the payoff is immediate.
-* Reference Workspace content could drift back into competing with Command Center orientation.
-* Snapshot restoration/review workflows may need clearer boundaries as historical use increases.
-
-### Adoption Risks
-
-* EMR integration and documentation workflow fit may matter more than reasoning quality.
-* Clinicians may distrust the product if state changes are not explained in simple clinical language.
-* Buyers or auditors may need clearer evidence that the system supports, rather than replaces, clinician judgment.
-* Different practice settings may require different tolerance for structured updates.
-
-### Technical Risks
-
-* Legacy pathway-shaped compatibility fields remain semantic debt.
-* Generated plan snapshots and live current state must stay clearly separated.
-* Longitudinal events can become harder to reason about as volume grows.
-* Future schema/API changes should be avoided until workflow validation justifies them.
+The current direction is not **Longitudinal Intelligence / Analytics**: analytics dashboards, performance reporting, autonomous recommendations, or population-level insights are not current product strategy.
 
 ---
 
-## Current Working Hypotheses
+## Known Issues and Future Cleanup
 
-* Clinicians will tolerate short structured intake if it directly improves orientation and next-action clarity.
-* Longitudinal value may justify additional update behavior if each update produces immediate clinical delta feedback.
-* Workflow integration may be a larger adoption risk than reasoning quality.
-* Snapshot/live-state clarity is necessary before longitudinal history becomes clinically safe at scale.
-* Cognitive compression and clinician-facing explanation can improve trust without expanding reasoning architecture.
-* Caregiver feasibility and environmental barriers remain differentiators for adult rehab and home health use.
+Current known cleanup candidates:
 
----
+* Duplicate or unclear Live Case status/navigation behavior may still need review.
+* Progression Check discoverability may be insufficient without a sticky navigation jump.
+* Bottom action bar may be crowded.
+* Copy / Download likely belong in secondary or overflow actions.
+* Responsive/mobile visual review is still needed.
+* Visit History quality depends on available snapshot payload fields.
+* Older snapshots may have weaker clinical context.
+* A standardized snapshot summary payload may be needed later.
 
-## Recent Decisions
-
-Recent sprint decisions now reflected in the product direction:
-
-* Clinical Impact Summary is the preferred post-update delta pattern for explaining what changed and what was confirmed.
-* Clinical Status should be explainable in clinician-facing terms without exposing internal continuity classifications.
-* The Clinical Impact CTA should route clinician attention to the delta summary after a progression update.
-* Treatment Focus should remain current-operational and concise, not a verbose plan narrative.
-* Next Action should be refreshed from current longitudinal meaning and should suppress stale generated-plan actions when newer clinical meaning is active.
-* Historical snapshots remain reference/continuity tools and should not compete with live Command Center authority.
+Do not implement these as part of documentation refresh work. They are documented for handoff awareness.
 
 ---
 
-## Recommended Next Implementation
+## New-Agent Onboarding Order
 
-**Snapshot Awareness** is the single highest-priority next implementation item.
-
-Why:
-
-The product now has meaningful longitudinal delta behavior. That increases the importance of helping clinicians understand which state is current, which content is historical, and whether a snapshot is being viewed only for reference. Snapshot Awareness directly supports clinical safety, trust, and adoption without requiring new reasoning architecture.
-
-Recommended implementation shape:
-
-* add clearer live-state versus snapshot-state labeling
-* improve snapshot recency/status microcopy
-* make historical snapshot context subordinate but unmistakable
-* avoid timeline dashboards or new continuity systems
-* preserve current data model and API contracts
-
----
-
-## Quick Onboarding
-
-Read in this order:
+Recommended onboarding order:
 
 1. `AGENTS.md`
 2. `docs/PROJECT_SNAPSHOT.md`
-3. `docs/CONSULTANT_HANDOFF.md`
-4. `docs/PROJECT_STATUS_AND_DIRECTION.md`
+3. `docs/PROJECT_STATUS_AND_DIRECTION.md`
+4. `docs/CONSULTANT_HANDOFF.md`
 5. `docs/foundation/active_roadmap.md`
-6. `docs/foundation/decision_log.md`
-7. `docs/architecture/system_architecture.md`
-8. `docs/UX/Visual_Design_Principles.md`
-9. `docs/UX/Command_Center_UX_Normalization_Roadmap.md`
+6. `docs/foundation/north_star.md`
+7. `docs/foundation/platform_north_star.md`
+8. `docs/future_opportunities.md`
+9. `docs/UX/Visual_Design_Principles.md`
+10. `docs/UX/Command_Center_UX_Normalization_Roadmap.md`
+11. Implementation inspection, especially `src/app/cases/[id]/CaseWorkspaceClient.tsx`, `StickyOperationalHeader.tsx`, `HistoricalSnapshotsSection.tsx`, New Case intake, edit workflow, and relevant API routes.

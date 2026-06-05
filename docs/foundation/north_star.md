@@ -1,3 +1,58 @@
+# OT Clinical Assistant — North Star
+
+Last updated: 2026-06-04
+
+---
+
+## Current North Star
+
+The OT Clinical Assistant is a clinical attention and orientation system for adult rehabilitation and home health occupational therapy. It should help clinicians compress fragmented case information, caregiver constraints, environmental barriers, progression updates, and visit history into a calm clinical briefing.
+
+The product should help clinicians answer quickly:
+
+1. What is happening now?
+2. What changed since the last visit?
+3. Why does that change matter?
+4. What requires attention today?
+5. What should happen next?
+
+The product should feel like a clinical mission-control briefing, not an AI-generated report, analytics dashboard, or documentation replacement.
+
+---
+
+## Current Terminology
+
+Use current clinician-facing terminology:
+
+* Command Center
+* Patient History
+* Visit History
+* Refresh Clinical Guidance
+* Save Clinical Snapshot
+* Clinical Briefing
+
+Avoid reintroducing Reference Workspace, Historical Snapshots / Version History, Regenerate, or Save Snapshot as primary clinician-facing language.
+
+---
+
+## Current MVP Scope
+
+The MVP includes structured intake, high-impact intake hierarchy, deterministic reasoning, Command Center, Patient History, Visit History, Clinical Impact Summary, progression checks, historical snapshot awareness, clinical briefing-style layout, visit-oriented snapshot cards, refreshed clinical guidance, and longitudinal continuity support.
+
+---
+
+## Platform Direction
+
+The broader platform direction is a rehabilitation-focused Clinical Assistant Platform. The core value is cognitive compression, orientation, continuity awareness, change detection, prioritization, and clinician attention management.
+
+Aligned future opportunity: Longitudinal Visibility / Continuity Compression.
+
+Not current direction: Longitudinal Intelligence / Analytics.
+
+---
+
+## Historical North Star Notes
+
 # OT Clinical Reasoning Assistant — North Star
 
 ---

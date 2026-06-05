@@ -116,26 +116,29 @@ The following systems are considered authoritative:
 - operational prioritization architecture
 - reassessment architecture
 - mutation governance architecture
-- patient-centric Command Center / Reference Workspace navigation
+- patient-centric Command Center / Patient History navigation
 
 Recently completed work includes:
 
+- Snapshot Awareness Phase 1
 - Clinical Impact Summary
-- Clinical Status Explainability
-- Clinical Impact CTA
-- Treatment Focus refinement
-- Next Action Refresh
-- Patient Entry and Quick Preview primitives
-- Intake Fidelity Phase 1A
-- Reference Workspace cleanup
+- Command Center delta visibility
+- refreshed Next Action derivation
+- Intake Prioritization Phase 1 and Phase 2
+- High Impact intake hierarchy
+- Workflow Simplification / Navigation Normalization
+- Patient History terminology update
+- Visit History access from Command Center
+- Clinical Briefing UX Normalization
+- Visit History reorientation from software versions to visit-based clinical summaries
 
 Current priorities are:
 
-1. Snapshot Awareness
-2. Intake Fidelity Validation
-3. EMR / Workflow Integration Research
-4. Clinician Testing
-5. Intake Fidelity Phase 1B contradiction guardrails
+1. Progression Check discoverability / sticky navigation jump
+2. Action bar cleanup / overflow menu
+3. Responsive UX / mobile-desktop polish
+4. Longitudinal Visibility / Continuity Compression as a future opportunity
+5. PT platform configuration validation and SLP feasibility review as post-MVP expansion research
 
 Assume stable systems should be consumed by workflow surfaces rather than redesigned unless explicitly instructed otherwise.
 
@@ -224,7 +227,7 @@ Approved navigation model:
 Patient
 
 ├── Command Center
-└── Reference Workspace
+└── Patient History
 
 ---
 
@@ -266,9 +269,9 @@ Recent visit history is considered orientation content, not historical reference
 
 ---
 
-## Reference Workspace Purpose
+## Patient History Purpose
 
-The Reference Workspace exists for context, review, and deeper investigation.
+Patient History exists for context, review, and deeper investigation.
 
 Examples:
 
@@ -277,12 +280,12 @@ Examples:
 * Caregiver Context
 * Environmental Context
 * Operational Pressures
-* Historical Snapshots
-* Version History
+* Visit History
+* Saved clinical snapshots
 * Generated Outputs
 * Full Longitudinal Review
 
-Reference content should not compete with orientation content.
+Patient History content should not compete with orientation content.
 
 ---
 
@@ -296,7 +299,7 @@ Place it in the Command Center.
 
 If the information is primarily for review, context, explanation, investigation, or historical understanding:
 
-Place it in the Reference Workspace.
+Place it in Patient History.
 
 ---
 
@@ -361,7 +364,7 @@ Secondary content should remain subordinate.
 Examples:
 
 - Detail Modules
-- Historical Snapshots
+- Visit History
 - Generated Outputs
 - Advanced Configuration
 
