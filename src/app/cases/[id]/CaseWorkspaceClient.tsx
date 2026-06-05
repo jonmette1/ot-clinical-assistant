@@ -31,6 +31,7 @@ import {
   compressCommandCenterSentence,
   compressCurrentFocusSentence,
 } from "@/lib/clinicalDisplayLanguage";
+import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
 // ==============================
 // TYPES
 // ==============================
@@ -593,9 +594,14 @@ const buildCommandCenterDeltaSnapshotFromCase = (
   const clinicalAttentionState = sourceCase.clinical_attention_state;
   const currentLongitudinalState = sourceCase.current_longitudinal_state;
 
-  const currentOperationalEmphasis =
-    operationalPrioritization?.currentOperationalEmphasis ||
-    "No operational emphasis generated";
+  const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
+    currentFocus:
+      operationalPrioritization?.currentOperationalEmphasis ||
+      "No operational emphasis generated",
+    progressionState,
+    currentLongitudinalState,
+    clinicalAttentionState,
+  });
 
   const clinicalAttentionRequiresOperationalReview = readBoolean(
     clinicalAttentionState,
@@ -2150,9 +2156,19 @@ const operationalPrioritization = generated?.operational_prioritization;
 
 const structuredPlanDetails = generated?.structured_plan_details;
 
-const currentOperationalEmphasis =
+const clinicalAttentionState = displayCase.clinical_attention_state;
+const currentLongitudinalState = displayCase.current_longitudinal_state;
+
+const rawCurrentOperationalEmphasis =
   operationalPrioritization?.currentOperationalEmphasis ||
   "No operational emphasis generated";
+
+const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
+  currentFocus: rawCurrentOperationalEmphasis,
+  progressionState,
+  currentLongitudinalState,
+  clinicalAttentionState,
+});
 
 const commandCenterCurrentOperationalEmphasis =
   compressCurrentFocusSentence(currentOperationalEmphasis);
@@ -2171,9 +2187,6 @@ const operationalReassessmentTriggers: string[] =
 
 const operationalContinuitySummary =
   operationalPrioritization?.continuitySummary || "";
-
-const clinicalAttentionState = displayCase.clinical_attention_state;
-const currentLongitudinalState = displayCase.current_longitudinal_state;
 const latestEventPayload = latestLongitudinalEvent?.event_payload;
 const latestEventCurrentStateSnapshot = latestLongitudinalEvent?.current_state_snapshot;
 const latestEventClinicalAttentionSnapshot = latestLongitudinalEvent?.clinical_attention_snapshot;
@@ -2334,7 +2347,7 @@ const shouldRenderProgressionSummaryCards = Boolean(
 const operationalFocusRows: SummaryRow[] = [
   {
     label: "Current operational emphasis",
-    value: operationalPrioritization?.currentOperationalEmphasis,
+    value: currentOperationalEmphasis,
   },
   {
     label: "Emphasis rationale",

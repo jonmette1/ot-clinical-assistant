@@ -4,6 +4,7 @@ import {
   compressCurrentFocusSentence,
   compressNextActionList,
 } from "@/lib/clinicalDisplayLanguage";
+import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
 
 export type PatientEntryPreviewCaseData = {
   id: string;
@@ -280,11 +281,21 @@ export function derivePatientEntryPreviewSignals({
     reassessmentRecommended ? "Reassessment is recommended." : null,
   ].filter((item): item is string => Boolean(item));
 
+  const progressionAwareCurrentFocus = currentFocus
+    ? buildProgressionAwareCurrentFocus({
+        currentFocus,
+        progressionState,
+        currentLongitudinalState: caseData.current_longitudinal_state,
+        clinicalAttentionState: caseData.clinical_attention_state,
+        latestEventPayload,
+      })
+    : null;
+
   return [
-    currentFocus
+    progressionAwareCurrentFocus
       ? {
           label: "Current Focus" as const,
-          value: compressCurrentFocusSentence(currentFocus),
+          value: compressCurrentFocusSentence(progressionAwareCurrentFocus),
         }
       : null,
     attentionItems.length
