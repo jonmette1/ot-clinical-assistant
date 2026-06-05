@@ -215,7 +215,7 @@ export function HistoricalSnapshotsSection({
     orderedGenerations.length - orderedGenerations.findIndex((g) => g.id === generationId);
 
   return (
-    <details className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+    <details className="scroll-mt-44 rounded-xl border border-gray-800 bg-gray-900 p-4 sm:scroll-mt-44 sm:p-6">
       <summary className="flex cursor-pointer items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Visit History</h2>
@@ -224,7 +224,7 @@ export function HistoricalSnapshotsSection({
         <span className="text-xs tracking-wide text-gray-300">Show</span>
       </summary>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-semibold">Saved Visit Snapshots</h3>
