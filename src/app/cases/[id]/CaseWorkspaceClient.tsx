@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildClinicalDecisionModel } from "@/lib/clinicalDecisionEngine";
@@ -826,6 +826,19 @@ const [latestClinicalImpactSummary, setLatestClinicalImpactSummary] = useState<C
 const [highlightClinicalImpactSummary, setHighlightClinicalImpactSummary] = useState(false);
 const clinicalImpactSummaryRef = useRef<HTMLDivElement | null>(null);
 const clinicalImpactHighlightTimeoutRef = useRef<number | null>(null);
+const progressionCheckSectionRef = useRef<HTMLElement | null>(null);
+const functionalChangesRef = useRef<HTMLTextAreaElement | null>(null);
+const focusProgressionCheck = useCallback(() => {
+  const progressionCheckSection = progressionCheckSectionRef.current;
+
+  if (!progressionCheckSection) return;
+
+  progressionCheckSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  window.setTimeout(() => {
+    functionalChangesRef.current?.focus({ preventScroll: true });
+  }, 350);
+}, []);
 const [latestLongitudinalEvent, setLatestLongitudinalEvent] = useState<LongitudinalEventRow | null>(null);
 const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<LongitudinalEventRow[]>([]);
 
@@ -979,6 +992,13 @@ if (!longitudinalEventError) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || workspaceMode !== "command") return;
+    if (window.location.hash !== "#progression-check") return;
+
+    window.requestAnimationFrame(focusProgressionCheck);
+  }, [focusProgressionCheck, loading, workspaceMode]);
 
   // ==============================
 // OPERATIONAL HANDLERS
@@ -2012,6 +2032,31 @@ const returnToLiveCase = () => {
   }
 };
 
+
+const handleUpdatePatientStatusClick = () => {
+  if (!caseData?.id) return;
+
+  setSelectedGeneration(null);
+
+  if (workspaceMode === "reference") {
+    router.push(`/cases/${caseData.id}#progression-check`);
+    return;
+  }
+
+  window.requestAnimationFrame(focusProgressionCheck);
+};
+
+const handleSelectHistoricalSnapshot = (generation: GenerationRow) => {
+  if (generation.id === currentGenerationId) {
+    setSelectedGeneration(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  setSelectedGeneration(generation);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
 // ==============================
 // DERIVED DISPLAY MODEL
 // displayCase / generated / executiveBriefing
@@ -2030,9 +2075,8 @@ const generated = displayCase.generated_output as GeneratedOutput | null;
 const selectedSnapshotQuery = isViewingHistoricalVersion
   ? `?snapshot=${selectedGeneration?.id}`
   : "";
-const liveCaseHref = `/cases/${caseData.id}`;
-const commandCenterHref = `/cases/${caseData.id}${selectedSnapshotQuery}`;
-const patientHistoryHref = `/cases/${caseData.id}/reference${selectedSnapshotQuery}`;
+const visitBriefingHref = `/cases/${caseData.id}${selectedSnapshotQuery}`;
+const caseDetailsHref = `/cases/${caseData.id}/reference${selectedSnapshotQuery}`;
 
 const progressionState = generated?.progression_state;
 
@@ -3063,44 +3107,21 @@ setCaseData({
 
 return (
 <main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
-{/* OWNERSHIP: Patient workspace — sticky navigation keeps Live Case, Command Center, and Patient History available while scrolling. */}
+{/* OWNERSHIP: Patient workspace — sticky navigation separates workspace navigation from live/snapshot state. */}
 <StickyOperationalHeader
   title={displayCase.title}
   workspaceMode={workspaceMode}
   isViewingHistoricalVersion={isViewingHistoricalVersion}
   snapshotSavedAtLabel={selectedSnapshotSavedAtLabel}
-  liveCaseHref={liveCaseHref}
-  commandCenterHref={commandCenterHref}
-  patientHistoryHref={patientHistoryHref}
+  visitBriefingHref={visitBriefingHref}
+  caseDetailsHref={caseDetailsHref}
+  onUpdatePatientStatus={handleUpdatePatientStatusClick}
   onReturnToLiveCase={returnToLiveCase}
 />
 
-<div className="max-w-5xl mx-auto space-y-6 pt-36 sm:pt-28 md:pt-24">
-
-{workspaceMode === "command" && isViewingHistoricalVersion ? (
-  <div className="rounded-2xl border border-amber-500/50 bg-amber-950/25 p-4 text-sm text-amber-50 shadow-sm shadow-black/10">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/90">
-          Viewing Historical Snapshot
-        </p>
-        <p className="mt-1 font-medium text-amber-50">
-          Saved {selectedSnapshotSavedAtLabel || "date unavailable"}
-        </p>
-        <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
-          This is a read-only historical reference and may not reflect current progression updates.
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={returnToLiveCase}
-        className="rounded-lg border border-amber-300/50 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-900/40"
-      >
-        Return to Live Case
-      </button>
-    </div>
-  </div>
-) : null}
+<div className={`max-w-5xl mx-auto space-y-6 ${
+  isViewingHistoricalVersion ? "pt-56 sm:pt-44 md:pt-40" : "pt-36 sm:pt-28 md:pt-24"
+}`}>
 
 {workspaceMode === "command" && (
 <>
@@ -3118,7 +3139,7 @@ return (
   <div className="mb-5 flex flex-col gap-3 border-b border-gray-800 pb-4 md:flex-row md:items-start md:justify-between">
     <div>
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
-        Command Center
+        Visit Briefing
       </p>
       <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
         Current clinical reality
@@ -3430,8 +3451,10 @@ return (
 
 {/* OWNERSHIP: Patient Command Center — progression check workflow remains current-visit orientation. */}
 <section
+  ref={progressionCheckSectionRef}
+  id="progression-check"
   data-ownership="patient-command-center"
-  className="rounded-2xl border border-gray-800 bg-gray-950/30 p-4"
+  className="scroll-mt-56 rounded-2xl border border-gray-800 bg-gray-950/30 p-4 sm:scroll-mt-44 md:scroll-mt-40"
 >
   <div className="mb-4">
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
@@ -3467,6 +3490,7 @@ return (
       </label>
       <textarea
         id="functionalChanges"
+        ref={functionalChangesRef}
         value={progressionCheckForm.functionalChanges}
         onChange={(event) =>
           setProgressionCheckForm((previous) => ({
@@ -3664,14 +3688,7 @@ return (
     showAllVersions={showAllVersions}
     isRestoringVersion={isRestoringVersion}
     onToggleShowAllVersions={() => setShowAllVersions((prev) => !prev)}
-    onSelectGeneration={(generation) => {
-      if (generation.id === currentGenerationId) {
-        setSelectedGeneration(null);
-        return;
-      }
-
-      setSelectedGeneration(generation as GenerationRow);
-    }}
+    onSelectGeneration={(generation) => handleSelectHistoricalSnapshot(generation as GenerationRow)}
     onDeleteGeneration={handleDeleteGeneration}
     onRestoreSelectedVersion={handleRestoreSelectedVersion}
     onClosePreview={() => setSelectedGeneration(null)}
@@ -3696,7 +3713,7 @@ return (
 >
   <div>
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-      Patient History
+      Case Details
     </p>
     <h2 className="mt-1 text-xl font-semibold text-white">
       Collapsed supporting information
@@ -4691,14 +4708,7 @@ return (
   showAllVersions={showAllVersions}
   isRestoringVersion={isRestoringVersion}
   onToggleShowAllVersions={() => setShowAllVersions((prev) => !prev)}
-  onSelectGeneration={(generation) => {
-    if (generation.id === currentGenerationId) {
-      setSelectedGeneration(null);
-      return;
-    }
-
-    setSelectedGeneration(generation as GenerationRow);
-  }}
+  onSelectGeneration={(generation) => handleSelectHistoricalSnapshot(generation as GenerationRow)}
   onDeleteGeneration={handleDeleteGeneration}
   onRestoreSelectedVersion={handleRestoreSelectedVersion}
   onClosePreview={() => setSelectedGeneration(null)}

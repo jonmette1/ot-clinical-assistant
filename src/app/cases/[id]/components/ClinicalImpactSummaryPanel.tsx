@@ -95,7 +95,7 @@ export function ClinicalImpactSummaryPanel({
             </ul>
           ) : (
             <p className="mt-2 text-gray-400">
-              No major Command Center conclusions changed.
+              No major Visit Briefing conclusions changed.
             </p>
           )}
         </section>
