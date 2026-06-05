@@ -31,9 +31,9 @@ export function StickyOperationalHeader({
     }`;
 
   return (
-    <div className="fixed left-0 right-0 top-[72px] z-[999] border-b border-gray-800 bg-gray-950/95 px-4 py-3 backdrop-blur sm:top-[56px] sm:px-6">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="fixed left-0 right-0 top-[72px] z-[999] border-b border-gray-800 bg-gray-950/95 px-4 py-2 backdrop-blur sm:top-[56px] sm:px-6 sm:py-3">
+      <div className="mx-auto flex max-w-5xl flex-col gap-2 sm:gap-3">
+        <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
               {title || "Untitled Case"}

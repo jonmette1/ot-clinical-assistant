@@ -996,7 +996,7 @@ if (!longitudinalEventError) {
 
   useEffect(() => {
     if (loading || workspaceMode !== "command") return;
-    if (window.location.hash !== "#progression-check") return;
+    if (!["#patient-status", "#progression-check"].includes(window.location.hash)) return;
 
     window.requestAnimationFrame(focusProgressionCheck);
   }, [focusProgressionCheck, loading, workspaceMode]);
@@ -1067,9 +1067,25 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
     if (refreshError) throw refreshError;
 
     const typedCase = refreshedCase as CaseDetail;
-    setCaseData(typedCase);
-    setCurrentGenerationId(typedCase.current_generation_id);
-    setLatestGeneratedPlan(typedCase.generated_output as GeneratedPlan | null);
+    let currentVisitHistoryId = typedCase.current_generation_id;
+
+    if (typedCase.generated_output) {
+      const savedVisit = await saveCurrentCaseToVisitHistory(
+        typedCase,
+        "patient-status-update"
+      );
+      currentVisitHistoryId = savedVisit.id;
+      setGenerations((prev) => [savedVisit as GenerationRow, ...prev]);
+    }
+
+    const typedCaseWithVisitHistory = {
+      ...typedCase,
+      current_generation_id: currentVisitHistoryId,
+    };
+
+    setCaseData(typedCaseWithVisitHistory);
+    setCurrentGenerationId(currentVisitHistoryId);
+    setLatestGeneratedPlan(typedCaseWithVisitHistory.generated_output as GeneratedPlan | null);
     setSelectedGeneration(null);
 
     const { data: longitudinalEvents, error: longitudinalEventError } = await supabase
@@ -1095,11 +1111,7 @@ async function handleSubmitProgressionCheck(event: FormEvent<HTMLFormElement>) {
     setClinicalImpactSummary(updatedClinicalImpactSummary);
     setLatestClinicalImpactSummary(updatedClinicalImpactSummary);
     setProgressionCheckForm(emptyProgressionCheckForm);
-    setProgressionCheckMessage(
-      updatedClinicalImpactSummary.changedConclusions.length > 0
-        ? "Clinical conclusions updated."
-        : "Progression check saved. Current conclusions confirmed."
-    );
+    setProgressionCheckMessage("Patient update saved. Visit Briefing refreshed.");
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to submit progression check.";
     setProgressionCheckError(message);
@@ -1182,44 +1194,60 @@ async function handleDeleteGeneration(generationId: string) {
   );
 }
 
+async function saveCurrentCaseToVisitHistory(
+  sourceCase: CaseDetail,
+  promptVersion: string
+): Promise<GenerationRow> {
+  if (!sourceCase.id || !sourceCase.generated_output) {
+    throw new Error("No current visit state is available to save.");
+  }
+
+  const { data: insertedGenerations, error: generationError } = await supabase
+    .from("generations")
+    .insert([
+      {
+        case_id: sourceCase.id,
+        prompt_version: promptVersion,
+        input_payload: sourceCase,
+        output_payload: sourceCase.generated_output,
+      },
+    ])
+    .select("id, created_at, prompt_version, input_payload, output_payload");
+
+  if (generationError) {
+    throw generationError;
+  }
+
+  const newGeneration = insertedGenerations?.[0];
+
+  if (!newGeneration) {
+    throw new Error("No visit history entry was created.");
+  }
+
+  const { error: caseUpdateError } = await supabase
+    .from("cases")
+    .update({
+      current_generation_id: newGeneration.id,
+    })
+    .eq("id", sourceCase.id);
+
+  if (caseUpdateError) {
+    throw caseUpdateError;
+  }
+
+  return newGeneration as GenerationRow;
+}
+
 async function handleSaveCurrentVersion() {
   if (!caseData?.id || !caseData.generated_output) return;
 
   try {
     setIsSavingCurrentVersion(true);
 
-    const { data: insertedGenerations, error: generationError } = await supabase
-      .from("generations")
-      .insert([
-        {
-          case_id: caseData.id,
-          prompt_version: "manual-snapshot",
-          input_payload: caseData,
-          output_payload: caseData.generated_output,
-        },
-      ])
-      .select("id, created_at, prompt_version, input_payload, output_payload");
-
-    if (generationError) {
-      throw generationError;
-    }
-
-    const newGeneration = insertedGenerations?.[0];
-
-    if (!newGeneration) {
-      throw new Error("No generation was created.");
-    }
-
-    const { error: caseUpdateError } = await supabase
-      .from("cases")
-      .update({
-        current_generation_id: newGeneration.id,
-      })
-      .eq("id", caseData.id);
-
-    if (caseUpdateError) {
-      throw caseUpdateError;
-    }
+    const newGeneration = await saveCurrentCaseToVisitHistory(
+      caseData,
+      "manual-snapshot"
+    );
 
     setCurrentGenerationId(newGeneration.id);
 
@@ -1228,7 +1256,7 @@ async function handleSaveCurrentVersion() {
       current_generation_id: newGeneration.id,
     });
 
-    setGenerations((prev) => [newGeneration as GenerationRow, ...prev]);
+    setGenerations((prev) => [newGeneration, ...prev]);
     setSelectedGeneration(null);
   } catch (error) {
     console.error("Failed to save current version:", error);
@@ -2050,7 +2078,7 @@ const handleUpdatePatientStatusClick = () => {
   setSelectedGeneration(null);
 
   if (workspaceMode === "reference") {
-    router.push(`/cases/${caseData.id}#progression-check`);
+    router.push(`/cases/${caseData.id}#patient-status`);
     return;
   }
 
@@ -3117,7 +3145,7 @@ setCaseData({
 // ==============================
 
 return (
-<main className="min-h-screen bg-gray-950 text-white px-6 pb-24 pt-0">
+<main className="min-h-screen bg-gray-950 px-4 pb-10 pt-0 text-white sm:px-6 sm:pb-24">
 {/* OWNERSHIP: Patient workspace — sticky navigation separates workspace navigation from live/snapshot state. */}
 <StickyOperationalHeader
   title={displayCase.title}
@@ -3131,7 +3159,7 @@ return (
 />
 
 <div className={`max-w-5xl mx-auto space-y-6 ${
-  isViewingHistoricalVersion ? "pt-56 sm:pt-44 md:pt-40" : "pt-36 sm:pt-28 md:pt-24"
+  isViewingHistoricalVersion ? "pt-48 sm:pt-44 md:pt-40" : "pt-28 sm:pt-28 md:pt-24"
 }`}>
 
 {workspaceMode === "command" && (
@@ -3145,14 +3173,14 @@ return (
 
 <section
   data-ownership="patient-command-center"
-  className="rounded-3xl border border-gray-800/80 bg-gradient-to-br from-gray-900/50 via-gray-950 to-gray-950 p-5 shadow-lg shadow-black/10 sm:p-6"
+  className="rounded-2xl border border-gray-800/80 bg-gradient-to-br from-gray-900/50 via-gray-950 to-gray-950 p-4 shadow-lg shadow-black/10 sm:rounded-3xl sm:p-6"
 >
-  <div className="mb-5 flex flex-col gap-3 border-b border-gray-800 pb-4 md:flex-row md:items-start md:justify-between">
+  <div className="mb-4 flex flex-col gap-3 border-b border-gray-800 pb-3 sm:mb-5 sm:pb-4 md:flex-row md:items-start md:justify-between">
     <div>
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
         Visit Briefing
       </p>
-      <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+      <h1 className="mt-1 text-xl font-bold text-white sm:mt-2 sm:text-3xl">
         Current clinical reality
       </h1>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
@@ -3167,7 +3195,7 @@ return (
     </a>
   </div>
 
-  <div className="grid gap-4 lg:grid-cols-2">
+  <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
     {clinicalImpactSummary ? (
       <div
         ref={clinicalImpactSummaryRef}
@@ -3182,14 +3210,14 @@ return (
       </div>
     ) : null}
 
-    <article className="rounded-3xl border border-gray-700/80 bg-gray-950/75 p-5 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-6">
+    <article className="rounded-2xl border border-gray-700/80 bg-gray-950/75 p-4 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:rounded-3xl sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
         1. Current Focus
       </p>
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
         What should treatment focus on right now?
       </p>
-      <h2 className="mt-2 max-w-4xl text-3xl font-bold leading-tight text-white sm:text-4xl">
+      <h2 className="mt-2 max-w-4xl text-2xl font-bold leading-tight text-white sm:text-4xl">
         {commandCenterCurrentOperationalEmphasis}
       </h2>
       {commandCenterRationaleSummary ? (
@@ -3198,7 +3226,7 @@ return (
         </p>
       ) : null}
       {dominantBarriers.length > 0 ? (
-        <div className="mt-6 border-t border-gray-800 pt-4">
+        <div className="mt-4 border-t border-gray-800 pt-3 sm:mt-6 sm:pt-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Dominant barriers shaping this focus
           </p>
@@ -3463,27 +3491,27 @@ return (
 {/* OWNERSHIP: Patient Command Center — progression check workflow remains current-visit orientation. */}
 <section
   ref={progressionCheckSectionRef}
-  id="progression-check"
+  id="patient-status"
   data-ownership="patient-command-center"
-  className="scroll-mt-56 rounded-2xl border border-gray-800 bg-gray-950/30 p-4 sm:scroll-mt-44 md:scroll-mt-40"
+  className="scroll-mt-44 rounded-2xl border border-gray-800 bg-gray-950/30 p-4 sm:scroll-mt-44 md:scroll-mt-40"
 >
   <div className="mb-4">
     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-      Progression Check
+      Patient Status
     </p>
     <h2 className="mt-1 text-lg font-semibold text-white">
-      Quick progression validation
+      Quick patient status update
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Minimal entry point for recording whether the current treatment focus still matches the case.
+      Record today’s patient status and confirm whether the current treatment focus still matches the case.
     </p>
   </div>
 
   {isViewingHistoricalVersion ? (
     <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-300">
-      <p className="font-semibold text-white">Return to Live Case to record progression updates.</p>
+      <p className="font-semibold text-white">Return to Live Case to record patient status updates.</p>
       <p className="mt-2 text-xs leading-relaxed text-gray-500">
-        Historical snapshots are read-only references and may not reflect current progression updates.
+        Historical visit records are read-only references and may not reflect current patient status updates.
       </p>
       <button
         type="button"
@@ -3494,7 +3522,7 @@ return (
       </button>
     </div>
   ) : (
-  <form onSubmit={handleSubmitProgressionCheck} className="space-y-4">
+  <form onSubmit={handleSubmitProgressionCheck} className="space-y-3 sm:space-y-4">
     <div>
       <label htmlFor="functionalChanges" className="text-sm font-medium text-gray-200">
         Functional changes
@@ -3541,7 +3569,7 @@ return (
 
       <div>
         <label htmlFor="progressionStatus" className="text-sm font-medium text-gray-200">
-          Progression status
+          Patient status
         </label>
         <select
           id="progressionStatus"
@@ -3647,14 +3675,27 @@ return (
       </div>
     )}
 
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-      <button
-        type="submit"
-        disabled={isSubmittingProgressionCheck}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isSubmittingProgressionCheck ? "Saving..." : "Save Progression"}
-      </button>
+    <div className="flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-950/60 p-3 sm:flex-row sm:items-start sm:p-4">
+      <div className="flex flex-col gap-2 sm:w-64 sm:shrink-0">
+        <button
+          type="submit"
+          disabled={isSubmittingProgressionCheck || isRegeneratingPlan}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmittingProgressionCheck ? "Saving..." : "Save Patient Update"}
+        </button>
+        <p className="text-xs leading-relaxed text-gray-500">
+          Updates patient status and saves this visit for future reference.
+        </p>
+        <button
+          type="button"
+          onClick={handleRegenerateCurrentPlan}
+          disabled={isRegeneratingPlan || isSubmittingProgressionCheck || isViewingHistoricalVersion}
+          className="rounded-lg border border-gray-700 px-4 py-2 text-xs font-semibold text-gray-200 transition hover:border-blue-500 hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isRegeneratingPlan ? "Refreshing..." : "Refresh Clinical Guidance"}
+        </button>
+      </div>
 
       {progressionCheckMessage && latestClinicalImpactSummary ? (
         <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3 text-sm text-gray-200">
@@ -4730,74 +4771,26 @@ return (
 )}
 </div>
 {/* CASE ACTION BUTTONS */}
-<div className="fixed bottom-4 left-4 right-4 z-40 grid grid-cols-2 gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur sm:left-1/2 sm:right-auto sm:flex sm:-translate-x-1/2 sm:flex-nowrap sm:items-center">
-
-  {!isEditing ? (
+{isEditing ? (
+  <div className="fixed bottom-4 left-1/2 z-40 hidden -translate-x-1/2 flex-nowrap items-center gap-2 rounded-xl border border-gray-800 bg-gray-950/95 p-2 shadow-lg backdrop-blur sm:flex">
     <button
       type="button"
+      onClick={handleSaveCaseEdits}
       disabled={isViewingHistoricalVersion}
-      onClick={() => setIsEditing(true)}
-      className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+      className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
     >
-      {isViewingHistoricalVersion ? "Historical Snapshot" : "Edit Case"}
+      Save Changes
     </button>
-  ) : (
-    <>
-      <button
-        type="button"
-        onClick={handleSaveCaseEdits}
-        disabled={isViewingHistoricalVersion}
-        className="rounded-lg bg-green-700 px-3 py-2 text-xs font-medium text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-      >
-        Save Changes
-      </button>
 
-      <button
-        type="button"
-        onClick={() => setIsEditing(false)}
-        className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
-      >
-        Cancel
-      </button>
-    </>
-  )}
-
-  <button
-    type="button"
-    onClick={handleRegenerateCurrentPlan}
-    disabled={isRegeneratingPlan || isViewingHistoricalVersion}
-    className="min-w-[168px] rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-  >
-    {isRegeneratingPlan ? "Refreshing..." : "Refresh Clinical Guidance"}
-  </button>
-<button
-  type="button"
-  onClick={handleSaveCurrentVersion}
-  disabled={
-    isSavingCurrentVersion ||
-    isViewingHistoricalVersion ||
-    !caseData?.generated_output
-  }
-  className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs font-medium text-gray-100 hover:border-emerald-500 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
->
-  {isSavingCurrentVersion ? "Saving..." : "Save Clinical Snapshot"}
-</button>
-  <button
-    type="button"
-    onClick={handleCopySummary}
-    className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs font-medium text-gray-300 hover:border-gray-600 hover:text-white sm:text-sm"
-  >
-    Copy Snapshot
-  </button>
-
-  <button
-    type="button"
-    onClick={handleDownloadSummary}
-    className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs font-medium text-gray-300 hover:border-gray-600 hover:text-white sm:text-sm"
-  >
-    Download Snapshot
-  </button>
-</div>
+    <button
+      type="button"
+      onClick={() => setIsEditing(false)}
+      className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-white hover:bg-gray-600 sm:text-sm"
+    >
+      Cancel
+    </button>
+  </div>
+) : null}
 
 
 {showClinicalSummary && (
