@@ -150,7 +150,7 @@ function PatientEntryQuickPreview({
           Quick Preview
         </p>
         <p className="mt-2 text-sm text-amber-200">
-          Preview could not be loaded. Open Command Center for full current
+          Preview could not be loaded. Open Visit Briefing for full current
           status.
         </p>
       </div>
@@ -164,7 +164,7 @@ function PatientEntryQuickPreview({
           Quick Preview
         </p>
         <p className="mt-2 text-sm text-gray-400">
-          No current preview data available yet. Open Command Center for full
+          No current preview data available yet. Open Visit Briefing for full
           current status.
         </p>
       </div>
@@ -209,7 +209,7 @@ export function PatientEntryCard({
     ? `Safety context: ${caseRow.environment.other_safety_hazards}`
     : caseRow.environment?.other_equipment_present
       ? `Equipment context: ${caseRow.environment.other_equipment_present}`
-      : "Open the Command Center for current clinical status and next action.";
+      : "Open the Visit Briefing for current clinical status and next action.";
 
   return (
     <article className="rounded-2xl border border-gray-800 bg-gray-900/90 p-5 transition hover:border-gray-600 hover:bg-gray-900">
@@ -290,7 +290,7 @@ export function PatientEntryCard({
                 href={`/cases/${caseRow.id}`}
                 className="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-gray-900"
               >
-                Open Command Center
+                Open Visit Briefing
               </Link>
             </div>
           </div>

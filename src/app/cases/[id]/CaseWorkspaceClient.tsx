@@ -828,6 +828,7 @@ const clinicalImpactSummaryRef = useRef<HTMLDivElement | null>(null);
 const clinicalImpactHighlightTimeoutRef = useRef<number | null>(null);
 const progressionCheckSectionRef = useRef<HTMLElement | null>(null);
 const functionalChangesRef = useRef<HTMLTextAreaElement | null>(null);
+const pendingHistoricalSnapshotScrollRef = useRef(false);
 const focusProgressionCheck = useCallback(() => {
   const progressionCheckSection = progressionCheckSectionRef.current;
 
@@ -999,6 +1000,16 @@ if (!longitudinalEventError) {
 
     window.requestAnimationFrame(focusProgressionCheck);
   }, [focusProgressionCheck, loading, workspaceMode]);
+
+  useEffect(() => {
+    const isViewingSnapshot =
+      Boolean(selectedGeneration) && selectedGeneration?.id !== currentGenerationId;
+
+    if (loading || !isViewingSnapshot || !pendingHistoricalSnapshotScrollRef.current) return;
+
+    pendingHistoricalSnapshotScrollRef.current = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentGenerationId, loading, selectedGeneration]);
 
   // ==============================
 // OPERATIONAL HANDLERS
@@ -2048,13 +2059,13 @@ const handleUpdatePatientStatusClick = () => {
 
 const handleSelectHistoricalSnapshot = (generation: GenerationRow) => {
   if (generation.id === currentGenerationId) {
+    pendingHistoricalSnapshotScrollRef.current = false;
     setSelectedGeneration(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
 
+  pendingHistoricalSnapshotScrollRef.current = true;
   setSelectedGeneration(generation);
-  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 // ==============================

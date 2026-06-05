@@ -201,7 +201,7 @@ export default function CasesPage() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Patients</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400">
             Orient around patient identity, treatment frame, clinical context,
-            and recency before opening the Command Center.
+            and recency before opening the Visit Briefing.
           </p>
         </div>
 
