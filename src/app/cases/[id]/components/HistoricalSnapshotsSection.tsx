@@ -61,36 +61,6 @@ const getSnapshotTypeLabel = (promptVersion?: string | null) => {
   return "Saved Clinical Snapshot";
 };
 
-const getSnapshotReasonLabel = (promptVersion?: string | null) => {
-  if (!promptVersion) return "Saved clinical reasoning snapshot.";
-
-  if (promptVersion.includes("manual-snapshot")) {
-    return "Clinician saved the current plan state.";
-  }
-
-  if (promptVersion.includes("continuity-save")) {
-    return "Case information was edited; snapshot preserved for continuity.";
-  }
-
-  if (promptVersion.includes("regenerated")) {
-    return "Plan was regenerated from the current case information.";
-  }
-
-  if (promptVersion.includes("transfers_mobility")) {
-    return "Plan was generated with transfers and mobility emphasized.";
-  }
-
-  if (promptVersion.includes("caregiver_training")) {
-    return "Plan was generated with caregiver training emphasized.";
-  }
-
-  if (promptVersion.includes("adl_home_safety")) {
-    return "Plan was generated with ADL and home safety emphasized.";
-  }
-
-  return "Saved clinical reasoning snapshot.";
-};
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -137,6 +107,121 @@ const formatVisitSnapshotDate = (value: string) => {
   return date.toLocaleString();
 };
 
+const normalize = (value: string | null | undefined) =>
+  String(value || "").trim().toLowerCase();
+
+const uniqueText = (items: string[]) =>
+  items.filter((item, index, values) => item.trim() && values.indexOf(item) === index);
+
+const joinReadableList = (items: string[]) => {
+  if (items.length <= 1) return items[0] || "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+const deriveStatusTrend = (status: string | null) => {
+  const normalized = normalize(status);
+
+  if (
+    normalized.includes("regression") ||
+    normalized.includes("declin") ||
+    normalized.includes("worsen")
+  ) {
+    return "regression" as const;
+  }
+
+  if (normalized.includes("faster than expected")) return "faster_progress" as const;
+
+  if (normalized.includes("progressing") || normalized.includes("improv")) {
+    return "progress" as const;
+  }
+
+  if (
+    normalized.includes("minimal progress") ||
+    normalized.includes("plateau") ||
+    normalized.includes("no meaningful change") ||
+    normalized.includes("no change") ||
+    normalized.includes("unchanged") ||
+    normalized.includes("stable")
+  ) {
+    return "minimal_or_stable" as const;
+  }
+
+  return null;
+};
+
+const deriveSnapshotAttentionArea = (items: string[]) => {
+  const source = normalize(items.join(" "));
+
+  if (source.includes("toilet transfer")) return "Toilet transfer";
+  if (source.includes("shower transfer")) return "Shower transfer";
+  if (source.includes("bathroom") || source.includes("transfer")) return "Transfer";
+  if (source.includes("caregiver")) return "Caregiver support";
+  if (source.includes("environment") || source.includes("equipment") || source.includes("setup")) {
+    return "Environmental safety";
+  }
+
+  return "Functional performance";
+};
+
+const buildSnapshotKeyChange = ({
+  status,
+  functionalChanges,
+  milestoneAchieved,
+  reasonTreatmentChanged,
+}: {
+  status: string | null;
+  functionalChanges: string[];
+  milestoneAchieved: string | null;
+  reasonTreatmentChanged: string | null;
+}) => {
+  if (milestoneAchieved) return `Milestone documented: ${milestoneAchieved}.`;
+  if (functionalChanges.length) return joinReadableList(functionalChanges);
+  if (reasonTreatmentChanged) return reasonTreatmentChanged;
+
+  const trend = deriveStatusTrend(status);
+
+  if (trend === "regression") return "Functional performance declined or became less reliable.";
+  if (trend === "faster_progress") {
+    return "Milestone or functional improvement suggests faster-than-expected progression.";
+  }
+  if (trend === "progress") return "Progression status indicates meaningful improvement since the prior visit.";
+  if (trend === "minimal_or_stable") return "Limited meaningful change documented since the prior visit.";
+
+  return "Open snapshot preview for visit-specific change details.";
+};
+
+const buildSnapshotClinicalMeaning = ({
+  status,
+  attentionArea,
+  clinicalAttentionStatement,
+}: {
+  status: string | null;
+  attentionArea: string;
+  clinicalAttentionStatement: string | null;
+}) => {
+  const trend = deriveStatusTrend(status);
+
+  if (trend === "regression") {
+    return "Treatment focus should return to safety stabilization and caregiver-supported consistency.";
+  }
+
+  if (trend === "faster_progress") {
+    return "Patient may be approaching readiness for clinician review of advancement opportunities.";
+  }
+
+  if (trend === "progress") {
+    return `${attentionArea} reliability is improving, though safety limitations remain.`;
+  }
+
+  if (trend === "minimal_or_stable") {
+    return `${attentionArea} safety remains inconsistent and should stay under close clinical attention.`;
+  }
+
+  return clinicalAttentionStatement || "Open snapshot preview for full clinical context.";
+};
+
 const getNestedRecord = (source: unknown, keys: string[]): Record<string, unknown> | null => {
   const value = readUnknown(source, keys);
   return isRecord(value) ? value : null;
@@ -147,7 +232,6 @@ const getVisitSnapshotContext = (generation: HistoricalSnapshotGeneration) => {
   const input = generation.input_payload;
   const operationalPrioritization = getNestedRecord(output, ["operational_prioritization", "operationalPrioritization"]);
   const progressionState = getNestedRecord(output, ["progression_state", "progressionState"]);
-  const structuredPlanDetails = getNestedRecord(output, ["structured_plan_details", "structuredPlanDetails"]);
   const clinicalDecisionModel = getNestedRecord(output, ["clinicalDecisionModelUsed", "clinical_decision_model_used"]);
   const currentLongitudinalState =
     getNestedRecord(input, ["current_longitudinal_state", "currentLongitudinalState"]) ||
@@ -169,24 +253,42 @@ const getVisitSnapshotContext = (generation: HistoricalSnapshotGeneration) => {
     readText(output, ["focusApplied", "focus_applied"]) ||
     getSnapshotTypeLabel(generation.prompt_version);
 
-  const clinicalReality =
-    readText(operationalPrioritization, ["currentOperationalEmphasis", "current_operational_emphasis"]) ||
-    readText(output, ["patientSnapshot", "patient_snapshot"]) ||
-    readText(clinicalDecisionModel, ["dominantBarrier", "dominant_barrier"]) ||
-    readTextList(output, ["clinicalPriorities", "clinical_priorities"])[0] ||
-    getSnapshotReasonLabel(generation.prompt_version);
+  const functionalChanges = uniqueText([
+    ...readTextList(currentLongitudinalState, ["functionalChanges", "functional_changes"]),
+    ...readTextList(eventPayload, ["functionalChanges", "functional_changes"]),
+  ]);
+  const milestoneAchieved =
+    readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]) ||
+    readText(eventPayload, ["milestoneAchieved", "milestone_achieved"]);
+  const reasonTreatmentChanged =
+    readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
+    readText(eventPayload, ["reasonTreatmentChanged", "reason_treatment_changed"]);
+  const clinicalAttentionStatement = readText(clinicalAttentionState, [
+    "attentionStatement",
+    "attention_statement",
+  ]);
+  const attentionArea = deriveSnapshotAttentionArea([
+    ...readTextList(operationalPrioritization, ["dominantBarriers", "dominant_barriers"]),
+    readText(operationalPrioritization, ["currentOperationalEmphasis", "current_operational_emphasis"]) || "",
+    readText(clinicalDecisionModel, ["dominantBarrier", "dominant_barrier"]) || "",
+  ]);
 
-  const recommendedNextAction =
-    readTextList(structuredPlanDetails, ["immediateActions", "immediate_actions"])[0] ||
-    readTextList(output, ["firstSessionPriorities", "first_session_priorities"])[0] ||
-    readTextList(output, ["sessionPlan", "session_plan"])[0] ||
-    readTextList(output, ["taskBreakdown", "task_breakdown"])[0] ||
-    "Open snapshot preview for full clinical context.";
+  const keyChange = buildSnapshotKeyChange({
+    status: visitStatus,
+    functionalChanges,
+    milestoneAchieved,
+    reasonTreatmentChanged,
+  });
+  const clinicalMeaning = buildSnapshotClinicalMeaning({
+    status: visitStatus,
+    attentionArea,
+    clinicalAttentionStatement,
+  });
 
   return {
     visitStatus,
-    clinicalReality,
-    recommendedNextAction,
+    keyChange,
+    clinicalMeaning,
   };
 };
 
@@ -296,13 +398,13 @@ export function HistoricalSnapshotsSection({
                   </div>
 
                   <div>
-                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Clinical Reality</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.clinicalReality}</p>
+                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Key Change</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.keyChange}</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Recommended Next Action</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.recommendedNextAction}</p>
+                    <p className="font-semibold uppercase tracking-[0.16em] text-gray-500">Clinical Meaning</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-200">{snapshotContext.clinicalMeaning}</p>
                   </div>
                 </div>
               </button>

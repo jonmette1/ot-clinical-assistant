@@ -1,4 +1,4 @@
-type AwarenessTrend = "progress" | "regression" | "stabilization" | null;
+type AwarenessTrend = "progress" | "faster_progress" | "regression" | "stabilization" | null;
 
 type CurrentFocusProgressionAwarenessInput = {
   currentFocus: string;
@@ -6,6 +6,7 @@ type CurrentFocusProgressionAwarenessInput = {
   currentLongitudinalState?: unknown;
   clinicalAttentionState?: unknown;
   latestEventPayload?: unknown;
+  dominantBarriers?: unknown;
 };
 
 type ProgressionAwarenessSignal = {
@@ -63,28 +64,39 @@ const normalize = (value: string | null | undefined) =>
 
 const stripTerminalPunctuation = (value: string) => value.trim().replace(/[.!?]+$/, "");
 
-const lowerFirst = (value: string) => {
-  const trimmed = stripTerminalPunctuation(value);
-  if (!trimmed) return "";
+const joinReadableList = (items: string[]) => {
+  if (items.length <= 1) return items[0] || "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
 
-  return `${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+const asTextList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .filter(
+        (item): item is string | number | boolean =>
+          typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+      )
+      .map(String)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+
+  return [];
 };
 
 const hasExistingTrajectoryLanguage = (currentFocus: string) => {
   const normalized = normalize(currentFocus);
 
   return [
-    "improving",
-    "improved",
-    "progressing",
-    "progression",
-    "milestone",
-    "becoming more consistent",
-    "worsening",
-    "declining",
-    "regression",
-    "stabilizing",
-    "plateau",
+    "moving in the right direction",
+    "moving ahead faster",
+    "becoming less reliable",
+    "clinically stable",
+    "stabilizing without clear advancement",
   ].some((phrase) => normalized.includes(phrase));
 };
 
@@ -101,17 +113,19 @@ const deriveTrendFromStatus = (status: string | null): AwarenessTrend => {
     return "regression";
   }
 
-  if (
-    normalized.includes("progressing") ||
-    normalized.includes("improv") ||
-    normalized.includes("faster than expected")
-  ) {
+  if (normalized.includes("faster than expected")) return "faster_progress";
+
+  if (normalized.includes("progressing") || normalized.includes("improv")) {
     return "progress";
   }
 
   if (
     normalized.includes("plateau") ||
     normalized.includes("minimal progress") ||
+    normalized.includes("no meaningful change") ||
+    normalized.includes("no change") ||
+    normalized === "stable" ||
+    normalized.includes("unchanged") ||
     normalized.includes("stabiliz")
   ) {
     return "stabilization";
@@ -140,6 +154,7 @@ const deriveTrendFromFunctionalChange = (change: string | null): AwarenessTrend 
     normalized.includes("declin") ||
     normalized.includes("regress") ||
     normalized.includes("less consistent") ||
+    normalized.includes("less reliable") ||
     normalized.includes("reduced")
   ) {
     return "regression";
@@ -148,6 +163,7 @@ const deriveTrendFromFunctionalChange = (change: string | null): AwarenessTrend 
   if (
     normalized.includes("improv") ||
     normalized.includes("more consistent") ||
+    normalized.includes("more reliable") ||
     normalized.includes("increased") ||
     normalized.includes("achieved") ||
     normalized.includes("better")
@@ -163,26 +179,79 @@ const deriveSubject = (currentFocus: string) => {
   const match = cleanFocus.match(
     /^(.+?)\s+(?:remains?|continues? to be|is|are)\s+/i
   );
+  const rawSubject = match?.[1]?.trim() || "Current functional performance";
+  const normalized = normalize(rawSubject);
 
-  if (match?.[1]?.trim()) return match[1].trim();
+  if (normalized.includes("toilet transfer")) return "Toilet transfer skills";
+  if (normalized.includes("shower transfer")) return "Shower transfer skills";
+  if (normalized.includes("bathroom transfer")) return "Bathroom transfer performance";
+  if (normalized.includes("transfer")) return "Transfer performance";
+  if (normalized.includes("bath") || normalized.includes("shower")) return "Bathing participation";
+  if (normalized.includes("toilet")) return "Toileting participation";
 
-  return "Current functional performance";
+  return rawSubject;
 };
 
-const deriveProgressQualifier = (signal: ProgressionAwarenessSignal) => {
-  if (signal.milestoneAchieved) return ` after the milestone: ${signal.milestoneAchieved}`;
-  if (signal.functionalChange) return ` with ${lowerFirst(signal.functionalChange)}`;
+const addArea = (areas: string[], area: string) => {
+  if (!areas.includes(area)) areas.push(area);
+};
+
+const deriveAttentionAreas = ({
+  currentFocus,
+  dominantBarriers,
+}: {
+  currentFocus: string;
+  dominantBarriers?: unknown;
+}) => {
+  const sourceItems = [...asTextList(dominantBarriers), currentFocus];
+  const source = normalize(sourceItems.join(" "));
+  const areas: string[] = [];
+
+  if (source.includes("transfer") || source.includes("mobility")) {
+    addArea(areas, "transfer stability");
+  }
+
+  if (source.includes("balance") || source.includes("strength") || source.includes("movement")) {
+    addArea(areas, "physical movement control");
+  }
+
+  if (source.includes("caregiver") || source.includes("support")) {
+    addArea(areas, "caregiver-supported consistency");
+  }
+
+  if (
+    source.includes("bathroom") ||
+    source.includes("shower") ||
+    source.includes("toilet") ||
+    source.includes("environment") ||
+    source.includes("equipment") ||
+    source.includes("setup")
+  ) {
+    addArea(areas, "environmental safety");
+  }
+
+  if (source.includes("sequencing") || source.includes("cue") || source.includes("cognitive")) {
+    addArea(areas, "task sequencing reliability");
+  }
+
+  if (source.includes("endurance") || source.includes("fatigue")) {
+    addArea(areas, "activity tolerance");
+  }
+
+  if (source.includes("safety") || areas.length < 2) {
+    addArea(areas, "safety preservation");
+  }
+
+  return areas.slice(0, 3);
+};
+
+const deriveProgressEvidence = (signal: ProgressionAwarenessSignal) => {
+  if (signal.milestoneAchieved) return `, with documented milestone: ${signal.milestoneAchieved}`;
+  if (signal.functionalChange) return `, with documented change: ${signal.functionalChange}`;
 
   const readiness = normalize(signal.advancementReadiness);
-  if (readiness === "high") return " with stronger advancement readiness";
-  if (readiness === "partial") return " with emerging advancement readiness";
-
-  return "";
-};
-
-const deriveRegressionQualifier = (signal: ProgressionAwarenessSignal) => {
-  if (signal.functionalChange) return ` with ${lowerFirst(signal.functionalChange)}`;
-  if (signal.progressionStatus) return ` with ${lowerFirst(signal.progressionStatus)}`;
+  if (readiness === "high") return ", with stronger advancement readiness requiring clinician review";
+  if (readiness === "partial") return ", with emerging advancement readiness requiring clinician review";
 
   return "";
 };
@@ -192,7 +261,7 @@ const buildProgressionSignal = ({
   currentLongitudinalState,
   clinicalAttentionState,
   latestEventPayload,
-}: Omit<CurrentFocusProgressionAwarenessInput, "currentFocus">): ProgressionAwarenessSignal | null => {
+}: Omit<CurrentFocusProgressionAwarenessInput, "currentFocus" | "dominantBarriers">): ProgressionAwarenessSignal | null => {
   const progressionStatus =
     readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
     readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
@@ -231,6 +300,7 @@ export function buildProgressionAwareCurrentFocus({
   currentLongitudinalState,
   clinicalAttentionState,
   latestEventPayload,
+  dominantBarriers,
 }: CurrentFocusProgressionAwarenessInput): string {
   const trimmedFocus = currentFocus.trim();
   if (
@@ -251,15 +321,23 @@ export function buildProgressionAwareCurrentFocus({
   if (!signal) return trimmedFocus;
 
   const subject = deriveSubject(trimmedFocus);
-  const remainingReality = lowerFirst(trimmedFocus);
+  const subjectIsPlural = normalize(subject).endsWith("skills");
+  const movementVerb = subjectIsPlural ? "are" : "is";
+  const fragileVerb = subjectIsPlural ? "remain" : "remains";
+  const attentionAreas = deriveAttentionAreas({ currentFocus: trimmedFocus, dominantBarriers });
+  const attentionText = joinReadableList(attentionAreas);
 
   if (signal.trend === "regression") {
-    return `${subject} is worsening${deriveRegressionQualifier(signal)}, and ${remainingReality}.`;
+    return `Recent setbacks suggest ${subject.toLowerCase()} ${movementVerb} becoming less reliable. Focus should return to ${attentionText} before pursuing advancement goals.`;
   }
 
   if (signal.trend === "stabilization") {
-    return `${subject} is stabilizing without clear advancement, and ${remainingReality}.`;
+    return `${subject} ${fragileVerb} clinically fragile. Focus remains on ${attentionText} before advancing treatment expectations.`;
   }
 
-  return `${subject} is improving${deriveProgressQualifier(signal)}, though ${remainingReality}.`;
+  if (signal.trend === "faster_progress") {
+    return `${subject} ${movementVerb} moving ahead faster than expected${deriveProgressEvidence(signal)}, while clinical caution remains appropriate. Upcoming focus is centered on ${attentionText}.`;
+  }
+
+  return `${subject} ${movementVerb} moving in the right direction${deriveProgressEvidence(signal)}, while clinical caution remains appropriate. Upcoming focus is centered on ${attentionText}.`;
 }

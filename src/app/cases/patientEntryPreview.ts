@@ -133,6 +133,10 @@ export function derivePatientEntryPreviewSignals({
     "currentOperationalEmphasis",
     "current_operational_emphasis",
   ]);
+  const dominantBarriers = readTextList(operationalPrioritization, [
+    "dominantBarriers",
+    "dominant_barriers",
+  ]);
 
   const attentionStatement =
     readText(caseData.clinical_attention_state, [
@@ -288,6 +292,7 @@ export function derivePatientEntryPreviewSignals({
         currentLongitudinalState: caseData.current_longitudinal_state,
         clinicalAttentionState: caseData.clinical_attention_state,
         latestEventPayload,
+        dominantBarriers,
       })
     : null;
 

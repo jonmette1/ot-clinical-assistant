@@ -593,6 +593,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
   const progressionState = generated?.progression_state;
   const clinicalAttentionState = sourceCase.clinical_attention_state;
   const currentLongitudinalState = sourceCase.current_longitudinal_state;
+  const dominantBarriers = operationalPrioritization?.dominantBarriers || [];
 
   const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
     currentFocus:
@@ -601,6 +602,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     progressionState,
     currentLongitudinalState,
     clinicalAttentionState,
+    dominantBarriers,
   });
 
   const clinicalAttentionRequiresOperationalReview = readBoolean(
@@ -674,7 +676,6 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     currentLongitudinalState,
     limit: 3,
   });
-  const dominantBarriers = operationalPrioritization?.dominantBarriers || [];
   const attentionStatement = readText(clinicalAttentionState, [
     "attentionStatement",
     "attention_statement",
@@ -2163,21 +2164,22 @@ const rawCurrentOperationalEmphasis =
   operationalPrioritization?.currentOperationalEmphasis ||
   "No operational emphasis generated";
 
-const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
-  currentFocus: rawCurrentOperationalEmphasis,
-  progressionState,
-  currentLongitudinalState,
-  clinicalAttentionState,
-});
-
-const commandCenterCurrentOperationalEmphasis =
-  compressCurrentFocusSentence(currentOperationalEmphasis);
-
 const emphasisRationale: string[] =
   operationalPrioritization?.emphasisRationale || [];
 
 const dominantBarriers: string[] =
   operationalPrioritization?.dominantBarriers || [];
+
+const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
+  currentFocus: rawCurrentOperationalEmphasis,
+  progressionState,
+  currentLongitudinalState,
+  clinicalAttentionState,
+  dominantBarriers,
+});
+
+const commandCenterCurrentOperationalEmphasis =
+  compressCurrentFocusSentence(currentOperationalEmphasis);
 
 const adjacentOperationalPriorities =
   operationalPrioritization?.adjacentOperationalPriorities || [];
@@ -2401,32 +2403,80 @@ const lastVisitTreatmentDirectionChanged =
   readBoolean(latestVisitPayload, ["treatmentDirectionChanged", "treatment_direction_changed"]) ??
   readBoolean(latestVisitCurrentStateSnapshot, ["treatmentDirectionChanged", "treatment_direction_changed"]);
 
-const lastVisitTreatmentDirection =
-  lastVisitTreatmentDirectionChanged === true
-    ? "Treatment focus should change"
-    : lastVisitTreatmentDirectionChanged === false
-    ? "Treatment focus unchanged"
-    : null;
-
 const lastVisitReasonTreatmentChanged =
   readText(latestVisitPayload, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
   readText(latestVisitCurrentStateSnapshot, ["reasonTreatmentChanged", "reason_treatment_changed"]);
 
-const lastVisitKeyChange = [
-  ...lastVisitFunctionalChanges,
-  lastVisitMilestone,
-  lastVisitTreatmentDirection,
-  lastVisitReasonTreatmentChanged,
-].filter((item): item is string => Boolean(item));
+const lastVisitStatusTrend = mapProgressionStatusToTrajectory(lastVisitStatus);
 
-const lastVisitClinicalImpact =
-  readText(latestVisitClinicalAttentionSnapshot, ["attentionStatement", "attention_statement"]) ||
-  readTextList(latestVisitClinicalAttentionSnapshot, ["attentionDrivers", "attention_drivers"])[0] ||
-  readText(latestVisitOperationalEmphasisSnapshot, [
-    "currentOperationalEmphasis",
-    "current_operational_emphasis",
-  ]) ||
-  null;
+const lastVisitKeyChange = (() => {
+  const exactChanges = [
+    ...lastVisitFunctionalChanges,
+    lastVisitMilestone ? `Milestone documented: ${lastVisitMilestone}.` : null,
+    lastVisitReasonTreatmentChanged,
+  ].filter((item): item is string => Boolean(item));
+
+  if (exactChanges.length) return exactChanges;
+  if (lastVisitStatusTrend === "Declining") {
+    return ["Functional performance declined or became less reliable."];
+  }
+  if (lastVisitStatusTrend === "Improving") {
+    return ["Progression status indicates meaningful improvement since the prior visit."];
+  }
+  if (
+    lastVisitStatusTrend === "Stable" ||
+    lastVisitStatusTrend === "Stable / Plateau" ||
+    lastVisitStatusTrend === "Stable / Limited Progress" ||
+    lastVisitTreatmentDirectionChanged === false
+  ) {
+    return ["Limited meaningful change documented since the prior visit."];
+  }
+
+  return [];
+})();
+
+const latestVisitAttentionArea = (() => {
+  const source = [
+    ...readTextList(latestVisitOperationalEmphasisSnapshot, ["dominantBarriers", "dominant_barriers"]),
+    readText(latestVisitOperationalEmphasisSnapshot, [
+      "currentOperationalEmphasis",
+      "current_operational_emphasis",
+    ]) || "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (source.includes("toilet transfer")) return "Toilet transfer";
+  if (source.includes("shower transfer")) return "Shower transfer";
+  if (source.includes("transfer") || source.includes("bathroom")) return "Transfer";
+
+  return "Functional performance";
+})();
+
+const lastVisitClinicalMeaning = (() => {
+  if (lastVisitStatusTrend === "Declining") {
+    return "Treatment focus should return to safety stabilization and caregiver-supported consistency.";
+  }
+  if (lastVisitStatus?.toLowerCase().includes("faster than expected")) {
+    return "Patient may be approaching readiness for clinician review of advancement opportunities.";
+  }
+  if (lastVisitStatusTrend === "Improving") {
+    return `${latestVisitAttentionArea} reliability is improving, though safety limitations remain.`;
+  }
+  if (
+    lastVisitStatusTrend === "Stable" ||
+    lastVisitStatusTrend === "Stable / Plateau" ||
+    lastVisitStatusTrend === "Stable / Limited Progress"
+  ) {
+    return `${latestVisitAttentionArea} safety remains inconsistent and should stay under close clinical attention.`;
+  }
+
+  return (
+    readText(latestVisitClinicalAttentionSnapshot, ["attentionStatement", "attention_statement"]) ||
+    readTextList(latestVisitClinicalAttentionSnapshot, ["attentionDrivers", "attention_drivers"])[0] ||
+    null
+  );
+})();
 
 const lastVisitSummaryRows: SummaryRow[] = [
   {
@@ -2438,8 +2488,8 @@ const lastVisitSummaryRows: SummaryRow[] = [
     value: lastVisitKeyChange,
   },
   {
-    label: "Clinical Impact",
-    value: lastVisitClinicalImpact,
+    label: "Clinical Meaning",
+    value: lastVisitClinicalMeaning,
   },
 ];
 
