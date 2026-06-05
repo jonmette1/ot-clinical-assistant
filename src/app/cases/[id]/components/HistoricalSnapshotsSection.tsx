@@ -247,14 +247,16 @@ export function HistoricalSnapshotsSection({
       <ul className="space-y-3 text-sm text-gray-300">
       {visibleGenerations.map((generation) => {
         const snapshotContext = getVisitSnapshotContext(generation);
+        const isActivePlan = currentGenerationId === generation.id;
+        const isCurrentlyViewingSnapshot = selectedGeneration?.id === generation.id && !isActivePlan;
 
         return (
           <li
             key={generation.id}
     className={`rounded-lg px-4 py-3 transition ${
-    currentGenerationId === generation.id
+    isActivePlan
       ? "border-2 border-green-500 bg-green-900/30 shadow-[0_0_0_1px_rgba(34,197,94,0.35)]"
-        : selectedGeneration?.id === generation.id
+        : isCurrentlyViewingSnapshot
       ? "border-2 border-blue-400 bg-blue-950/40"
         : "border border-gray-800 hover:border-blue-500"
     }`}
@@ -263,21 +265,22 @@ export function HistoricalSnapshotsSection({
               <button
                 type="button"
                 onClick={() => onSelectGeneration(generation)}
-                className="text-left flex-1"
+                disabled={isCurrentlyViewingSnapshot}
+                aria-current={isCurrentlyViewingSnapshot ? "true" : undefined}
+                className="text-left flex-1 disabled:cursor-default"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <strong className="text-base text-white">Visit {getVisitNumber(generation.id)}</strong>
 
-                  {currentGenerationId === generation.id && (
+                  {isActivePlan && (
       <span className="rounded-full border border-green-400 bg-green-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
         Active Plan
       </span>
     )}
 
-                  {selectedGeneration?.id === generation.id &&
-                    currentGenerationId !== generation.id && (
+                  {isCurrentlyViewingSnapshot && (
                     <span className="rounded-full border border-blue-700 bg-blue-900/30 px-2 py-0.5 text-xs text-blue-300">
-                      Viewing
+                      Currently Viewing
                     </span>
                   )}
 
@@ -304,16 +307,27 @@ export function HistoricalSnapshotsSection({
                 </div>
               </button>
 
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onDeleteGeneration(generation.id);
-      }}
-      className="text-xs text-red-400 hover:text-red-300"
-    >
-      Delete
-    </button>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => onSelectGeneration(generation)}
+                  disabled={isActivePlan || isCurrentlyViewingSnapshot}
+                  className="rounded-lg border border-blue-500/50 px-3 py-1.5 text-xs font-semibold text-blue-200 transition hover:border-blue-300 hover:text-white disabled:cursor-default disabled:border-gray-700 disabled:text-gray-400 disabled:hover:border-gray-700 disabled:hover:text-gray-400"
+                >
+                  {isActivePlan ? "Current Plan" : isCurrentlyViewingSnapshot ? "Currently Viewing" : "View Snapshot"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteGeneration(generation.id);
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Delete
+                </button>
+              </div>
 
             </div>
           </li>

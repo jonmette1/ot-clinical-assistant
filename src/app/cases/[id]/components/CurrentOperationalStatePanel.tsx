@@ -72,7 +72,7 @@ export function CurrentOperationalStatePanel({
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
-            Command Center
+            Visit Briefing
           </p>
 
           <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl">
