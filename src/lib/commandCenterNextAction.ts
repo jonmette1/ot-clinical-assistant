@@ -1,4 +1,5 @@
 import { compressNextActionList } from "@/lib/clinicalDisplayLanguage";
+import { reconcileBarriers } from "@/lib/continuity/reconcileBarriers";
 import { reconcileReassessmentTriggers } from "@/lib/continuity/reconcileReassessmentTriggers";
 import { buildProgressionReadiness } from "@/lib/progression/buildProgressionReadiness";
 
@@ -14,6 +15,7 @@ export type CommandCenterNextActionInput = {
   } | null;
   progressionState?: {
     advancementReadiness?: string;
+    activeBarriers?: string[];
     reassessmentTriggers?: string[];
   } | null;
   clinicalAttentionState?: unknown;
@@ -161,8 +163,6 @@ export function buildCommandCenterNextActions({
   const latestCurrentDominantBarrier =
     readText(currentLongitudinalState, ["currentDominantBarrier", "current_dominant_barrier"]) ||
     readText(mostRecentEvent, ["currentDominantBarrier", "current_dominant_barrier"]);
-  const currentDominantBarrier =
-    latestCurrentDominantBarrier || operationalPrioritization?.dominantBarriers?.[0] || null;
   const reasonTreatmentChanged =
     readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
     readText(mostRecentEvent, ["reasonTreatmentChanged", "reason_treatment_changed"]);
@@ -240,21 +240,37 @@ export function buildCommandCenterNextActions({
     medicalChange,
     currentSafetyOrRegressionSignals: safetyOrRegressionText,
   });
+  const reconciledBarriers = reconcileBarriers({
+    activeBarriers: progressionState?.activeBarriers,
+    dominantBarriers: operationalPrioritization?.dominantBarriers,
+    currentLimitingFactor: latestCurrentDominantBarrier,
+    progressionStatus,
+    milestoneAchieved,
+    functionalChanges,
+    progressionReadiness,
+    clinicalAttentionState,
+    currentSafetyOrRegressionSignals: [attentionStatement || "", ...attentionDrivers, ...functionalChanges],
+    medicalChange,
+    treatmentDirectionChanged,
+  });
+  const effectiveDominantBarrier = reconciledBarriers.dominantBarrier;
+  const monitoringBarrier = reconciledBarriers.monitoringBarriers[0] || null;
 
   const newerClinicalMeaningActive = reassessmentRecommended || requiresOperationalReview;
   const generatedPlanActions = structuredPlanDetails?.immediateActions || [];
   const staleGeneratedPlanActionsSuppressed = newerClinicalMeaningActive && generatedPlanActions.length > 0;
 
-  const safetyAction = currentDominantBarrier
-    ? `Reassess safety and current function around ${currentDominantBarrier} before advancing or continuing the prior plan.`
+  const safetyAction = effectiveDominantBarrier
+    ? `Reassess safety and current function around ${effectiveDominantBarrier} before advancing or continuing the prior plan.`
     : "Reassess safety and current function before advancing or continuing the prior plan.";
   const focusReviewAction = reasonTreatmentChanged
     ? `Review treatment focus because ${reasonTreatmentChanged}.`
-    : currentDominantBarrier
-    ? `Review treatment focus around ${currentDominantBarrier} before relying on prior plan actions.`
+    : effectiveDominantBarrier
+    ? `Review treatment focus around ${effectiveDominantBarrier} before relying on prior plan actions.`
     : "Review treatment focus before relying on prior plan actions.";
   const monitoringContext = deriveMonitoringContext(
-    currentDominantBarrier,
+    monitoringBarrier,
+    effectiveDominantBarrier,
     operationalPrioritization?.currentOperationalEmphasis
   );
   const readinessEvaluationAction =
@@ -269,8 +285,8 @@ export function buildCommandCenterNextActions({
   const operationalEmphasisAction = shouldElevateOperationalPrioritization
     ? operationalPrioritization?.currentOperationalEmphasis
       ? `Use the current operational focus: ${operationalPrioritization.currentOperationalEmphasis}`
-      : currentDominantBarrier
-      ? `Reorient treatment around ${currentDominantBarrier}.`
+      : effectiveDominantBarrier
+      ? `Reorient treatment around ${effectiveDominantBarrier}.`
       : null
     : null;
 
@@ -291,9 +307,14 @@ export function buildCommandCenterNextActions({
   ];
 
   const actionsBeforeTriggerMonitoring = compressNextActionList(prioritizedActions, limit);
-  const monitoringActions = reconciledReassessmentTriggers.monitoringTriggers.map(
-    (trigger) => `Continue monitoring for ${trigger}.`
-  );
+  const monitoringActions = [
+    ...reconciledBarriers.monitoringBarriers.map(
+      (barrier) => `Continue monitoring ${deriveMonitoringContext(barrier)}.`,
+    ),
+    ...reconciledReassessmentTriggers.monitoringTriggers.map(
+      (trigger) => `Continue monitoring for ${trigger}.`,
+    ),
+  ];
   const actions =
     actionsBeforeTriggerMonitoring.length > 0
       ? compressNextActionList(
