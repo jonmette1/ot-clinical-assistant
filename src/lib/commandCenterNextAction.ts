@@ -1,4 +1,5 @@
 import { compressNextActionList } from "@/lib/clinicalDisplayLanguage";
+import { reconcileReassessmentTriggers } from "@/lib/continuity/reconcileReassessmentTriggers";
 import { buildProgressionReadiness } from "@/lib/progression/buildProgressionReadiness";
 
 export type CommandCenterNextActionInput = {
@@ -96,10 +97,31 @@ const compactUnique = (items: Array<string | null | undefined>): string[] =>
 const getMostRecentEvent = (currentLongitudinalState: unknown): unknown =>
   readUnknown(currentLongitudinalState, ["mostRecentEvent", "most_recent_event"]);
 
+const stripNegatedSafetyEvents = (signalText: string): string =>
+  signalText
+    .replace(
+      /\b(?:no|not|without|denies?|denied)\s+(?:current\s+|new\s+|recent\s+|reported\s+|documented\s+|additional\s+|further\s+|any\s+)*(?:falls?|near\s*falls?|injur(?:y|ies)|unsafe\s+(?:transfer|mobility|performance))(?:\s+(?:or|and)\s+(?:falls?|near\s*falls?|injur(?:y|ies)))?\b/g,
+      " "
+    )
+    .replace(
+      /\b(?:falls?|near\s*falls?|injur(?:y|ies))\s+(?:did not|didn't|has not|hasn't)\s+occur\b/g,
+      " "
+    );
+
 const includesSafetyReviewSignal = (signalText: string): boolean =>
-  /\b(fall|falls|fell|injury|injuries|injured|wound|hospital|er|emergency|medical|new pain|worsening pain|new symptom|worsening symptom|unsafe|decline|declined|declining|regression)\b/.test(
-    signalText
+  /\b(falls?|fell|near\s*falls?|injury|injuries|injured|wound|hospital|er|emergency|new pain|worsening pain|new symptom|worsening symptom|unsafe|decline|declined|declining|regression)\b/.test(
+    stripNegatedSafetyEvents(signalText)
   );
+
+const hasMeaningfulMedicalChange = (medicalChange: string | null): boolean => {
+  const normalized = normalizeSignalText(medicalChange);
+  return (
+    Boolean(normalized) &&
+    !["none", "no", "no change", "no medical change", "unchanged", "not applicable", "n/a"].includes(
+      normalized
+    )
+  );
+};
 
 const deriveMonitoringContext = (...sources: Array<string | null | undefined>): string => {
   const source = normalizeSignalText(sources.join(" "));
@@ -136,11 +158,11 @@ export function buildCommandCenterNextActions({
     readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]) ||
     readText(mostRecentEvent, ["milestoneAchieved", "milestone_achieved"]);
   const advancementReadiness = progressionState?.advancementReadiness || null;
-  const currentDominantBarrier =
+  const latestCurrentDominantBarrier =
     readText(currentLongitudinalState, ["currentDominantBarrier", "current_dominant_barrier"]) ||
-    readText(mostRecentEvent, ["currentDominantBarrier", "current_dominant_barrier"]) ||
-    operationalPrioritization?.dominantBarriers?.[0] ||
-    null;
+    readText(mostRecentEvent, ["currentDominantBarrier", "current_dominant_barrier"]);
+  const currentDominantBarrier =
+    latestCurrentDominantBarrier || operationalPrioritization?.dominantBarriers?.[0] || null;
   const reasonTreatmentChanged =
     readText(currentLongitudinalState, ["reasonTreatmentChanged", "reason_treatment_changed"]) ||
     readText(mostRecentEvent, ["reasonTreatmentChanged", "reason_treatment_changed"]);
@@ -163,7 +185,7 @@ export function buildCommandCenterNextActions({
   const normalizedSignals = normalizeSignalText(
     [
       progressionStatus,
-      currentDominantBarrier,
+      latestCurrentDominantBarrier,
       reasonTreatmentChanged,
       medicalChange,
       attentionStatement,
@@ -174,7 +196,8 @@ export function buildCommandCenterNextActions({
 
   const hasRegressionOrDecline =
     normalizedSignals.includes("regression") || normalizedSignals.includes("declin");
-  const hasSafetyReviewSignal = Boolean(medicalChange) || includesSafetyReviewSignal(normalizedSignals);
+  const hasSafetyReviewSignal =
+    hasMeaningfulMedicalChange(medicalChange) || includesSafetyReviewSignal(normalizedSignals);
   const reassessmentRecommended =
     readBoolean(clinicalAttentionState, ["reassessmentRecommended", "reassessment_recommended"]) === true ||
     readBoolean(currentLongitudinalState, ["reassessmentRecommended", "reassessment_recommended"]) === true ||
@@ -188,6 +211,12 @@ export function buildCommandCenterNextActions({
   const requiresOperationalReview =
     readBoolean(clinicalAttentionState, ["requiresOperationalReview", "requires_operational_review"]) ===
       true || treatmentDirectionChanged;
+  const safetyOrRegressionText = [
+    latestCurrentDominantBarrier || "",
+    attentionStatement || "",
+    ...attentionDrivers,
+    ...functionalChanges,
+  ];
   const progressionReadiness = buildProgressionReadiness({
     progressionStatus,
     milestoneAchieved,
@@ -196,12 +225,20 @@ export function buildCommandCenterNextActions({
     reassessmentRecommended,
     requiresOperationalReview,
     medicalChange,
-    safetyOrRegressionText: [
-      currentDominantBarrier || "",
-      attentionStatement || "",
-      ...attentionDrivers,
-      ...functionalChanges,
-    ],
+    safetyOrRegressionText,
+  });
+  const reconciledReassessmentTriggers = reconcileReassessmentTriggers({
+    operationalReassessmentTriggers: operationalPrioritization?.reassessmentTriggers,
+    progressionReassessmentTriggers: progressionState?.reassessmentTriggers,
+    latestProgressionStatus: progressionStatus,
+    latestMilestoneAchieved: milestoneAchieved,
+    latestFunctionalChanges: functionalChanges,
+    clinicalAttentionState,
+    progressionReadiness,
+    treatmentDirectionChanged,
+    reassessmentRecommended,
+    medicalChange,
+    currentSafetyOrRegressionSignals: safetyOrRegressionText,
   });
 
   const newerClinicalMeaningActive = reassessmentRecommended || requiresOperationalReview;
@@ -243,18 +280,27 @@ export function buildCommandCenterNextActions({
     ...(progressionReadiness === "ready_for_evaluation" ? [readinessEvaluationAction] : []),
     ...(progressionReadiness === "emerging" ? [emergingReadinessAction] : []),
     ...(requiresOperationalReview && !treatmentDirectionChanged ? [focusReviewAction] : []),
-    ...(operationalPrioritization?.reassessmentTriggers || []).map((trigger) => `Reassess if ${trigger}.`),
+    ...reconciledReassessmentTriggers.activeTriggers.map((trigger) => `Reassess if ${trigger}.`),
     ...(operationalEmphasisAction ? [operationalEmphasisAction] : []),
     ...(attentionStatement ? [attentionStatement] : []),
     ...attentionDrivers.map((driver) => `Monitor ${driver}.`),
-    ...(progressionState?.reassessmentTriggers || []).map((trigger) => `Check progression if ${trigger}.`),
     ...(newerClinicalMeaningActive ? [] : generatedPlanActions),
     ...(newerClinicalMeaningActive
       ? generatedPlanActions.map((action) => `Prior plan action to reconsider: ${action}`)
       : []),
   ];
 
-  const actions = compressNextActionList(prioritizedActions, limit);
+  const actionsBeforeTriggerMonitoring = compressNextActionList(prioritizedActions, limit);
+  const monitoringActions = reconciledReassessmentTriggers.monitoringTriggers.map(
+    (trigger) => `Continue monitoring for ${trigger}.`
+  );
+  const actions =
+    actionsBeforeTriggerMonitoring.length > 0
+      ? compressNextActionList(
+          [actionsBeforeTriggerMonitoring[0], ...monitoringActions, ...actionsBeforeTriggerMonitoring.slice(1)],
+          limit
+        )
+      : actionsBeforeTriggerMonitoring;
 
   return {
     primaryAction: actions[0] || "Continue current focus. Update progression when new findings are available.",
