@@ -128,6 +128,10 @@ export function derivePatientEntryPreviewSignals({
   const latestEventCurrentStateSnapshot = latestEvent?.current_state_snapshot;
   const latestEventClinicalAttentionSnapshot =
     latestEvent?.clinical_attention_snapshot;
+  const previewCurrentLongitudinalState =
+    caseData.current_longitudinal_state || latestEventCurrentStateSnapshot;
+  const previewClinicalAttentionState =
+    caseData.clinical_attention_state || latestEventClinicalAttentionSnapshot;
 
   const currentFocus = readText(operationalPrioritization, [
     "currentOperationalEmphasis",
@@ -139,7 +143,7 @@ export function derivePatientEntryPreviewSignals({
   ]);
 
   const attentionStatement =
-    readText(caseData.clinical_attention_state, [
+    readText(previewClinicalAttentionState, [
       "attentionStatement",
       "attention_statement",
     ]) ||
@@ -148,21 +152,21 @@ export function derivePatientEntryPreviewSignals({
       "attention_statement",
     ]);
 
-  const requiresOperationalReview = readBoolean(caseData.clinical_attention_state, [
+  const requiresOperationalReview = readBoolean(previewClinicalAttentionState, [
     "requiresOperationalReview",
     "requires_operational_review",
   ]);
-  const reassessmentRecommended = readBoolean(caseData.clinical_attention_state, [
+  const reassessmentRecommended = readBoolean(previewClinicalAttentionState, [
     "reassessmentRecommended",
     "reassessment_recommended",
   ]);
-  const attentionDrivers = readTextList(caseData.clinical_attention_state, [
+  const attentionDrivers = readTextList(previewClinicalAttentionState, [
     "attentionDrivers",
     "attention_drivers",
   ]);
 
   const currentStateFunctionalChanges = readTextList(
-    caseData.current_longitudinal_state,
+    previewCurrentLongitudinalState,
     ["functionalChanges", "functional_changes"]
   );
   const latestEventFunctionalChanges = readTextList(latestEventPayload, [
@@ -173,13 +177,13 @@ export function derivePatientEntryPreviewSignals({
     ? currentStateFunctionalChanges
     : latestEventFunctionalChanges;
   const sinceLastVisitMilestone =
-    readText(caseData.current_longitudinal_state, [
+    readText(previewCurrentLongitudinalState, [
       "milestoneAchieved",
       "milestone_achieved",
     ]) ||
     readText(latestEventPayload, ["milestoneAchieved", "milestone_achieved"]);
   const sinceLastVisitTreatmentDirectionChanged =
-    readBoolean(caseData.current_longitudinal_state, [
+    readBoolean(previewCurrentLongitudinalState, [
       "treatmentDirectionChanged",
       "treatment_direction_changed",
     ]) ??
@@ -188,7 +192,7 @@ export function derivePatientEntryPreviewSignals({
       "treatment_direction_changed",
     ]);
   const sinceLastVisitReasonTreatmentChanged =
-    readText(caseData.current_longitudinal_state, [
+    readText(previewCurrentLongitudinalState, [
       "reasonTreatmentChanged",
       "reason_treatment_changed",
     ]) ||
@@ -197,7 +201,7 @@ export function derivePatientEntryPreviewSignals({
       "reason_treatment_changed",
     ]);
   const sinceLastVisitLimitingFactor =
-    readText(caseData.current_longitudinal_state, [
+    readText(previewCurrentLongitudinalState, [
       "currentDominantBarrier",
       "current_dominant_barrier",
       "currentLimitingFactor",
@@ -216,7 +220,7 @@ export function derivePatientEntryPreviewSignals({
       "current_limiting_factor",
     ]);
   const sinceLastVisitProgressionStatus =
-    readText(caseData.current_longitudinal_state, [
+    readText(previewCurrentLongitudinalState, [
       "progressionStatus",
       "progression_status",
     ]) ||
@@ -280,11 +284,12 @@ export function derivePatientEntryPreviewSignals({
       advancementReadiness:
         readText(progressionState, ["advancementReadiness", "advancement_readiness"]) ||
         undefined,
+      activeBarriers: readTextList(progressionState, ["activeBarriers", "active_barriers"]),
       reassessmentTriggers: progressionReassessmentTriggers,
     },
     clinicalAttentionState:
-      caseData.clinical_attention_state || latestEventClinicalAttentionSnapshot,
-    currentLongitudinalState: caseData.current_longitudinal_state,
+      previewClinicalAttentionState || latestEventClinicalAttentionSnapshot,
+    currentLongitudinalState: previewCurrentLongitudinalState,
     latestEventPayload,
     limit: 1,
   });
@@ -302,8 +307,8 @@ export function derivePatientEntryPreviewSignals({
     ? buildProgressionAwareCurrentFocus({
         currentFocus,
         progressionState,
-        currentLongitudinalState: caseData.current_longitudinal_state,
-        clinicalAttentionState: caseData.clinical_attention_state,
+        currentLongitudinalState: previewCurrentLongitudinalState,
+        clinicalAttentionState: previewClinicalAttentionState,
         latestEventPayload,
         dominantBarriers,
       })

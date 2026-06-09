@@ -2,6 +2,10 @@ import {
   buildProgressionReadiness,
   type ProgressionReadiness,
 } from "@/lib/progression/buildProgressionReadiness";
+import {
+  reconcileBarriers,
+  type ReconciledBarriers,
+} from "@/lib/continuity/reconcileBarriers";
 
 type AwarenessTrend = "progress" | "faster_progress" | "regression" | "stabilization" | null;
 
@@ -24,6 +28,7 @@ type ProgressionAwarenessSignal = {
   reassessmentRecommended: boolean;
   requiresOperationalReview: boolean;
   readiness: ProgressionReadiness;
+  barrierReconciliation: ReconciledBarriers;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -173,13 +178,19 @@ const deriveTrendFromFunctionalChange = (change: string | null): AwarenessTrend 
   const normalized = normalize(change);
   if (!normalized) return null;
 
+  const reducedSupportNeed =
+    normalized.includes("reduced assistance") ||
+    normalized.includes("reduced cueing") ||
+    normalized.includes("reduced caregiver support") ||
+    normalized.includes("reduced support requirement");
+
   if (
     normalized.includes("worse") ||
     normalized.includes("declin") ||
     normalized.includes("regress") ||
     normalized.includes("less consistent") ||
     normalized.includes("less reliable") ||
-    normalized.includes("reduced")
+    (normalized.includes("reduced") && !reducedSupportNeed)
   ) {
     return "regression";
   }
@@ -190,7 +201,8 @@ const deriveTrendFromFunctionalChange = (change: string | null): AwarenessTrend 
     normalized.includes("more reliable") ||
     normalized.includes("increased") ||
     normalized.includes("achieved") ||
-    normalized.includes("better")
+    normalized.includes("better") ||
+    reducedSupportNeed
   ) {
     return "progress";
   }
@@ -267,6 +279,23 @@ const deriveAttentionAreas = ({
   return areas.slice(0, 3);
 };
 
+const deriveMonitoringContext = (barriers: string[], fallback: string): string => {
+  const source = normalize([...barriers, fallback].join(" "));
+
+  if (source.includes("toilet transfer")) return "toilet transfer safety";
+  if (source.includes("shower transfer")) return "shower transfer safety";
+  if (source.includes("bathroom transfer")) return "bathroom transfer safety";
+  if (source.includes("transfer") || source.includes("mobility")) return "transfer safety";
+  if (source.includes("caregiver")) return "caregiver-supported safety";
+  if (source.includes("environment") || source.includes("hazard") || source.includes("equipment")) {
+    return "environmental safety";
+  }
+  if (source.includes("bath") || source.includes("shower")) return "bathing safety";
+  if (source.includes("toilet")) return "toileting safety";
+
+  return "functional safety";
+};
+
 const deriveReliabilityTarget = (subject: string) => {
   const normalized = normalize(subject);
 
@@ -282,7 +311,8 @@ const buildProgressionSignal = ({
   currentLongitudinalState,
   clinicalAttentionState,
   latestEventPayload,
-}: Omit<CurrentFocusProgressionAwarenessInput, "currentFocus" | "dominantBarriers">): ProgressionAwarenessSignal | null => {
+  dominantBarriers,
+}: Omit<CurrentFocusProgressionAwarenessInput, "currentFocus">): ProgressionAwarenessSignal | null => {
   const progressionStatus =
     readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
     readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
@@ -311,6 +341,24 @@ const buildProgressionSignal = ({
   const requiresOperationalReview =
     readBoolean(clinicalAttentionState, ["requiresOperationalReview", "requires_operational_review"]) ===
     true;
+  const treatmentDirectionChanged =
+    readBoolean(currentLongitudinalState, ["treatmentDirectionChanged", "treatment_direction_changed"]) ===
+      true ||
+    readBoolean(latestEventPayload, ["treatmentDirectionChanged", "treatment_direction_changed"]) ===
+      true;
+  const currentLimitingFactor =
+    readText(currentLongitudinalState, [
+      "currentDominantBarrier",
+      "current_dominant_barrier",
+      "currentLimitingFactor",
+      "current_limiting_factor",
+    ]) ||
+    readText(latestEventPayload, [
+      "currentDominantBarrier",
+      "current_dominant_barrier",
+      "currentLimitingFactor",
+      "current_limiting_factor",
+    ]);
 
   const statusTrend = deriveTrendFromStatus(progressionStatus);
   const functionalTrend = deriveTrendFromFunctionalChange(functionalChanges[0] || null);
@@ -322,6 +370,30 @@ const buildProgressionSignal = ({
 
   if (!trend) return null;
 
+  const readiness = buildProgressionReadiness({
+    progressionStatus,
+    milestoneAchieved,
+    functionalChanges,
+    advancementReadiness,
+    reassessmentRecommended,
+    requiresOperationalReview,
+    medicalChange,
+    safetyOrRegressionText: functionalChanges,
+  });
+  const barrierReconciliation = reconcileBarriers({
+    activeBarriers: readTextList(progressionState, ["activeBarriers", "active_barriers"]),
+    dominantBarriers: asTextList(dominantBarriers),
+    currentLimitingFactor,
+    progressionStatus,
+    milestoneAchieved,
+    functionalChanges,
+    progressionReadiness: readiness,
+    clinicalAttentionState,
+    currentSafetyOrRegressionSignals: functionalChanges,
+    medicalChange,
+    treatmentDirectionChanged,
+  });
+
   return {
     trend,
     progressionStatus,
@@ -331,16 +403,8 @@ const buildProgressionSignal = ({
     medicalChange,
     reassessmentRecommended,
     requiresOperationalReview,
-    readiness: buildProgressionReadiness({
-      progressionStatus,
-      milestoneAchieved,
-      functionalChanges,
-      advancementReadiness,
-      reassessmentRecommended,
-      requiresOperationalReview,
-      medicalChange,
-      safetyOrRegressionText: functionalChanges,
-    }),
+    readiness,
+    barrierReconciliation,
   };
 };
 
@@ -366,6 +430,7 @@ export function buildProgressionAwareCurrentFocus({
     currentLongitudinalState,
     clinicalAttentionState,
     latestEventPayload,
+    dominantBarriers,
   });
 
   if (!signal) return trimmedFocus;
@@ -375,7 +440,10 @@ export function buildProgressionAwareCurrentFocus({
   const movementVerb = subjectIsPlural ? "are" : "is";
   const attentionAreas = deriveAttentionAreas({
     currentFocus: trimmedFocus,
-    dominantBarriers,
+    dominantBarriers:
+      signal.barrierReconciliation.activeBarriers.length > 0
+        ? signal.barrierReconciliation.activeBarriers
+        : dominantBarriers,
     trend: signal.trend,
   });
   const attentionText = joinReadableList(attentionAreas);
@@ -389,13 +457,31 @@ export function buildProgressionAwareCurrentFocus({
   }
 
   const primaryAttentionArea = attentionAreas[0] || "safety";
+  const monitoringContext = deriveMonitoringContext(
+    signal.barrierReconciliation.monitoringBarriers,
+    trimmedFocus,
+  );
+  const hasActiveBarrier = signal.barrierReconciliation.activeBarriers.length > 0;
+  const hasMonitoringBarrier = signal.barrierReconciliation.monitoringBarriers.length > 0;
 
   if (signal.readiness === "ready_for_evaluation") {
-    return `${subject} ${movementVerb} improving. Focus should remain on ${primaryAttentionArea} while evaluating readiness for progression.`;
+    if (hasActiveBarrier) {
+      return `${subject} ${movementVerb} improving. Continue focusing on ${primaryAttentionArea} while evaluating readiness for progression.`;
+    }
+    if (hasMonitoringBarrier) {
+      return `${subject} ${movementVerb} improving. Evaluate readiness for progression while keeping ${monitoringContext} under monitoring.`;
+    }
+    return `${subject} ${movementVerb} improving. Evaluate readiness for progression while confirming gains remain consistent.`;
   }
 
   if (signal.readiness === "emerging") {
-    return `${subject} ${movementVerb} improving. Continue the current ${primaryAttentionArea} focus while monitoring for progression readiness.`;
+    if (hasActiveBarrier) {
+      return `${subject} ${movementVerb} improving. Continue focusing on ${primaryAttentionArea} while confirming consistency is sustained.`;
+    }
+    if (hasMonitoringBarrier) {
+      return `${subject} ${movementVerb} improving. Continue monitoring ${monitoringContext} while confirming consistency is sustained.`;
+    }
+    return `${subject} ${movementVerb} improving. Continue monitoring whether consistency is sustained.`;
   }
 
   if (signal.trend === "faster_progress") {
