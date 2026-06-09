@@ -833,17 +833,13 @@ const [latestClinicalImpactSummary, setLatestClinicalImpactSummary] = useState<C
 const [highlightClinicalImpactSummary, setHighlightClinicalImpactSummary] = useState(false);
 const clinicalImpactSummaryRef = useRef<HTMLDivElement | null>(null);
 const clinicalImpactHighlightTimeoutRef = useRef<number | null>(null);
-const progressionCheckSectionRef = useRef<HTMLDetailsElement | null>(null);
+const progressionCheckSectionRef = useRef<HTMLElement | null>(null);
 const functionalChangesRef = useRef<HTMLTextAreaElement | null>(null);
 const pendingHistoricalSnapshotScrollRef = useRef(false);
 const focusProgressionCheck = useCallback(() => {
   const progressionCheckSection = progressionCheckSectionRef.current;
 
   if (!progressionCheckSection) return;
-
-  if (progressionCheckSection instanceof HTMLDetailsElement) {
-    progressionCheckSection.open = true;
-  }
 
   progressionCheckSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -3366,11 +3362,15 @@ return (
       </div>
     ) : null}
 
-    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
-        Case Status
-      </p>
-      <div className="mt-4 space-y-5 text-sm leading-relaxed">
+    <details className="group rounded-2xl border border-gray-800 bg-gray-950/70">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 marker:content-none">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
+          Case Status
+        </p>
+        <span className="text-xs font-semibold text-gray-400 group-open:hidden">Show</span>
+        <span className="hidden text-xs font-semibold text-gray-400 group-open:inline">Hide</span>
+      </summary>
+      <div className="space-y-5 border-t border-gray-800 px-4 pb-4 pt-3 text-sm leading-relaxed">
         <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">
             Overall Trajectory
@@ -3420,7 +3420,7 @@ return (
           <p className="mt-2 text-gray-200">{clinicalStatusRecommendedAction}</p>
         </section>
       </div>
-    </article>
+    </details>
 
     <div className="space-y-3">
       <details className="group rounded-2xl border border-gray-800 bg-gray-950/70">
@@ -3578,26 +3578,23 @@ return (
 
 
 {/* OWNERSHIP: Patient Command Center — progression check workflow remains current-visit orientation. */}
-<details
+<section
   ref={progressionCheckSectionRef}
   id="patient-status"
   data-ownership="patient-command-center"
-  className="group scroll-mt-44 rounded-2xl border border-gray-800 bg-gray-950/30 sm:scroll-mt-44 md:scroll-mt-40"
+  className="scroll-mt-44 rounded-2xl border border-gray-800 bg-gray-950/30 p-4 sm:scroll-mt-44 md:scroll-mt-40"
 >
-  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 marker:content-none">
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
-        Patient Status
-      </p>
-      <p className="mt-1 text-sm text-gray-400">
-        Record today’s status and confirm whether the current focus still fits.
-      </p>
-    </div>
-    <span className="text-xs font-semibold text-gray-400 group-open:hidden">Show</span>
-    <span className="hidden text-xs font-semibold text-gray-400 group-open:inline">Hide</span>
-  </summary>
-
-  <div className="border-t border-gray-800 p-4">
+  <div className="mb-4">
+    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+      Patient Status
+    </p>
+    <h2 className="mt-1 text-lg font-semibold text-white">
+      Quick patient status update
+    </h2>
+    <p className="mt-1 text-sm text-gray-400">
+      Record today’s patient status and confirm whether the current treatment focus still matches the case.
+    </p>
+  </div>
 
   {isViewingHistoricalVersion ? (
     <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-300">
@@ -3820,8 +3817,8 @@ return (
     </div>
   </form>
   )}
-  </div>
-</details>
+
+</section>
 
 {/* OWNERSHIP: Patient Command Center — visit history is available here to reduce workspace switching for prior-visit review. */}
 <section data-ownership="patient-command-center" id="visit-history">
