@@ -1,4 +1,5 @@
 import { compressNextActionList } from "@/lib/clinicalDisplayLanguage";
+import { buildProgressionReadiness } from "@/lib/progression/buildProgressionReadiness";
 
 export type CommandCenterNextActionInput = {
   structuredPlanDetails?: {
@@ -11,10 +12,12 @@ export type CommandCenterNextActionInput = {
     longitudinalRefresh?: Record<string, unknown>;
   } | null;
   progressionState?: {
+    advancementReadiness?: string;
     reassessmentTriggers?: string[];
   } | null;
   clinicalAttentionState?: unknown;
   currentLongitudinalState?: unknown;
+  latestEventPayload?: unknown;
   limit?: number;
 };
 
@@ -94,9 +97,26 @@ const getMostRecentEvent = (currentLongitudinalState: unknown): unknown =>
   readUnknown(currentLongitudinalState, ["mostRecentEvent", "most_recent_event"]);
 
 const includesSafetyReviewSignal = (signalText: string): boolean =>
-  /\b(fall|falls|fell|injury|injuries|injured|wound|hospital|er|emergency|medical|pain|symptom|safety|unsafe|decline|declined|declining|regression)\b/.test(
+  /\b(fall|falls|fell|injury|injuries|injured|wound|hospital|er|emergency|medical|new pain|worsening pain|new symptom|worsening symptom|unsafe|decline|declined|declining|regression)\b/.test(
     signalText
   );
+
+const deriveMonitoringContext = (...sources: Array<string | null | undefined>): string => {
+  const source = normalizeSignalText(sources.join(" "));
+
+  if (source.includes("toilet transfer")) return "toilet transfer safety";
+  if (source.includes("shower transfer")) return "shower transfer safety";
+  if (source.includes("bathroom transfer")) return "bathroom transfer safety";
+  if (source.includes("transfer") || source.includes("mobility")) return "transfer safety";
+  if (source.includes("bath") || source.includes("shower")) return "bathing safety";
+  if (source.includes("toilet")) return "toileting safety";
+  if (source.includes("caregiver")) return "caregiver-supported safety";
+  if (source.includes("environment") || source.includes("equipment")) {
+    return "environmental safety";
+  }
+
+  return "functional safety";
+};
 
 export function buildCommandCenterNextActions({
   structuredPlanDetails,
@@ -104,13 +124,18 @@ export function buildCommandCenterNextActions({
   progressionState,
   clinicalAttentionState,
   currentLongitudinalState,
+  latestEventPayload,
   limit = 3,
 }: CommandCenterNextActionInput): CommandCenterNextActionResult {
-  const mostRecentEvent = getMostRecentEvent(currentLongitudinalState);
+  const mostRecentEvent = getMostRecentEvent(currentLongitudinalState) || latestEventPayload;
   const progressionStatus =
     readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
     readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
     readText(mostRecentEvent, ["progressionStatus", "progression_status"]);
+  const milestoneAchieved =
+    readText(currentLongitudinalState, ["milestoneAchieved", "milestone_achieved"]) ||
+    readText(mostRecentEvent, ["milestoneAchieved", "milestone_achieved"]);
+  const advancementReadiness = progressionState?.advancementReadiness || null;
   const currentDominantBarrier =
     readText(currentLongitudinalState, ["currentDominantBarrier", "current_dominant_barrier"]) ||
     readText(mostRecentEvent, ["currentDominantBarrier", "current_dominant_barrier"]) ||
@@ -163,6 +188,21 @@ export function buildCommandCenterNextActions({
   const requiresOperationalReview =
     readBoolean(clinicalAttentionState, ["requiresOperationalReview", "requires_operational_review"]) ===
       true || treatmentDirectionChanged;
+  const progressionReadiness = buildProgressionReadiness({
+    progressionStatus,
+    milestoneAchieved,
+    functionalChanges,
+    advancementReadiness,
+    reassessmentRecommended,
+    requiresOperationalReview,
+    medicalChange,
+    safetyOrRegressionText: [
+      currentDominantBarrier || "",
+      attentionStatement || "",
+      ...attentionDrivers,
+      ...functionalChanges,
+    ],
+  });
 
   const newerClinicalMeaningActive = reassessmentRecommended || requiresOperationalReview;
   const generatedPlanActions = structuredPlanDetails?.immediateActions || [];
@@ -176,6 +216,14 @@ export function buildCommandCenterNextActions({
     : currentDominantBarrier
     ? `Review treatment focus around ${currentDominantBarrier} before relying on prior plan actions.`
     : "Review treatment focus before relying on prior plan actions.";
+  const monitoringContext = deriveMonitoringContext(
+    currentDominantBarrier,
+    operationalPrioritization?.currentOperationalEmphasis
+  );
+  const readinessEvaluationAction =
+    `Evaluate readiness for progression while continuing ${monitoringContext} monitoring.`;
+  const emergingReadinessAction =
+    `Continue ${monitoringContext} monitoring and monitor whether improving consistency is sustained.`;
   const hasRefreshedOperationalPrioritization = isRecord(
     operationalPrioritization?.longitudinalRefresh
   );
@@ -191,7 +239,10 @@ export function buildCommandCenterNextActions({
 
   const prioritizedActions = [
     ...(reassessmentRecommended ? [safetyAction] : []),
-    ...(requiresOperationalReview ? [focusReviewAction] : []),
+    ...(treatmentDirectionChanged ? [focusReviewAction] : []),
+    ...(progressionReadiness === "ready_for_evaluation" ? [readinessEvaluationAction] : []),
+    ...(progressionReadiness === "emerging" ? [emergingReadinessAction] : []),
+    ...(requiresOperationalReview && !treatmentDirectionChanged ? [focusReviewAction] : []),
     ...(operationalPrioritization?.reassessmentTriggers || []).map((trigger) => `Reassess if ${trigger}.`),
     ...(operationalEmphasisAction ? [operationalEmphasisAction] : []),
     ...(attentionStatement ? [attentionStatement] : []),

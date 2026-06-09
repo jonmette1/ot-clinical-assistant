@@ -1,3 +1,8 @@
+import {
+  buildProgressionReadiness,
+  type ProgressionReadiness,
+} from "@/lib/progression/buildProgressionReadiness";
+
 type AwarenessTrend = "progress" | "faster_progress" | "regression" | "stabilization" | null;
 
 type CurrentFocusProgressionAwarenessInput = {
@@ -14,7 +19,11 @@ type ProgressionAwarenessSignal = {
   progressionStatus?: string | null;
   milestoneAchieved?: string | null;
   advancementReadiness?: string | null;
-  functionalChange?: string | null;
+  functionalChanges: string[];
+  medicalChange?: string | null;
+  reassessmentRecommended: boolean;
+  requiresOperationalReview: boolean;
+  readiness: ProgressionReadiness;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -36,6 +45,19 @@ const readText = (source: unknown, keys: string[]): string | null => {
 
   if (typeof value === "string") return value.trim() || null;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
+
+  return null;
+};
+
+const readBoolean = (source: unknown, keys: string[]): boolean | null => {
+  const value = readUnknown(source, keys);
+
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.toLowerCase();
+    if (normalized === "true" || normalized === "yes") return true;
+    if (normalized === "false" || normalized === "no") return false;
+  }
 
   return null;
 };
@@ -97,6 +119,8 @@ const hasExistingTrajectoryLanguage = (currentFocus: string) => {
     "becoming less reliable",
     "clinically stable",
     "stabilizing without clear advancement",
+    "monitoring for progression readiness",
+    "evaluating readiness for progression",
   ].some((phrase) => normalized.includes(phrase));
 };
 
@@ -270,15 +294,31 @@ const buildProgressionSignal = ({
     "advancementReadiness",
     "advancement_readiness",
   ]);
-  const functionalChange =
-    readTextList(currentLongitudinalState, ["functionalChanges", "functional_changes"])[0] ||
-    readTextList(latestEventPayload, ["functionalChanges", "functional_changes"])[0] ||
-    null;
+  const functionalChanges = [
+    ...readTextList(currentLongitudinalState, ["functionalChanges", "functional_changes"]),
+    ...readTextList(latestEventPayload, ["functionalChanges", "functional_changes"]),
+  ].filter((change, index, changes) => changes.indexOf(change) === index);
+  const medicalChange =
+    readText(currentLongitudinalState, ["medicalChange", "medical_change"]) ||
+    readText(latestEventPayload, ["medicalChange", "medical_change"]);
+  const reassessmentRecommended =
+    readBoolean(clinicalAttentionState, ["reassessmentRecommended", "reassessment_recommended"]) ===
+      true ||
+    readBoolean(currentLongitudinalState, ["reassessmentRecommended", "reassessment_recommended"]) ===
+      true ||
+    readBoolean(latestEventPayload, ["reassessmentRecommended", "reassessment_recommended"]) ===
+      true;
+  const requiresOperationalReview =
+    readBoolean(clinicalAttentionState, ["requiresOperationalReview", "requires_operational_review"]) ===
+    true;
 
   const statusTrend = deriveTrendFromStatus(progressionStatus);
-  const functionalTrend = deriveTrendFromFunctionalChange(functionalChange);
+  const functionalTrend = deriveTrendFromFunctionalChange(functionalChanges[0] || null);
   const readinessTrend = deriveTrendFromAdvancementReadiness(advancementReadiness);
-  const trend = statusTrend || functionalTrend || (milestoneAchieved ? "progress" : readinessTrend);
+  const trend =
+    statusTrend === "regression" || functionalTrend === "regression"
+      ? "regression"
+      : statusTrend || functionalTrend || (milestoneAchieved ? "progress" : readinessTrend);
 
   if (!trend) return null;
 
@@ -287,7 +327,20 @@ const buildProgressionSignal = ({
     progressionStatus,
     milestoneAchieved,
     advancementReadiness,
-    functionalChange,
+    functionalChanges,
+    medicalChange,
+    reassessmentRecommended,
+    requiresOperationalReview,
+    readiness: buildProgressionReadiness({
+      progressionStatus,
+      milestoneAchieved,
+      functionalChanges,
+      advancementReadiness,
+      reassessmentRecommended,
+      requiresOperationalReview,
+      medicalChange,
+      safetyOrRegressionText: functionalChanges,
+    }),
   };
 };
 
@@ -333,6 +386,16 @@ export function buildProgressionAwareCurrentFocus({
 
   if (signal.trend === "stabilization") {
     return `Progress remains limited and ${subject.toLowerCase()} ${movementVerb} still clinically fragile. Focus should remain on ${attentionText}.`;
+  }
+
+  const primaryAttentionArea = attentionAreas[0] || "safety";
+
+  if (signal.readiness === "ready_for_evaluation") {
+    return `${subject} ${movementVerb} improving. Focus should remain on ${primaryAttentionArea} while evaluating readiness for progression.`;
+  }
+
+  if (signal.readiness === "emerging") {
+    return `${subject} ${movementVerb} improving. Continue the current ${primaryAttentionArea} focus while monitoring for progression readiness.`;
   }
 
   if (signal.trend === "faster_progress") {

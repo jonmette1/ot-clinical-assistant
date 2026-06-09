@@ -2,9 +2,9 @@ import {
   compressCommandCenterList,
   compressCommandCenterSentence,
   compressCurrentFocusSentence,
-  compressNextActionList,
 } from "@/lib/clinicalDisplayLanguage";
 import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
+import { buildCommandCenterNextActions } from "@/lib/commandCenterNextAction";
 
 export type PatientEntryPreviewCaseData = {
   id: string;
@@ -262,19 +262,32 @@ export function derivePatientEntryPreviewSignals({
     "reassessmentTriggers",
     "reassessment_triggers",
   ]);
-  const nextActionItems = [
-    ...immediateActions,
-    ...reassessmentTriggers.map((trigger) => `Reassess if ${trigger}.`),
-    ...progressionReassessmentTriggers.map(
-      (trigger) => `Check progression if ${trigger}.`
-    ),
-    ...(requiresOperationalReview
-      ? ["Review the current treatment direction."]
-      : []),
-    ...(reassessmentRecommended
-      ? ["Reassess before advancing the plan."]
-      : []),
-  ].filter(Boolean);
+  const hasNextActionSource =
+    immediateActions.length > 0 ||
+    reassessmentTriggers.length > 0 ||
+    progressionReassessmentTriggers.length > 0 ||
+    requiresOperationalReview === true ||
+    reassessmentRecommended === true ||
+    Boolean(sinceLastVisitProgressionStatus);
+  const previewNextActions = buildCommandCenterNextActions({
+    structuredPlanDetails: { immediateActions },
+    operationalPrioritization: {
+      currentOperationalEmphasis: currentFocus || undefined,
+      dominantBarriers,
+      reassessmentTriggers,
+    },
+    progressionState: {
+      advancementReadiness:
+        readText(progressionState, ["advancementReadiness", "advancement_readiness"]) ||
+        undefined,
+      reassessmentTriggers: progressionReassessmentTriggers,
+    },
+    clinicalAttentionState:
+      caseData.clinical_attention_state || latestEventClinicalAttentionSnapshot,
+    currentLongitudinalState: caseData.current_longitudinal_state,
+    latestEventPayload,
+    limit: 1,
+  });
 
   const attentionItems = [
     attentionStatement ? appendPeriod(attentionStatement) : null,
@@ -315,10 +328,10 @@ export function derivePatientEntryPreviewSignals({
           value: compressCommandCenterList(sinceLastVisitSummaryItems)[0],
         }
       : null,
-    nextActionItems.length
+    hasNextActionSource
       ? {
           label: "Next Action" as const,
-          value: compressNextActionList(nextActionItems, 1)[0],
+          value: previewNextActions.primaryAction,
         }
       : null,
   ].filter((signal): signal is PatientEntryPreviewSignal => Boolean(signal));
