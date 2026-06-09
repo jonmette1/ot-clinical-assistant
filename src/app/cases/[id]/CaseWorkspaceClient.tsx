@@ -505,6 +505,7 @@ const joinReadableList = (items: string[]): string => {
 
 type CaseDetail = {
   id: string;
+  target_activities?: string[] | null;
     current_generation_id: string | null;
   title: string | null;
   created_at: string;
@@ -594,6 +595,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
   const clinicalAttentionState = sourceCase.clinical_attention_state;
   const currentLongitudinalState = sourceCase.current_longitudinal_state;
   const dominantBarriers = operationalPrioritization?.dominantBarriers || [];
+  const primaryTargetActivity = sourceCase.target_activities?.[0] || null;
 
   const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
     currentFocus:
@@ -603,6 +605,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     currentLongitudinalState,
     clinicalAttentionState,
     dominantBarriers,
+    primaryTargetActivity,
   });
 
   const clinicalAttentionRequiresOperationalReview = readBoolean(
@@ -674,6 +677,7 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     progressionState,
     clinicalAttentionState,
     currentLongitudinalState,
+    primaryTargetActivity,
     limit: 3,
   });
   const attentionStatement = readText(clinicalAttentionState, [
@@ -2169,6 +2173,7 @@ const emphasisRationale: string[] =
 
 const dominantBarriers: string[] =
   operationalPrioritization?.dominantBarriers || [];
+const primaryTargetActivity = displayCase.target_activities?.[0] || null;
 
 const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
   currentFocus: rawCurrentOperationalEmphasis,
@@ -2176,6 +2181,7 @@ const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
   currentLongitudinalState,
   clinicalAttentionState,
   dominantBarriers,
+  primaryTargetActivity,
 });
 
 const commandCenterCurrentOperationalEmphasis =
@@ -2749,6 +2755,7 @@ const commandCenterNextActions = buildCommandCenterNextActions({
   progressionState,
   clinicalAttentionState,
   currentLongitudinalState,
+  primaryTargetActivity,
   limit: 3,
 });
 const primaryNextAction = commandCenterNextActions.primaryAction;
