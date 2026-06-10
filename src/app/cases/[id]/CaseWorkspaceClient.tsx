@@ -33,7 +33,7 @@ import {
   compressCurrentFocusSentence,
 } from "@/lib/clinicalDisplayLanguage";
 import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
-import { buildConclusionEvidence } from "@/lib/buildConclusionEvidence";
+import { buildConclusionEvidenceSet } from "@/lib/buildConclusionEvidence";
 // ==============================
 // TYPES
 // ==============================
@@ -2772,26 +2772,21 @@ const conclusionEvidenceInputs = {
   visitHistory: recentLongitudinalEvents,
 };
 
-const currentFocusEvidence = buildConclusionEvidence({
+const conclusionEvidence = buildConclusionEvidenceSet({
   ...conclusionEvidenceInputs,
-  conclusionType: "current_focus",
-  conclusion: commandCenterCurrentOperationalEmphasis,
-}).evidence;
+  conclusions: {
+    current_focus: commandCenterCurrentOperationalEmphasis,
+    attention_required:
+      commandCenterAttentionStatement || "No clinical attention statement is available yet.",
+    next_action:
+      primaryNextAction ||
+      "Continue current focus. Update progression when new findings are available.",
+  },
+});
 
-const attentionRequiredEvidence = buildConclusionEvidence({
-  ...conclusionEvidenceInputs,
-  conclusionType: "attention_required",
-  conclusion:
-    commandCenterAttentionStatement || "No clinical attention statement is available yet.",
-}).evidence;
-
-const nextActionEvidence = buildConclusionEvidence({
-  ...conclusionEvidenceInputs,
-  conclusionType: "next_action",
-  conclusion:
-    primaryNextAction ||
-    "Continue current focus. Update progression when new findings are available.",
-}).evidence;
+const currentFocusEvidence = conclusionEvidence.current_focus.evidence;
+const attentionRequiredEvidence = conclusionEvidence.attention_required.evidence;
+const nextActionEvidence = conclusionEvidence.next_action.evidence;
 
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">

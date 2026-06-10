@@ -42,6 +42,12 @@ export function ConclusionEvidenceSection({
               <span className="font-medium text-gray-300">Why it matters:</span>{" "}
               {item.clinicalRelevance}
             </p>
+            {item.reasoningBasis ? (
+              <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                <span className="font-medium text-gray-400">Clinical reasoning:</span>{" "}
+                {item.reasoningBasis}
+              </p>
+            ) : null}
           </article>
         ))}
       </div>
