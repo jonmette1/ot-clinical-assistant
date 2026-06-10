@@ -24,6 +24,7 @@ import { ClinicalImpactSummaryPanel } from "./components/ClinicalImpactSummaryPa
 import { ConclusionEvidenceSection } from "./components/ConclusionEvidenceSection";
 import { ConclusionChangeExplanationSection } from "./components/ConclusionChangeExplanationSection";
 import { ConstraintProgressionNarrativeSection } from "./components/ConstraintProgressionNarrativeSection";
+import { ProgressEvidenceSection } from "./components/ProgressEvidenceSection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -38,6 +39,7 @@ import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgression
 import { buildConclusionEvidenceSet } from "@/lib/buildConclusionEvidence";
 import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChangeExplanation";
 import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
+import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
 // ==============================
 // TYPES
 // ==============================
@@ -2818,6 +2820,14 @@ const constraintProgressionNarrative = buildConstraintProgressionNarrative({
   nextAction: primaryNextAction,
 });
 
+const progressEvidence = buildProgressEvidence({
+  progressionState,
+  longitudinalState: currentLongitudinalState,
+  visitHistory: recentLongitudinalEvents,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+  continuityInterpretation,
+});
+
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
     {hasAnySummaryValue(rows) ? (
@@ -3425,6 +3435,8 @@ return (
     </article>
 
     <ConstraintProgressionNarrativeSection narrative={constraintProgressionNarrative} />
+
+    <ProgressEvidenceSection evidence={progressEvidence} />
 
     {clinicalImpactSummary ? (
       <div
