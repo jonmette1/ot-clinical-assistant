@@ -8,6 +8,7 @@ import { buildCommandCenterNextActions } from "@/lib/commandCenterNextAction";
 
 export type PatientEntryPreviewCaseData = {
   id: string;
+  target_activities?: string[] | null;
   generated_output?: unknown;
   current_longitudinal_state?: unknown;
   clinical_attention_state?: unknown;
@@ -116,6 +117,7 @@ export function derivePatientEntryPreviewSignals({
   if (!caseData) return [];
 
   const generatedOutput = caseData.generated_output;
+  const primaryTargetActivity = caseData.target_activities?.[0] || null;
   const operationalPrioritization = readUnknown(generatedOutput, [
     "operational_prioritization",
   ]);
@@ -291,6 +293,7 @@ export function derivePatientEntryPreviewSignals({
       previewClinicalAttentionState || latestEventClinicalAttentionSnapshot,
     currentLongitudinalState: previewCurrentLongitudinalState,
     latestEventPayload,
+    primaryTargetActivity,
     limit: 1,
   });
 
@@ -311,6 +314,7 @@ export function derivePatientEntryPreviewSignals({
         clinicalAttentionState: previewClinicalAttentionState,
         latestEventPayload,
         dominantBarriers,
+        primaryTargetActivity,
       })
     : null;
 

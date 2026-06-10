@@ -63,7 +63,7 @@ export default function CasesPage() {
       supabase
         .from("cases")
         .select(
-          "id, generated_output, current_longitudinal_state, clinical_attention_state, reasoning_stale, plan_stale, modules_stale"
+          "id, target_activities, generated_output, current_longitudinal_state, clinical_attention_state, reasoning_stale, plan_stale, modules_stale"
         )
         .eq("id", caseId)
         .single(),

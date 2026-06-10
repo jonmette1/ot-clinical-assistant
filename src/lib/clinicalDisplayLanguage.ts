@@ -126,7 +126,7 @@ function compressCurrentFocusSentenceInternal(text: string): string | null {
   }
 
   const physicalLimitMatch = normalized.match(
-    /^physical impairments?\s+(?:continue to\s+)?limit\s+(.+?)\.?$/i
+    /^physical impairments?\s+(?:continue to\s+)?limit\s+([^.!?]+)\.?$/i
   );
   if (physicalLimitMatch?.[1]) {
     const target = compressFocusSubject(physicalLimitMatch[1]);
@@ -137,7 +137,7 @@ function compressCurrentFocusSentenceInternal(text: string): string | null {
   }
 
   const dueToLimitingMatch = normalized.match(
-    /^(.+?)\s+due to\s+(.+?)\s+limiting\s+(.+?)\.?$/i
+    /^([^.!?]+)\s+due to\s+([^.!?]+)\s+limiting\s+([^.!?]+)\.?$/i
   );
   if (dueToLimitingMatch?.[1] && dueToLimitingMatch?.[3]) {
     const subject = compressFocusSubject(dueToLimitingMatch[1]);
@@ -146,7 +146,7 @@ function compressCurrentFocusSentenceInternal(text: string): string | null {
   }
 
   const limitingMatch = normalized.match(
-    /^(.+?)\s+(?:continue(?:s)? to\s+)?limit(?:s)?\s+(.+?)\.?$/i
+    /^([^.!?]+)\s+(?:continue(?:s)? to\s+)?limit(?:s)?\s+([^.!?]+)\.?$/i
   );
   if (limitingMatch?.[1] && limitingMatch?.[2]) {
     const driver = compressDeficitList(limitingMatch[1]);

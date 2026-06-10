@@ -6,6 +6,10 @@ import {
   reconcileBarriers,
   type ReconciledBarriers,
 } from "@/lib/continuity/reconcileBarriers";
+import {
+  reconcileActivityConstraint,
+  type ReconciledActivityConstraint,
+} from "@/lib/continuity/reconcileActivityConstraint";
 
 type AwarenessTrend = "progress" | "faster_progress" | "regression" | "stabilization" | null;
 
@@ -16,6 +20,7 @@ type CurrentFocusProgressionAwarenessInput = {
   clinicalAttentionState?: unknown;
   latestEventPayload?: unknown;
   dominantBarriers?: unknown;
+  primaryTargetActivity?: string | null;
 };
 
 type ProgressionAwarenessSignal = {
@@ -29,6 +34,7 @@ type ProgressionAwarenessSignal = {
   requiresOperationalReview: boolean;
   readiness: ProgressionReadiness;
   barrierReconciliation: ReconciledBarriers;
+  activityConstraint: ReconciledActivityConstraint;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -306,12 +312,50 @@ const deriveReliabilityTarget = (subject: string) => {
   return `${subject.toLowerCase()} reliability`;
 };
 
+const deriveActivitySubject = (
+  targetActivity: string | null,
+  fallback: string,
+  functionalChanges: string[],
+): string => {
+  const normalized = normalize(targetActivity);
+  const currentEvidence = normalize(functionalChanges.join(" "));
+
+  if (
+    (normalized.includes("toilet") && normalized.includes("transfer")) ||
+    (normalized.includes("toilet") && currentEvidence.includes("toilet transfer"))
+  ) {
+    return "Toilet transfer performance";
+  }
+  if (normalized.includes("shower") && normalized.includes("transfer")) {
+    return "Shower transfer performance";
+  }
+  if (normalized.includes("transfer")) return "Transfer performance";
+  if (normalized.includes("bath") || normalized.includes("shower")) {
+    return "Bathing participation";
+  }
+  if (normalized.includes("toilet")) return "Toileting participation";
+
+  return targetActivity?.trim() || fallback;
+};
+
+const deriveBarrierMonitoringLabel = (barrier: string): string => {
+  const normalized = normalize(barrier);
+
+  if (normalized.includes("pain")) return "pain during higher-demand activity";
+  if (normalized.includes("fatigue") || normalized.includes("endurance")) {
+    return "activity tolerance during higher-demand activity";
+  }
+
+  return `${barrier.toLowerCase()}-related limits`;
+};
+
 const buildProgressionSignal = ({
   progressionState,
   currentLongitudinalState,
   clinicalAttentionState,
   latestEventPayload,
   dominantBarriers,
+  primaryTargetActivity,
 }: Omit<CurrentFocusProgressionAwarenessInput, "currentFocus">): ProgressionAwarenessSignal | null => {
   const progressionStatus =
     readText(currentLongitudinalState, ["progressionStatus", "progression_status"]) ||
@@ -393,6 +437,34 @@ const buildProgressionSignal = ({
     medicalChange,
     treatmentDirectionChanged,
   });
+  const attentionStatement = readText(clinicalAttentionState, [
+    "attentionStatement",
+    "attention_statement",
+  ]);
+  const attentionDrivers = readTextList(clinicalAttentionState, [
+    "attentionDrivers",
+    "attention_drivers",
+  ]);
+  const activityConstraint = reconcileActivityConstraint({
+    currentDominantBarrier:
+      currentLimitingFactor || barrierReconciliation.dominantBarrier || asTextList(dominantBarriers)[0],
+    primaryTargetActivity,
+    functionalChanges,
+    milestoneAchieved,
+    progressionStatus,
+    progressionReadiness: readiness,
+    reconciledBarrierState: barrierReconciliation,
+    currentSafetyOrRegressionSignals: [attentionStatement || "", ...attentionDrivers, ...functionalChanges],
+    medicalChange,
+    reassessmentRecommended,
+    treatmentDirectionChanged,
+    caregiverChange:
+      readText(currentLongitudinalState, ["caregiverChange", "caregiver_change"]) ||
+      readText(latestEventPayload, ["caregiverChange", "caregiver_change"]),
+    environmentalChange:
+      readText(currentLongitudinalState, ["environmentalChange", "environmental_change"]) ||
+      readText(latestEventPayload, ["environmentalChange", "environmental_change"]),
+  });
 
   return {
     trend,
@@ -405,6 +477,7 @@ const buildProgressionSignal = ({
     requiresOperationalReview,
     readiness,
     barrierReconciliation,
+    activityConstraint,
   };
 };
 
@@ -415,6 +488,7 @@ export function buildProgressionAwareCurrentFocus({
   clinicalAttentionState,
   latestEventPayload,
   dominantBarriers,
+  primaryTargetActivity,
 }: CurrentFocusProgressionAwarenessInput): string {
   const trimmedFocus = currentFocus.trim();
   if (
@@ -431,6 +505,7 @@ export function buildProgressionAwareCurrentFocus({
     clinicalAttentionState,
     latestEventPayload,
     dominantBarriers,
+    primaryTargetActivity,
   });
 
   if (!signal) return trimmedFocus;
@@ -454,6 +529,28 @@ export function buildProgressionAwareCurrentFocus({
 
   if (signal.trend === "stabilization") {
     return `Progress remains limited and ${subject.toLowerCase()} ${movementVerb} still clinically fragile. Focus should remain on ${attentionText}.`;
+  }
+
+  const activitySubject = deriveActivitySubject(
+    signal.activityConstraint.targetActivity,
+    subject,
+    signal.functionalChanges,
+  );
+  const barrierLabel = signal.activityConstraint.barrier || "The current barrier";
+
+  if (signal.activityConstraint.relevance === "not_currently_constraining") {
+    return `${activitySubject} is improving. ${barrierLabel.charAt(0).toUpperCase()}${barrierLabel.slice(1)} remains present but no longer appears to be the primary constraint on ${activitySubject.toLowerCase()}.`;
+  }
+
+  if (signal.activityConstraint.relevance === "monitor_only") {
+    const supervisionLevel = signal.functionalChanges.some((change) =>
+      /\bsupervision(?: level| only|-level)?\b/i.test(change),
+    );
+    const consistencyContext = supervisionLevel
+      ? "consistency at supervision level"
+      : `${activitySubject.toLowerCase().replace(/ performance$/, "")} consistency`;
+
+    return `${activitySubject} is improving. Continue confirming ${consistencyContext} while monitoring ${deriveBarrierMonitoringLabel(barrierLabel)}.`;
   }
 
   const primaryAttentionArea = attentionAreas[0] || "safety";

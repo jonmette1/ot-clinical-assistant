@@ -1,5 +1,6 @@
 import { compressNextActionList } from "@/lib/clinicalDisplayLanguage";
 import { reconcileBarriers } from "@/lib/continuity/reconcileBarriers";
+import { reconcileActivityConstraint } from "@/lib/continuity/reconcileActivityConstraint";
 import { reconcileReassessmentTriggers } from "@/lib/continuity/reconcileReassessmentTriggers";
 import { buildProgressionReadiness } from "@/lib/progression/buildProgressionReadiness";
 
@@ -21,6 +22,7 @@ export type CommandCenterNextActionInput = {
   clinicalAttentionState?: unknown;
   currentLongitudinalState?: unknown;
   latestEventPayload?: unknown;
+  primaryTargetActivity?: string | null;
   limit?: number;
 };
 
@@ -142,6 +144,74 @@ const deriveMonitoringContext = (...sources: Array<string | null | undefined>): 
   return "functional safety";
 };
 
+const deriveBarrierMonitoringContext = (
+  barrier: string | null | undefined,
+  targetActivity: string | null | undefined,
+): string => {
+  const normalizedBarrier = normalizeSignalText(barrier);
+  if (normalizedBarrier.includes("pain")) return "pain tolerance during higher-demand activity";
+  if (normalizedBarrier.includes("fatigue") || normalizedBarrier.includes("endurance")) {
+    return "activity tolerance during higher-demand activity";
+  }
+
+  return deriveMonitoringContext(targetActivity, barrier);
+};
+
+const textMentionsBarrier = (value: string, barrier: string | null): boolean => {
+  const normalizedBarrier = normalizeSignalText(barrier);
+  if (!normalizedBarrier) return false;
+
+  const barrierTerms = [normalizedBarrier, "pain", "balance", "fatigue", "weakness"].filter(
+    (term) => normalizedBarrier.includes(term) || term === normalizedBarrier,
+  );
+  const normalizedValue = normalizeSignalText(value);
+  return barrierTerms.some((term) => term.length >= 4 && normalizedValue.includes(term));
+};
+
+const textMentionsCaregiver = (value: string): boolean =>
+  /\b(caregiver|physical assist capacity|support capacity)\b/.test(normalizeSignalText(value));
+
+const hasPositiveProgressionStatus = (status: string | null): boolean => {
+  const normalized = normalizeSignalText(status);
+  return /\b(progressing|improv(?:e|ed|ement|ing)|faster than expected)\b/.test(normalized);
+};
+
+const deriveActivityTransitionAction = ({
+  primaryTargetActivity,
+  functionalChanges,
+  milestoneAchieved,
+}: {
+  primaryTargetActivity?: string | null;
+  functionalChanges: string[];
+  milestoneAchieved: string | null;
+}): string => {
+  const evidence = normalizeSignalText(
+    [primaryTargetActivity, milestoneAchieved, ...functionalChanges].join(" "),
+  );
+  const isToiletTransfer =
+    evidence.includes("toilet transfer") || evidence.includes("toileting transfer");
+  const isShowerTransfer = evidence.includes("shower transfer");
+  const isTransfer = isToiletTransfer || isShowerTransfer || evidence.includes("transfer");
+  const hasSupervision = /\bsupervision(?: level| only)?\b/.test(evidence);
+  const hasIndependentSetup =
+    evidence.includes("independent setup") || evidence.includes("setup independently");
+
+  const activity = isToiletTransfer
+    ? "toilet transfers"
+    : isShowerTransfer
+    ? "shower transfers"
+    : isTransfer
+    ? "transfers"
+    : normalizeSignalText(primaryTargetActivity) || "current activity performance";
+  const validationDetails = [
+    hasSupervision ? "at supervision level" : null,
+    hasIndependentSetup ? "with independent setup" : null,
+  ].filter((item): item is string => Boolean(item));
+  const detailText = validationDetails.length ? ` ${validationDetails.join(" ")}` : "";
+
+  return `Evaluate readiness for progression by confirming consistent, safe ${activity}${detailText}.`;
+};
+
 export function buildCommandCenterNextActions({
   structuredPlanDetails,
   operationalPrioritization,
@@ -149,6 +219,7 @@ export function buildCommandCenterNextActions({
   clinicalAttentionState,
   currentLongitudinalState,
   latestEventPayload,
+  primaryTargetActivity,
   limit = 3,
 }: CommandCenterNextActionInput): CommandCenterNextActionResult {
   const mostRecentEvent = getMostRecentEvent(currentLongitudinalState) || latestEventPayload;
@@ -169,6 +240,12 @@ export function buildCommandCenterNextActions({
   const medicalChange =
     readText(currentLongitudinalState, ["medicalChange", "medical_change"]) ||
     readText(mostRecentEvent, ["medicalChange", "medical_change"]);
+  const caregiverChange =
+    readText(currentLongitudinalState, ["caregiverChange", "caregiver_change"]) ||
+    readText(mostRecentEvent, ["caregiverChange", "caregiver_change"]);
+  const environmentalChange =
+    readText(currentLongitudinalState, ["environmentalChange", "environmental_change"]) ||
+    readText(mostRecentEvent, ["environmentalChange", "environmental_change"]);
   const attentionStatement = readText(clinicalAttentionState, [
     "attentionStatement",
     "attention_statement",
@@ -198,6 +275,9 @@ export function buildCommandCenterNextActions({
     normalizedSignals.includes("regression") || normalizedSignals.includes("declin");
   const hasSafetyReviewSignal =
     hasMeaningfulMedicalChange(medicalChange) || includesSafetyReviewSignal(normalizedSignals);
+  const hasCurrentCaregiverConcern = /\b(cannot provide physical assist|unable to provide physical assist|physical assist capacity is no longer sufficient|caregiver unavailable|caregiver support unavailable|caregiver support is insufficient)\b/.test(
+    normalizeSignalText(caregiverChange),
+  );
   const reassessmentRecommended =
     readBoolean(clinicalAttentionState, ["reassessmentRecommended", "reassessment_recommended"]) === true ||
     readBoolean(currentLongitudinalState, ["reassessmentRecommended", "reassessment_recommended"]) === true ||
@@ -253,7 +333,30 @@ export function buildCommandCenterNextActions({
     medicalChange,
     treatmentDirectionChanged,
   });
-  const effectiveDominantBarrier = reconciledBarriers.dominantBarrier;
+  const activityConstraint = reconcileActivityConstraint({
+    currentDominantBarrier:
+      latestCurrentDominantBarrier ||
+      reconciledBarriers.dominantBarrier ||
+      operationalPrioritization?.dominantBarriers?.[0],
+    primaryTargetActivity,
+    functionalChanges,
+    milestoneAchieved,
+    progressionStatus,
+    progressionReadiness,
+    reconciledBarrierState: reconciledBarriers,
+    currentSafetyOrRegressionSignals: safetyOrRegressionText,
+    medicalChange,
+    reassessmentRecommended,
+    treatmentDirectionChanged,
+    caregiverChange,
+    environmentalChange,
+  });
+  const remainingEligibleBarrier = reconciledBarriers.activeBarriers.find(
+    (barrier) => !textMentionsBarrier(barrier, activityConstraint.barrier),
+  );
+  const effectiveDominantBarrier = activityConstraint.blockingWeightEligible
+    ? reconciledBarriers.dominantBarrier
+    : remainingEligibleBarrier || null;
   const monitoringBarrier = reconciledBarriers.monitoringBarriers[0] || null;
 
   const newerClinicalMeaningActive = reassessmentRecommended || requiresOperationalReview;
@@ -268,11 +371,14 @@ export function buildCommandCenterNextActions({
     : effectiveDominantBarrier
     ? `Review treatment focus around ${effectiveDominantBarrier} before relying on prior plan actions.`
     : "Review treatment focus before relying on prior plan actions.";
-  const monitoringContext = deriveMonitoringContext(
-    monitoringBarrier,
-    effectiveDominantBarrier,
-    operationalPrioritization?.currentOperationalEmphasis
-  );
+  const monitoringContext = activityConstraint.blockingWeightEligible
+    ? deriveMonitoringContext(
+        monitoringBarrier,
+        effectiveDominantBarrier,
+        primaryTargetActivity,
+        operationalPrioritization?.currentOperationalEmphasis,
+      )
+    : deriveBarrierMonitoringContext(activityConstraint.barrier, primaryTargetActivity);
   const readinessEvaluationAction =
     `Evaluate readiness for progression while continuing ${monitoringContext} monitoring.`;
   const emergingReadinessAction =
@@ -282,21 +388,58 @@ export function buildCommandCenterNextActions({
   );
   const shouldElevateOperationalPrioritization =
     newerClinicalMeaningActive || hasRefreshedOperationalPrioritization || generatedPlanActions.length === 0;
-  const operationalEmphasisAction = shouldElevateOperationalPrioritization
+  const operationalEmphasisIsEligible =
+    activityConstraint.blockingWeightEligible ||
+    !textMentionsBarrier(
+      operationalPrioritization?.currentOperationalEmphasis || "",
+      activityConstraint.barrier,
+    );
+  const operationalEmphasisAction = shouldElevateOperationalPrioritization && operationalEmphasisIsEligible
     ? operationalPrioritization?.currentOperationalEmphasis
       ? `Use the current operational focus: ${operationalPrioritization.currentOperationalEmphasis}`
       : effectiveDominantBarrier
       ? `Reorient treatment around ${effectiveDominantBarrier}.`
       : null
     : null;
+  const activityTransitionEligible =
+    !activityConstraint.blockingWeightEligible &&
+    Boolean(milestoneAchieved) &&
+    hasPositiveProgressionStatus(progressionStatus) &&
+    !reassessmentRecommended &&
+    !requiresOperationalReview &&
+    !hasSafetyReviewSignal &&
+    !hasRegressionOrDecline;
+  const activityTransitionAction = activityTransitionEligible
+    ? deriveActivityTransitionAction({
+        primaryTargetActivity,
+        functionalChanges,
+        milestoneAchieved,
+      })
+    : null;
+  const caregiverReassessmentAction = hasCurrentCaregiverConcern
+    ? "Reassess current caregiver physical assist capacity."
+    : null;
 
   const prioritizedActions = [
     ...(reassessmentRecommended ? [safetyAction] : []),
     ...(treatmentDirectionChanged ? [focusReviewAction] : []),
-    ...(progressionReadiness === "ready_for_evaluation" ? [readinessEvaluationAction] : []),
+    ...(activityTransitionAction ? [activityTransitionAction] : []),
+    ...(!activityTransitionAction && progressionReadiness === "ready_for_evaluation"
+      ? [readinessEvaluationAction]
+      : []),
     ...(progressionReadiness === "emerging" ? [emergingReadinessAction] : []),
     ...(requiresOperationalReview && !treatmentDirectionChanged ? [focusReviewAction] : []),
-    ...reconciledReassessmentTriggers.activeTriggers.map((trigger) => `Reassess if ${trigger}.`),
+    ...(caregiverReassessmentAction ? [caregiverReassessmentAction] : []),
+    ...reconciledReassessmentTriggers.activeTriggers
+      .filter(
+        (trigger) =>
+          (activityConstraint.blockingWeightEligible ||
+            !textMentionsBarrier(trigger, activityConstraint.barrier)) &&
+          (!activityTransitionEligible ||
+            hasCurrentCaregiverConcern ||
+            !textMentionsCaregiver(trigger)),
+      )
+      .map((trigger) => `Reassess if ${trigger}.`),
     ...(operationalEmphasisAction ? [operationalEmphasisAction] : []),
     ...(attentionStatement ? [attentionStatement] : []),
     ...attentionDrivers.map((driver) => `Monitor ${driver}.`),
@@ -308,6 +451,19 @@ export function buildCommandCenterNextActions({
 
   const actionsBeforeTriggerMonitoring = compressNextActionList(prioritizedActions, limit);
   const monitoringActions = [
+    ...(!activityConstraint.blockingWeightEligible && activityConstraint.barrier
+      ? [`Continue monitoring ${deriveBarrierMonitoringContext(activityConstraint.barrier, primaryTargetActivity)}.`]
+      : []),
+    ...(activityTransitionEligible &&
+    !hasCurrentCaregiverConcern &&
+    [
+      ...(operationalPrioritization?.dominantBarriers || []),
+      ...(operationalPrioritization?.reassessmentTriggers || []),
+      ...(progressionState?.activeBarriers || []),
+      ...(progressionState?.reassessmentTriggers || []),
+    ].some(textMentionsCaregiver)
+      ? ["Confirm whether caregiver physical assistance remains necessary for the target activity."]
+      : []),
     ...reconciledBarriers.monitoringBarriers.map(
       (barrier) => `Continue monitoring ${deriveMonitoringContext(barrier)}.`,
     ),
