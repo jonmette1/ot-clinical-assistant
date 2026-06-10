@@ -42,6 +42,7 @@ import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChange
 import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
 import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
 import { buildReassessmentSummary } from "@/lib/buildReassessmentSummary";
+import { buildSessionFocus } from "@/lib/buildSessionFocus";
 import { buildCurrentFocusHeadline } from "@/lib/clinicalDisplayHeadline";
 import { buildAttentionRequiredHeadline } from "@/lib/longitudinal/buildAttentionRequiredHeadline";
 // ==============================
@@ -2898,6 +2899,17 @@ const progressEvidence = buildProgressEvidence({
   continuityInterpretation,
 });
 
+const sessionFocus = buildSessionFocus({
+  currentFocus: commandCenterCurrentOperationalEmphasis,
+  attentionRequired: commandCenterAttentionStatement,
+  nextAction: primaryNextAction,
+  progressionConstraint: constraintProgressionNarrative,
+  progressEvidence,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+  continuityInterpretation,
+  longitudinalState: currentLongitudinalState,
+});
+
 const reassessmentSummary = buildReassessmentSummary({
   currentFocus: commandCenterCurrentOperationalEmphasis,
   attentionRequired:
@@ -3462,6 +3474,43 @@ return (
           conclusionLabel="Current Focus"
           evidence={currentFocusEvidence}
         />
+      </article>
+
+      <article className="rounded-2xl border border-blue-900/60 bg-blue-950/15 p-4 lg:col-span-2 sm:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-200/80">
+          Session Focus
+        </p>
+        <p className="mt-1 text-xs font-medium text-gray-400">
+          What today’s visit should actively validate, observe, train, or address.
+        </p>
+        <h2 className="mt-2 max-w-4xl text-lg font-semibold leading-snug text-white sm:text-2xl">
+          {sessionFocus.headline}
+        </h2>
+        {sessionFocus.rationale ? (
+          <div className="mt-3 border-t border-blue-900/30 pt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+              Why this matters
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-300">
+              {sessionFocus.rationale}
+            </p>
+          </div>
+        ) : null}
+        {sessionFocus.focusTargets.length > 0 ? (
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+              Focus targets
+            </p>
+            <ul className="mt-2 grid gap-1.5 text-sm text-gray-200 md:grid-cols-3">
+              {sessionFocus.focusTargets.slice(0, 3).map((target) => (
+                <li key={target} className="flex gap-2 leading-relaxed">
+                  <span className="mt-1 text-blue-300/80">•</span>
+                  <span>{target}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </article>
 
       <article
