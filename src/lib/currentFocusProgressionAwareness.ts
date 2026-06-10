@@ -312,10 +312,18 @@ const deriveReliabilityTarget = (subject: string) => {
   return `${subject.toLowerCase()} reliability`;
 };
 
-const deriveActivitySubject = (targetActivity: string | null, fallback: string): string => {
+const deriveActivitySubject = (
+  targetActivity: string | null,
+  fallback: string,
+  functionalChanges: string[],
+): string => {
   const normalized = normalize(targetActivity);
+  const currentEvidence = normalize(functionalChanges.join(" "));
 
-  if (normalized.includes("toilet") && normalized.includes("transfer")) {
+  if (
+    (normalized.includes("toilet") && normalized.includes("transfer")) ||
+    (normalized.includes("toilet") && currentEvidence.includes("toilet transfer"))
+  ) {
     return "Toilet transfer performance";
   }
   if (normalized.includes("shower") && normalized.includes("transfer")) {
@@ -328,6 +336,17 @@ const deriveActivitySubject = (targetActivity: string | null, fallback: string):
   if (normalized.includes("toilet")) return "Toileting participation";
 
   return targetActivity?.trim() || fallback;
+};
+
+const deriveBarrierMonitoringLabel = (barrier: string): string => {
+  const normalized = normalize(barrier);
+
+  if (normalized.includes("pain")) return "pain during higher-demand activity";
+  if (normalized.includes("fatigue") || normalized.includes("endurance")) {
+    return "activity tolerance during higher-demand activity";
+  }
+
+  return `${barrier.toLowerCase()}-related limits`;
 };
 
 const buildProgressionSignal = ({
@@ -512,7 +531,11 @@ export function buildProgressionAwareCurrentFocus({
     return `Progress remains limited and ${subject.toLowerCase()} ${movementVerb} still clinically fragile. Focus should remain on ${attentionText}.`;
   }
 
-  const activitySubject = deriveActivitySubject(signal.activityConstraint.targetActivity, subject);
+  const activitySubject = deriveActivitySubject(
+    signal.activityConstraint.targetActivity,
+    subject,
+    signal.functionalChanges,
+  );
   const barrierLabel = signal.activityConstraint.barrier || "The current barrier";
 
   if (signal.activityConstraint.relevance === "not_currently_constraining") {
@@ -520,7 +543,14 @@ export function buildProgressionAwareCurrentFocus({
   }
 
   if (signal.activityConstraint.relevance === "monitor_only") {
-    return `${activitySubject} is improving. Continue monitoring ${barrierLabel.toLowerCase()}-related limits while confirming ${activitySubject.toLowerCase().replace(/ performance$/, "")} consistency.`;
+    const supervisionLevel = signal.functionalChanges.some((change) =>
+      /\bsupervision(?: level| only|-level)?\b/i.test(change),
+    );
+    const consistencyContext = supervisionLevel
+      ? "consistency at supervision level"
+      : `${activitySubject.toLowerCase().replace(/ performance$/, "")} consistency`;
+
+    return `${activitySubject} is improving. Continue confirming ${consistencyContext} while monitoring ${deriveBarrierMonitoringLabel(barrierLabel)}.`;
   }
 
   const primaryAttentionArea = attentionAreas[0] || "safety";

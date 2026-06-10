@@ -4,6 +4,7 @@ import test from "node:test";
 import { reconcileActivityConstraint } from "../src/lib/continuity/reconcileActivityConstraint.ts";
 import { buildCommandCenterNextActions } from "../src/lib/commandCenterNextAction.ts";
 import { buildProgressionAwareCurrentFocus } from "../src/lib/currentFocusProgressionAwareness.ts";
+import { compressCurrentFocusSentence } from "../src/lib/clinicalDisplayLanguage.ts";
 import { derivePatientEntryPreviewSignals } from "../src/app/cases/patientEntryPreview.ts";
 
 const painBarrier = "pain";
@@ -192,5 +193,158 @@ test("patient preview uses the same activity relevance as the visit briefing bui
   assert.match(
     signals.find((signal) => signal.label === "Next Action")?.value || "",
     /^Evaluate readiness for progression/,
+  );
+});
+
+
+const oaVisitFive = {
+  currentLongitudinalState: {
+    progressionStatus: "Progressing As Expected",
+    milestoneAchieved: "Independent toilet transfer setup achieved",
+    functionalChanges: [
+      "Toilet transfers improved to supervision level with independent setup and improved safety",
+    ],
+    currentDominantBarrier: "Pain with extended household mobility",
+    treatmentDirectionChanged: false,
+    reassessmentRecommended: false,
+    medicalChange: null,
+  },
+  progressionState: {
+    advancementReadiness: "low",
+    activeBarriers: ["pain-limited task performance", "caregiver support mismatch"],
+    reassessmentTriggers: ["caregiver physical assist capacity diminishes further"],
+  },
+  operationalPrioritization: {
+    currentOperationalEmphasis:
+      "Pain with extended household mobility limits toileting participation",
+    dominantBarriers: [
+      "Pain with extended household mobility",
+      "caregiver support mismatch",
+    ],
+    reassessmentTriggers: ["caregiver physical assist capacity diminishes further"],
+  },
+};
+
+test("OA A/B: progression-aware Current Focus survives compression without clause corruption", () => {
+  const rawFocus = buildProgressionAwareCurrentFocus({
+    currentFocus: oaVisitFive.operationalPrioritization.currentOperationalEmphasis,
+    progressionState: oaVisitFive.progressionState,
+    currentLongitudinalState: oaVisitFive.currentLongitudinalState,
+    dominantBarriers: oaVisitFive.operationalPrioritization.dominantBarriers,
+    primaryTargetActivity: "Toileting",
+  });
+
+  assert.equal(
+    rawFocus,
+    "Toilet transfer performance is improving. Continue confirming consistency at supervision level while monitoring pain during higher-demand activity.",
+  );
+  assert.equal(compressCurrentFocusSentence(rawFocus), rawFocus);
+});
+
+test("OA C: activity-transition validation outranks a surviving caregiver threshold", () => {
+  const result = buildCommandCenterNextActions({
+    operationalPrioritization: oaVisitFive.operationalPrioritization,
+    progressionState: oaVisitFive.progressionState,
+    currentLongitudinalState: oaVisitFive.currentLongitudinalState,
+    primaryTargetActivity: "Toileting",
+  });
+
+  assert.equal(
+    result.primaryAction,
+    "Evaluate readiness for progression by confirming consistent, safe toilet transfers at supervision level with independent setup.",
+  );
+  assert.ok(
+    result.supportingActions.includes(
+      "Continue monitoring pain tolerance during higher-demand activity.",
+    ),
+  );
+  assert.ok(
+    result.supportingActions.includes(
+      "Confirm whether caregiver physical assistance remains necessary for the target activity.",
+    ),
+  );
+  assert.doesNotMatch(result.primaryAction, /caregiver/i);
+});
+
+test("OA D: a current near-fall still overrides activity-transition promotion", () => {
+  const result = buildCommandCenterNextActions({
+    operationalPrioritization: oaVisitFive.operationalPrioritization,
+    progressionState: oaVisitFive.progressionState,
+    currentLongitudinalState: {
+      ...oaVisitFive.currentLongitudinalState,
+      functionalChanges: [
+        ...oaVisitFive.currentLongitudinalState.functionalChanges,
+        "Near-fall occurred during toilet transfer",
+      ],
+    },
+    primaryTargetActivity: "Toileting",
+  });
+
+  assert.match(result.primaryAction, /^Reassess safety and current function/);
+});
+
+test("OA E: explicit current caregiver capacity loss promotes caregiver reassessment", () => {
+  const result = buildCommandCenterNextActions({
+    operationalPrioritization: {
+      currentOperationalEmphasis: "Caregiver-supported transfers remain fragile.",
+      dominantBarriers: ["caregiver support mismatch"],
+      reassessmentTriggers: ["caregiver physical assist capacity diminishes further"],
+    },
+    progressionState: {
+      advancementReadiness: "low",
+      activeBarriers: ["caregiver support mismatch"],
+      reassessmentTriggers: ["caregiver physical assist capacity diminishes further"],
+    },
+    currentLongitudinalState: {
+      progressionStatus: "Stable",
+      currentDominantBarrier: "caregiver support mismatch",
+      caregiverChange: "Caregiver cannot provide physical assist",
+      treatmentDirectionChanged: false,
+      reassessmentRecommended: false,
+    },
+    primaryTargetActivity: "Toilet transfer",
+  });
+
+  assert.equal(result.primaryAction, "Reassess current caregiver physical assist capacity.");
+});
+
+test("OA F: regression behavior remains unchanged after promotion correction", () => {
+  const result = buildCommandCenterNextActions({
+    operationalPrioritization: oaVisitFive.operationalPrioritization,
+    progressionState: oaVisitFive.progressionState,
+    currentLongitudinalState: {
+      ...oaVisitFive.currentLongitudinalState,
+      progressionStatus: "Regression Detected",
+      functionalChanges: ["Toilet transfer requires increased assistance and is less consistent"],
+      reassessmentRecommended: true,
+    },
+    primaryTargetActivity: "Toileting",
+  });
+
+  assert.match(result.primaryAction, /^Reassess safety and current function/);
+});
+
+test("OA G: Patient Preview matches Visit Briefing after transition promotion", () => {
+  const signals = derivePatientEntryPreviewSignals({
+    caseData: {
+      id: "oa-visit-five",
+      target_activities: ["Toileting"],
+      generated_output: {
+        operational_prioritization: oaVisitFive.operationalPrioritization,
+        progression_state: oaVisitFive.progressionState,
+        structured_plan_details: { immediateActions: ["Continue prior transfer plan"] },
+      },
+      current_longitudinal_state: oaVisitFive.currentLongitudinalState,
+    },
+    recentEvents: [],
+  });
+
+  assert.equal(
+    signals.find((signal) => signal.label === "Current Focus")?.value,
+    "Toilet transfer performance is improving. Continue confirming consistency at supervision level while monitoring pain during higher-demand activity.",
+  );
+  assert.equal(
+    signals.find((signal) => signal.label === "Next Action")?.value,
+    "Evaluate readiness for progression by confirming consistent, safe toilet transfers at supervision level with independent setup.",
   );
 });
