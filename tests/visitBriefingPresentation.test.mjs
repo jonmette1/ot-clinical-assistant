@@ -121,3 +121,23 @@ test("compact Current Focus headline retains the complete maintained conclusion 
   );
   assert.match(workspace, /\{commandCenterCurrentOperationalEmphasis\}/);
 });
+
+test("Session Focus renders between Current Focus and Attention Required with intended content", async () => {
+  const workspace = await readSource(workspacePath);
+  const currentFocusIndex = workspace.indexOf("Current Focus");
+  const sessionFocusIndex = workspace.indexOf("Session Focus", currentFocusIndex);
+  const attentionRequiredIndex = workspace.indexOf("Attention Required", sessionFocusIndex);
+
+  assert.ok(currentFocusIndex >= 0);
+  assert.ok(sessionFocusIndex > currentFocusIndex);
+  assert.ok(attentionRequiredIndex > sessionFocusIndex);
+
+  const sessionFocusArticle = workspace.slice(sessionFocusIndex, attentionRequiredIndex);
+  assert.match(
+    sessionFocusArticle,
+    /What today’s visit should actively validate, observe, train, or address\./
+  );
+  assert.match(sessionFocusArticle, /\{sessionFocus\.headline\}/);
+  assert.match(sessionFocusArticle, /\{sessionFocus\.rationale\}/);
+  assert.match(sessionFocusArticle, /sessionFocus\.focusTargets\.slice\(0, 3\)/);
+});
