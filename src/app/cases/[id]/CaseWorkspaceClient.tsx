@@ -21,6 +21,7 @@ import { StickyOperationalHeader } from "./components/StickyOperationalHeader";
 import { TransferMobilityPressureCard } from "./components/TransferMobilityPressureCard";
 import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSection";
 import { ClinicalImpactSummaryPanel } from "./components/ClinicalImpactSummaryPanel";
+import { ConclusionEvidenceSection } from "./components/ConclusionEvidenceSection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -32,6 +33,7 @@ import {
   compressCurrentFocusSentence,
 } from "@/lib/clinicalDisplayLanguage";
 import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
+import { buildConclusionEvidence } from "@/lib/buildConclusionEvidence";
 // ==============================
 // TYPES
 // ==============================
@@ -2761,6 +2763,36 @@ const commandCenterNextActions = buildCommandCenterNextActions({
 const primaryNextAction = commandCenterNextActions.primaryAction;
 const supportingNextActions = commandCenterNextActions.supportingActions;
 
+const conclusionEvidenceInputs = {
+  caseData: displayCase,
+  clinicalDecisionModel: liveClinicalDecisionModel,
+  progressionState,
+  continuityInterpretation,
+  longitudinalState: currentLongitudinalState,
+  visitHistory: recentLongitudinalEvents,
+};
+
+const currentFocusEvidence = buildConclusionEvidence({
+  ...conclusionEvidenceInputs,
+  conclusionType: "current_focus",
+  conclusion: commandCenterCurrentOperationalEmphasis,
+}).evidence;
+
+const attentionRequiredEvidence = buildConclusionEvidence({
+  ...conclusionEvidenceInputs,
+  conclusionType: "attention_required",
+  conclusion:
+    commandCenterAttentionStatement || "No clinical attention statement is available yet.",
+}).evidence;
+
+const nextActionEvidence = buildConclusionEvidence({
+  ...conclusionEvidenceInputs,
+  conclusionType: "next_action",
+  conclusion:
+    primaryNextAction ||
+    "Continue current focus. Update progression when new findings are available.",
+}).evidence;
+
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
     {hasAnySummaryValue(rows) ? (
@@ -3300,6 +3332,7 @@ return (
           No dominant barriers have been generated yet.
         </p>
       )}
+      <ConclusionEvidenceSection evidence={currentFocusEvidence} />
     </article>
 
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
@@ -3315,6 +3348,7 @@ return (
         </p>
         {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
       </div>
+      <ConclusionEvidenceSection evidence={attentionRequiredEvidence} />
     </article>
 
     <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
@@ -3353,6 +3387,7 @@ return (
           Continue current focus. Update progression when new findings are available.
         </p>
       )}
+      <ConclusionEvidenceSection evidence={nextActionEvidence} />
     </article>
 
     {clinicalImpactSummary ? (
