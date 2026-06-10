@@ -2617,6 +2617,10 @@ const attentionStatement = readText(clinicalAttentionState, [
 const commandCenterAttentionStatement =
   compressCommandCenterSentence(attentionStatement);
 
+const hasActiveAttentionReview =
+  Boolean(commandCenterAttentionStatement) &&
+  !commandCenterAttentionStatement.startsWith("No active review need");
+
 const clinicalAttentionDrivers = readTextList(clinicalAttentionState, [
   "attentionDrivers",
   "attention_drivers",
@@ -2625,7 +2629,9 @@ const clinicalAttentionDrivers = readTextList(clinicalAttentionState, [
 const attentionRequiredMetadataRows: SummaryRow[] = [
   {
     label: "Category",
-    value: readText(clinicalAttentionState, ["category"]),
+    value: hasActiveAttentionReview
+      ? readText(clinicalAttentionState, ["category"])
+      : null,
   },
   {
     label: "Drivers",
@@ -3389,30 +3395,58 @@ return (
         />
       </article>
 
-      <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-red-300/85">
-          Attention Required
-        </p>
-        <p className="mt-1 text-xs font-medium text-red-200/70">
+      <article
+        className={`rounded-2xl border p-4 lg:col-span-2 sm:p-5 ${
+          hasActiveAttentionReview
+            ? "border-red-900/60 bg-red-950/15"
+            : "border-gray-800 bg-gray-950/70"
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <p
+            className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${
+              hasActiveAttentionReview ? "text-red-300/85" : "text-gray-500"
+            }`}
+          >
+            Attention Required
+          </p>
+          {hasActiveAttentionReview ? (
+            <span className="rounded-full border border-red-800/70 bg-red-950/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-200">
+              Review Needed
+            </span>
+          ) : null}
+        </div>
+        <p
+          className={`mt-1 text-xs font-medium ${
+            hasActiveAttentionReview ? "text-red-200/70" : "text-gray-500"
+          }`}
+        >
           What deserves review right now?
         </p>
         <h2 className="mt-1.5 text-lg font-semibold leading-snug text-white sm:text-xl">
           {commandCenterAttentionStatement || "No clinical attention statement is available yet."}
         </h2>
-        <div className="mt-3 border-t border-red-900/30 pt-3 opacity-90">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-200/70">
-            Clinical context
-          </p>
-          {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
-        </div>
-        <ConclusionChangeExplanationSection
-          conclusionLabel="Attention Required"
-          explanation={conclusionChangeExplanations.attention_required}
-        />
-        <ConclusionEvidenceSection
-          conclusionLabel="Attention Required"
-          evidence={attentionRequiredEvidence}
-        />
+        {hasActiveAttentionReview ? (
+          <>
+            <div className="mt-3 border-t border-red-900/30 pt-3 opacity-90">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-200/70">
+                Review context
+              </p>
+              {renderCommandCenterRows(
+                attentionRequiredMetadataRows,
+                "No supporting review context is available yet."
+              )}
+            </div>
+            <ConclusionChangeExplanationSection
+              conclusionLabel="Attention Required"
+              explanation={conclusionChangeExplanations.attention_required}
+            />
+            <ConclusionEvidenceSection
+              conclusionLabel="Attention Required"
+              evidence={attentionRequiredEvidence}
+            />
+          </>
+        ) : null}
       </article>
 
       <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
