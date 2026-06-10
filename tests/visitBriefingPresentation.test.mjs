@@ -10,6 +10,10 @@ const orientationPath = new URL(
   "../src/app/cases/[id]/components/ReassessmentSummarySection.tsx",
   import.meta.url
 );
+const briefPath = new URL(
+  "../src/app/cases/[id]/components/OrientationBriefSection.tsx",
+  import.meta.url
+);
 const changeExplanationPath = new URL(
   "../src/app/cases/[id]/components/ConclusionChangeExplanationSection.tsx",
   import.meta.url
@@ -42,6 +46,44 @@ test("Quick Orientation Summary is collapsed with the validated description and 
     /30-second overview of current status, progress, remaining limitations, and recommendation\./
   );
   assert.match(source, /Show Summary/);
+});
+
+test("Orientation Brief is collapsed immediately beneath Quick Orientation Summary", async () => {
+  const [workspace, source] = await Promise.all([
+    readSource(workspacePath),
+    readSource(briefPath),
+  ]);
+
+  assert.match(source, /<details className=/);
+  assert.doesNotMatch(source, /<details[^>]*\sopen(?:=|\s|>)/);
+  assert.match(source, /Orientation Brief/);
+  assert.match(
+    source,
+    /20–30 second pre-visit orientation generated from maintained clinical understanding\./
+  );
+  assert.match(source, /Show Brief/);
+  assert.match(source, /Estimated time: \{brief\.estimatedDurationSeconds\} seconds/);
+  assert.match(source, /\{brief\.headline\}/);
+  assert.match(source, /\{brief\.briefText\}/);
+  assert.match(
+    workspace,
+    /<ReassessmentSummarySection reassessment=\{reassessmentSummary\} \/>\s*<OrientationBriefSection brief=\{orientationBrief\} \/>/
+  );
+});
+
+test("Orientation Brief consumes maintained runtime assets without history or evidence inputs", async () => {
+  const workspace = await readSource(workspacePath);
+  const start = workspace.indexOf("const orientationBrief = buildOrientationBrief");
+  const end = workspace.indexOf("});", start);
+  const derivation = workspace.slice(start, end);
+
+  assert.ok(start >= 0);
+  assert.match(derivation, /quickOrientationSummary: reassessmentSummary\.sections\.currentStatus/);
+  assert.match(derivation, /currentFocus: commandCenterCurrentOperationalEmphasis/);
+  assert.match(derivation, /sessionFocus/);
+  assert.match(derivation, /attentionRequired: commandCenterAttentionStatement/);
+  assert.match(derivation, /progressionConstraint: constraintProgressionNarrative/);
+  assert.doesNotMatch(derivation, /visitHistory|progressEvidence|milestone|snapshot|patientUpdate/i);
 });
 
 test("expanded orientation renders every existing reassessment summary section unchanged", async () => {
