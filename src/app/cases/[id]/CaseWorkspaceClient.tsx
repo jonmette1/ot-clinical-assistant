@@ -43,6 +43,7 @@ import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgre
 import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
 import { buildReassessmentSummary } from "@/lib/buildReassessmentSummary";
 import { buildCurrentFocusHeadline } from "@/lib/clinicalDisplayHeadline";
+import { buildAttentionRequiredHeadline } from "@/lib/longitudinal/buildAttentionRequiredHeadline";
 // ==============================
 // TYPES
 // ==============================
@@ -695,14 +696,46 @@ const buildCommandCenterDeltaSnapshotFromCase = (
     "attentionStatement",
     "attention_statement",
   ]);
+  const attentionRequiredHeadline = buildAttentionRequiredHeadline({
+    attentionStatement,
+    category: readText(clinicalAttentionState, ["category"]),
+    attentionDrivers: readTextList(clinicalAttentionState, [
+      "attentionDrivers",
+      "attention_drivers",
+    ]),
+    progressionStatus:
+      clinicalAttentionProgressionStatus || longitudinalProgressionStatus,
+    functionalChanges: readTextList(currentLongitudinalState, [
+      "functionalChanges",
+      "functional_changes",
+    ]),
+    milestoneAchieved: readText(currentLongitudinalState, [
+      "milestoneAchieved",
+      "milestone_achieved",
+    ]),
+    caregiverChange: readText(currentLongitudinalState, [
+      "caregiverChange",
+      "caregiver_change",
+    ]),
+    environmentalChange: readText(currentLongitudinalState, [
+      "environmentalChange",
+      "environmental_change",
+    ]),
+    medicalChange: readText(currentLongitudinalState, [
+      "medicalChange",
+      "medical_change",
+    ]),
+    currentDominantBarrier: readText(currentLongitudinalState, [
+      "currentDominantBarrier",
+      "current_dominant_barrier",
+    ]),
+  });
 
   return {
     overallTrajectory,
     clinicalStatus,
     currentFocus: compressCurrentFocusSentence(currentOperationalEmphasis),
-    attentionRequired:
-      compressCommandCenterSentence(attentionStatement) ||
-      "No clinical attention statement is available yet.",
+    attentionRequired: compressCommandCenterSentence(attentionRequiredHeadline),
     nextAction: commandCenterNextActions.primaryAction,
     dominantBarrier:
       dominantBarriers[0] ||
@@ -2614,8 +2647,44 @@ const attentionStatement = readText(clinicalAttentionState, [
   "attention_statement",
 ]);
 
+const attentionRequiredHeadline = buildAttentionRequiredHeadline({
+  attentionStatement,
+  category: readText(clinicalAttentionState, ["category"]),
+  attentionDrivers: readTextList(clinicalAttentionState, [
+    "attentionDrivers",
+    "attention_drivers",
+  ]),
+  progressionStatus:
+    readText(clinicalAttentionState, ["progressionStatus", "progression_status"]) ||
+    readText(currentLongitudinalState, ["progressionStatus", "progression_status"]),
+  functionalChanges: readTextList(currentLongitudinalState, [
+    "functionalChanges",
+    "functional_changes",
+  ]),
+  milestoneAchieved: readText(currentLongitudinalState, [
+    "milestoneAchieved",
+    "milestone_achieved",
+  ]),
+  caregiverChange: readText(currentLongitudinalState, [
+    "caregiverChange",
+    "caregiver_change",
+  ]),
+  environmentalChange: readText(currentLongitudinalState, [
+    "environmentalChange",
+    "environmental_change",
+  ]),
+  medicalChange: readText(currentLongitudinalState, [
+    "medicalChange",
+    "medical_change",
+  ]),
+  currentDominantBarrier: readText(currentLongitudinalState, [
+    "currentDominantBarrier",
+    "current_dominant_barrier",
+  ]),
+});
+
 const commandCenterAttentionStatement =
-  compressCommandCenterSentence(attentionStatement);
+  compressCommandCenterSentence(attentionRequiredHeadline);
 
 const hasActiveAttentionReview =
   Boolean(commandCenterAttentionStatement) &&
