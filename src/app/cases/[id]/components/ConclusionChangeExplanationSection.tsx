@@ -10,16 +10,18 @@ const TYPE_LABELS: Record<ConclusionChangeExplanation["explanationType"], string
 
 export function ConclusionChangeExplanationSection({
   explanation,
+  conclusionLabel,
 }: {
   explanation: ConclusionChangeExplanation;
+  conclusionLabel: string;
 }) {
   return (
-    <details className="group mt-3 border-t border-gray-800/80 pt-3">
+    <details className="group mt-3 rounded-xl border border-gray-800 bg-gray-950/35 px-4 py-3">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-300 marker:hidden transition hover:text-white">
         <span>
           Why This Changed
           <span className="ml-2 hidden font-normal text-gray-500 sm:inline">
-            {TYPE_LABELS[explanation.explanationType]}
+            {conclusionLabel} · {TYPE_LABELS[explanation.explanationType]}
           </span>
         </span>
         <span
