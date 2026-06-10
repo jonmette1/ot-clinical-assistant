@@ -23,6 +23,7 @@ import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSect
 import { ClinicalImpactSummaryPanel } from "./components/ClinicalImpactSummaryPanel";
 import { ConclusionEvidenceSection } from "./components/ConclusionEvidenceSection";
 import { ConclusionChangeExplanationSection } from "./components/ConclusionChangeExplanationSection";
+import { ConstraintProgressionNarrativeSection } from "./components/ConstraintProgressionNarrativeSection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -36,6 +37,7 @@ import {
 import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
 import { buildConclusionEvidenceSet } from "@/lib/buildConclusionEvidence";
 import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChangeExplanation";
+import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
 // ==============================
 // TYPES
 // ==============================
@@ -2805,6 +2807,17 @@ const currentFocusEvidence = conclusionEvidence.current_focus.evidence;
 const attentionRequiredEvidence = conclusionEvidence.attention_required.evidence;
 const nextActionEvidence = conclusionEvidence.next_action.evidence;
 
+const constraintProgressionNarrative = buildConstraintProgressionNarrative({
+  clinicalDecisionModel: liveClinicalDecisionModel,
+  progressionState,
+  continuityInterpretation,
+  longitudinalState: currentLongitudinalState,
+  visitHistory: recentLongitudinalEvents,
+  currentFocus: commandCenterCurrentOperationalEmphasis,
+  attentionRequired: commandCenterAttentionStatement,
+  nextAction: primaryNextAction,
+});
+
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
     {hasAnySummaryValue(rows) ? (
@@ -3410,6 +3423,8 @@ return (
         explanation={conclusionChangeExplanations.next_action}
       />
     </article>
+
+    <ConstraintProgressionNarrativeSection narrative={constraintProgressionNarrative} />
 
     {clinicalImpactSummary ? (
       <div
