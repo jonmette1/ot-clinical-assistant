@@ -54,12 +54,12 @@ function buildSet(overrides = {}) {
   });
 }
 
-test("returns no more than three unique evidence items per conclusion with traceable raw sources", () => {
+test("returns no more than two unique evidence items per conclusion with traceable raw sources", () => {
   const result = buildSet();
 
   for (const conclusionType of Object.keys(conclusions)) {
     const evidence = result[conclusionType].evidence;
-    assert.ok(evidence.length <= 3);
+    assert.ok(evidence.length <= 2);
     assert.ok(evidence.length > 0);
     assert.ok(evidence.every((item) => item.rawSource));
     assert.equal(

@@ -615,7 +615,7 @@ function selectEvidence(
       usedSourceRelevance.set(candidate.sourceKey, relevanceSet);
     }
     evidence.push(item);
-    if (evidence.length === 3) break;
+    if (evidence.length === 2) break;
   }
 
   return evidence;
