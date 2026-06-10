@@ -1,3 +1,17 @@
+# OT Clinical Assistant
+
+The OT Clinical Assistant is a continuity-aware clinical cognition and workflow support system for adult rehabilitation and home health occupational therapy.
+
+## Project Status and Handoff
+
+- [Project State of the Union](docs/project-status/project-state-of-the-union.md)
+- [Next-Agent Handoff](docs/project-status/next-agent-handoff.md)
+- [Product Maturity Assessment](docs/project-status/product-maturity-assessment.md)
+- [Validation Findings Summary](docs/project-status/validation-findings-summary.md)
+- [Opportunity Map](docs/project-status/opportunity-map.md)
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

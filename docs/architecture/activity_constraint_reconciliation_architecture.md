@@ -1,5 +1,7 @@
 # Activity Constraint Reconciliation Architecture
 
+> Status note: see `docs/project-status/project-state-of-the-union.md` for current project status. The targeted runtime reconciliation described here has since received an initial implementation; this document remains the architectural rationale and boundary definition.
+
 ## Status
 
 Proposed design for targeted implementation.
