@@ -14,7 +14,7 @@ export function ProgressEvidenceSection({ evidence }: { evidence: ProgressEviden
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 marker:content-none sm:px-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-            6. Progress Evidence
+            Progress Evidence
           </p>
           <p className="mt-1 text-sm text-gray-400">
             Objective changes supporting the current progression story

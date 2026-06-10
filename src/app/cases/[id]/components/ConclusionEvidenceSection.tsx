@@ -10,12 +10,12 @@ export function ConclusionEvidenceSection({
   if (evidence.length === 0) return null;
 
   return (
-    <details className="group rounded-xl border border-gray-800 bg-gray-950/35 px-4 py-3">
+    <details className="group mt-3 rounded-xl border border-gray-800 bg-gray-950/35 px-4 py-3">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-300 marker:hidden transition hover:text-white">
         <span>
-          {conclusionLabel}
+          Supporting Evidence
           <span className="ml-2 hidden font-normal text-gray-500 sm:inline">
-            Why this conclusion was prioritized
+            {conclusionLabel} context
           </span>
         </span>
         <span

@@ -3345,7 +3345,7 @@ return (
     <div className="grid gap-3 border-t border-gray-800 pt-5 lg:grid-cols-2">
       <article className="rounded-2xl border border-gray-700/80 bg-gray-950/75 p-4 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-          2. Current Focus
+          Current Focus
         </p>
         <h2 className="mt-1.5 max-w-4xl text-xl font-bold leading-snug text-white sm:text-3xl">
           {commandCenterCurrentFocusHeadline}
@@ -3379,11 +3379,19 @@ return (
             No dominant barriers have been generated yet.
           </p>
         )}
+        <ConclusionChangeExplanationSection
+          conclusionLabel="Current Focus"
+          explanation={conclusionChangeExplanations.current_focus}
+        />
+        <ConclusionEvidenceSection
+          conclusionLabel="Current Focus"
+          evidence={currentFocusEvidence}
+        />
       </article>
 
       <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-red-300/85">
-          3. Attention Required
+          Attention Required
         </p>
         <p className="mt-1 text-xs font-medium text-red-200/70">
           What deserves review right now?
@@ -3397,11 +3405,19 @@ return (
           </p>
           {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
         </div>
+        <ConclusionChangeExplanationSection
+          conclusionLabel="Attention Required"
+          explanation={conclusionChangeExplanations.attention_required}
+        />
+        <ConclusionEvidenceSection
+          conclusionLabel="Attention Required"
+          evidence={attentionRequiredEvidence}
+        />
       </article>
 
       <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-          4. Next Action
+          Next Action
         </p>
         {primaryNextAction ? (
           <div className="mt-2.5 space-y-3">
@@ -3435,6 +3451,14 @@ return (
             Continue current focus. Update progression when new findings are available.
           </p>
         )}
+        <ConclusionChangeExplanationSection
+          conclusionLabel="Next Action"
+          explanation={conclusionChangeExplanations.next_action}
+        />
+        <ConclusionEvidenceSection
+          conclusionLabel="Next Action"
+          evidence={nextActionEvidence}
+        />
       </article>
     </div>
 
@@ -3443,32 +3467,6 @@ return (
       <ProgressEvidenceSection evidence={progressEvidence} />
     </div>
 
-    <div className="space-y-3 border-t border-gray-800 pt-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-        7. Why This Changed
-      </p>
-      <ConclusionChangeExplanationSection
-        conclusionLabel="Current Focus"
-        explanation={conclusionChangeExplanations.current_focus}
-      />
-      <ConclusionChangeExplanationSection
-        conclusionLabel="Attention Required"
-        explanation={conclusionChangeExplanations.attention_required}
-      />
-      <ConclusionChangeExplanationSection
-        conclusionLabel="Next Action"
-        explanation={conclusionChangeExplanations.next_action}
-      />
-    </div>
-
-    <div className="space-y-3 border-t border-gray-800 pt-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-        8. Supporting Evidence
-      </p>
-      <ConclusionEvidenceSection conclusionLabel="Current Focus" evidence={currentFocusEvidence} />
-      <ConclusionEvidenceSection conclusionLabel="Attention Required" evidence={attentionRequiredEvidence} />
-      <ConclusionEvidenceSection conclusionLabel="Next Action" evidence={nextActionEvidence} />
-    </div>
 
     <div className="grid gap-3 lg:grid-cols-2">
     {clinicalImpactSummary ? (
