@@ -25,6 +25,7 @@ import { ConclusionEvidenceSection } from "./components/ConclusionEvidenceSectio
 import { ConclusionChangeExplanationSection } from "./components/ConclusionChangeExplanationSection";
 import { ConstraintProgressionNarrativeSection } from "./components/ConstraintProgressionNarrativeSection";
 import { ProgressEvidenceSection } from "./components/ProgressEvidenceSection";
+import { ReassessmentSummarySection } from "./components/ReassessmentSummarySection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -40,6 +41,7 @@ import { buildConclusionEvidenceSet } from "@/lib/buildConclusionEvidence";
 import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChangeExplanation";
 import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
 import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
+import { buildReassessmentSummary } from "@/lib/buildReassessmentSummary";
 // ==============================
 // TYPES
 // ==============================
@@ -2828,6 +2830,18 @@ const progressEvidence = buildProgressEvidence({
   continuityInterpretation,
 });
 
+const reassessmentSummary = buildReassessmentSummary({
+  currentFocus: commandCenterCurrentOperationalEmphasis,
+  attentionRequired:
+    commandCenterAttentionStatement || "No clinical attention statement is available yet.",
+  nextAction:
+    primaryNextAction ||
+    "Continue current focus. Update progression when new findings are available.",
+  changeExplanation: conclusionChangeExplanations.current_focus,
+  progressionConstraint: constraintProgressionNarrative,
+  progressEvidence,
+});
+
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
     {hasAnySummaryValue(rows) ? (
@@ -3437,6 +3451,8 @@ return (
     <ConstraintProgressionNarrativeSection narrative={constraintProgressionNarrative} />
 
     <ProgressEvidenceSection evidence={progressEvidence} />
+
+    <ReassessmentSummarySection reassessment={reassessmentSummary} />
 
     {clinicalImpactSummary ? (
       <div
