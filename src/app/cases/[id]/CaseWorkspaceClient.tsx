@@ -42,6 +42,7 @@ import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChange
 import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
 import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
 import { buildReassessmentSummary } from "@/lib/buildReassessmentSummary";
+import { buildCurrentFocusHeadline } from "@/lib/clinicalDisplayHeadline";
 // ==============================
 // TYPES
 // ==============================
@@ -2196,6 +2197,9 @@ const currentOperationalEmphasis = buildProgressionAwareCurrentFocus({
 
 const commandCenterCurrentOperationalEmphasis =
   compressCurrentFocusSentence(currentOperationalEmphasis);
+const commandCenterCurrentFocusHeadline = buildCurrentFocusHeadline(
+  commandCenterCurrentOperationalEmphasis
+);
 
 const adjacentOperationalPriorities =
   operationalPrioritization?.adjacentOperationalPriorities || [];
@@ -2627,14 +2631,6 @@ const attentionRequiredMetadataRows: SummaryRow[] = [
     label: "Drivers",
     value: clinicalAttentionDrivers,
   },
-  {
-    label: "Review flag",
-    value: clinicalAttentionRequiresOperationalReview ? "Operational review flagged" : null,
-  },
-  {
-    label: "Reassessment flag",
-    value: clinicalAttentionReassessmentRecommended ? "Reassessment recommended" : null,
-  },
 ];
 
 const compressedRationaleSummary = emphasisRationale.length
@@ -2691,10 +2687,7 @@ const clinicalStatusTriggerCandidates = [
     ? "Medical change reported"
     : null,
   sinceLastVisitTreatmentDirectionChanged === true ? "Treatment focus change documented" : null,
-  clinicalAttentionRequiresOperationalReview ? "Treatment review flagged" : null,
-  clinicalAttentionReassessmentRecommended || combinedReassessmentTriggers.length > 0
-    ? "Reassessment signal active"
-    : null,
+  combinedReassessmentTriggers.length > 0 ? "Reassessment trigger active" : null,
   /\b(caregiver|caregiver support|support availability)\b/.test(normalizedClinicalStatusSignals)
     ? "Caregiver context changed"
     : null,
@@ -3346,114 +3339,138 @@ return (
     </a>
   </div>
 
-  <div className="grid gap-3 lg:grid-cols-2">
-    <article className="rounded-2xl border border-gray-700/80 bg-gray-950/75 p-4 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-        1. Current Reality
-      </p>
-      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-        Current Focus
-      </p>
-      <h2 className="mt-1.5 max-w-4xl text-xl font-bold leading-snug text-white sm:text-3xl">
-        {commandCenterCurrentOperationalEmphasis}
-      </h2>
-      {commandCenterRationaleSummary ? (
-        <p className="mt-3 max-w-4xl text-sm leading-relaxed text-gray-200 sm:text-base">
-          {commandCenterRationaleSummary}
-        </p>
-      ) : null}
-      {dominantBarriers.length > 0 ? (
-        <div className="mt-3 border-t border-gray-800 pt-3 sm:mt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-            Dominant barriers
-          </p>
-          <ul className="mt-2 grid gap-1.5 text-sm text-gray-200 md:grid-cols-3">
-            {dominantBarriers.slice(0, 3).map((barrier, index) => (
-              <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
-                <span className="mt-1 text-emerald-300/80">•</span>
-                <span>{barrier}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p className="mt-3 text-sm leading-relaxed text-gray-500">
-          No dominant barriers have been generated yet.
-        </p>
-      )}
-      <ConclusionEvidenceSection evidence={currentFocusEvidence} />
-      <ConclusionChangeExplanationSection
-        explanation={conclusionChangeExplanations.current_focus}
-      />
-    </article>
-
-    <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-red-300/85">
-        2. Attention Required
-      </p>
-      <h2 className="mt-1.5 text-lg font-semibold leading-snug text-white sm:text-xl">
-        {commandCenterAttentionStatement || "No clinical attention statement is available yet."}
-      </h2>
-      <div className="mt-3 border-t border-red-900/30 pt-3 opacity-90">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-200/70">
-          Supporting attention details
-        </p>
-        {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
-      </div>
-      <ConclusionEvidenceSection evidence={attentionRequiredEvidence} />
-      <ConclusionChangeExplanationSection
-        explanation={conclusionChangeExplanations.attention_required}
-      />
-    </article>
-
-    <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-        3. Next Action
-      </p>
-      {primaryNextAction ? (
-        <div className="mt-2.5 space-y-3">
-          <div className="border-l-2 border-blue-400/70 pl-3 sm:pl-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-              What should happen next?
-            </p>
-            <p className="mt-1.5 text-lg font-semibold leading-snug text-blue-50 sm:text-xl">
-              {primaryNextAction}
-            </p>
-          </div>
-
-          {supportingNextActions.length > 0 ? (
-            <div className="border-t border-gray-800 pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                Supporting Actions
-              </p>
-              <ul className="mt-2 space-y-1.5 text-sm text-gray-200">
-                {supportingNextActions.map((action, index) => (
-                  <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
-                    <span className="mt-1 text-blue-300/80">•</span>
-                    <span>{action}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-2.5 text-sm leading-relaxed text-gray-400">
-          Continue current focus. Update progression when new findings are available.
-        </p>
-      )}
-      <ConclusionEvidenceSection evidence={nextActionEvidence} />
-      <ConclusionChangeExplanationSection
-        explanation={conclusionChangeExplanations.next_action}
-      />
-    </article>
-
-    <ConstraintProgressionNarrativeSection narrative={constraintProgressionNarrative} />
-
-    <ProgressEvidenceSection evidence={progressEvidence} />
-
+  <div className="space-y-5">
     <ReassessmentSummarySection reassessment={reassessmentSummary} />
 
+    <div className="grid gap-3 border-t border-gray-800 pt-5 lg:grid-cols-2">
+      <article className="rounded-2xl border border-gray-700/80 bg-gray-950/75 p-4 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+          2. Current Focus
+        </p>
+        <h2 className="mt-1.5 max-w-4xl text-xl font-bold leading-snug text-white sm:text-3xl">
+          {commandCenterCurrentFocusHeadline}
+        </h2>
+        {commandCenterCurrentFocusHeadline !== commandCenterCurrentOperationalEmphasis ? (
+          <p className="mt-3 max-w-4xl text-sm leading-relaxed text-gray-300 sm:text-base">
+            {commandCenterCurrentOperationalEmphasis}
+          </p>
+        ) : null}
+        {commandCenterRationaleSummary ? (
+          <p className="mt-3 max-w-4xl text-sm leading-relaxed text-gray-400">
+            {commandCenterRationaleSummary}
+          </p>
+        ) : null}
+        {dominantBarriers.length > 0 ? (
+          <div className="mt-3 border-t border-gray-800 pt-3 sm:mt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+              Dominant barriers
+            </p>
+            <ul className="mt-2 grid gap-1.5 text-sm text-gray-200 md:grid-cols-3">
+              {dominantBarriers.slice(0, 3).map((barrier, index) => (
+                <li key={`${barrier}-${index}`} className="flex gap-2 leading-relaxed">
+                  <span className="mt-1 text-emerald-300/80">•</span>
+                  <span>{barrier}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            No dominant barriers have been generated yet.
+          </p>
+        )}
+      </article>
+
+      <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-red-300/85">
+          3. Attention Required
+        </p>
+        <p className="mt-1 text-xs font-medium text-red-200/70">
+          What deserves review right now?
+        </p>
+        <h2 className="mt-1.5 text-lg font-semibold leading-snug text-white sm:text-xl">
+          {commandCenterAttentionStatement || "No clinical attention statement is available yet."}
+        </h2>
+        <div className="mt-3 border-t border-red-900/30 pt-3 opacity-90">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-200/70">
+            Clinical context
+          </p>
+          {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
+        </div>
+      </article>
+
+      <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+          4. Next Action
+        </p>
+        {primaryNextAction ? (
+          <div className="mt-2.5 space-y-3">
+            <div className="border-l-2 border-blue-400/70 pl-3 sm:pl-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                What should happen next?
+              </p>
+              <p className="mt-1.5 text-lg font-semibold leading-snug text-blue-50 sm:text-xl">
+                {primaryNextAction}
+              </p>
+            </div>
+
+            {supportingNextActions.length > 0 ? (
+              <div className="border-t border-gray-800 pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Supporting Actions
+                </p>
+                <ul className="mt-2 space-y-1.5 text-sm text-gray-200">
+                  {supportingNextActions.map((action, index) => (
+                    <li key={`${action}-${index}`} className="flex gap-2 leading-relaxed">
+                      <span className="mt-1 text-blue-300/80">•</span>
+                      <span>{action}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-2.5 text-sm leading-relaxed text-gray-400">
+            Continue current focus. Update progression when new findings are available.
+          </p>
+        )}
+      </article>
+    </div>
+
+    <div className="grid gap-3 border-t border-gray-800 pt-5 lg:grid-cols-2">
+      <ConstraintProgressionNarrativeSection narrative={constraintProgressionNarrative} />
+      <ProgressEvidenceSection evidence={progressEvidence} />
+    </div>
+
+    <div className="space-y-3 border-t border-gray-800 pt-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+        7. Why This Changed
+      </p>
+      <ConclusionChangeExplanationSection
+        conclusionLabel="Current Focus"
+        explanation={conclusionChangeExplanations.current_focus}
+      />
+      <ConclusionChangeExplanationSection
+        conclusionLabel="Attention Required"
+        explanation={conclusionChangeExplanations.attention_required}
+      />
+      <ConclusionChangeExplanationSection
+        conclusionLabel="Next Action"
+        explanation={conclusionChangeExplanations.next_action}
+      />
+    </div>
+
+    <div className="space-y-3 border-t border-gray-800 pt-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+        8. Supporting Evidence
+      </p>
+      <ConclusionEvidenceSection conclusionLabel="Current Focus" evidence={currentFocusEvidence} />
+      <ConclusionEvidenceSection conclusionLabel="Attention Required" evidence={attentionRequiredEvidence} />
+      <ConclusionEvidenceSection conclusionLabel="Next Action" evidence={nextActionEvidence} />
+    </div>
+
+    <div className="grid gap-3 lg:grid-cols-2">
     {clinicalImpactSummary ? (
       <div
         ref={clinicalImpactSummaryRef}
@@ -3610,6 +3627,7 @@ return (
           )}
         </div>
       </details>
+    </div>
     </div>
   </div>
 </section>

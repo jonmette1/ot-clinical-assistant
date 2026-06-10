@@ -8,7 +8,7 @@ export function ConstraintProgressionNarrativeSection({
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-950/55 p-4 lg:col-span-2 sm:p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-        4. Progression Constraint
+        5. Progression Constraint
       </p>
       <h2 className="mt-1.5 max-w-4xl text-lg font-semibold leading-snug text-gray-100 sm:text-xl">
         {narrative.headline}
