@@ -22,6 +22,7 @@ import { TransferMobilityPressureCard } from "./components/TransferMobilityPress
 import { HistoricalSnapshotsSection } from "./components/HistoricalSnapshotsSection";
 import { ClinicalImpactSummaryPanel } from "./components/ClinicalImpactSummaryPanel";
 import { ConclusionEvidenceSection } from "./components/ConclusionEvidenceSection";
+import { ConclusionChangeExplanationSection } from "./components/ConclusionChangeExplanationSection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/clinicalDisplayLanguage";
 import { buildProgressionAwareCurrentFocus } from "@/lib/currentFocusProgressionAwareness";
 import { buildConclusionEvidenceSet } from "@/lib/buildConclusionEvidence";
+import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChangeExplanation";
 // ==============================
 // TYPES
 // ==============================
@@ -2784,6 +2786,21 @@ const conclusionEvidence = buildConclusionEvidenceSet({
   },
 });
 
+const conclusionChangeExplanations = buildConclusionChangeExplanationSet({
+  progressionState,
+  continuityInterpretation,
+  longitudinalState: currentLongitudinalState,
+  visitHistory: recentLongitudinalEvents,
+  conclusions: {
+    current_focus: commandCenterCurrentOperationalEmphasis,
+    attention_required:
+      commandCenterAttentionStatement || "No clinical attention statement is available yet.",
+    next_action:
+      primaryNextAction ||
+      "Continue current focus. Update progression when new findings are available.",
+  },
+});
+
 const currentFocusEvidence = conclusionEvidence.current_focus.evidence;
 const attentionRequiredEvidence = conclusionEvidence.attention_required.evidence;
 const nextActionEvidence = conclusionEvidence.next_action.evidence;
@@ -3328,6 +3345,9 @@ return (
         </p>
       )}
       <ConclusionEvidenceSection evidence={currentFocusEvidence} />
+      <ConclusionChangeExplanationSection
+        explanation={conclusionChangeExplanations.current_focus}
+      />
     </article>
 
     <article className="rounded-2xl border border-red-900/60 bg-red-950/15 p-4 lg:col-span-2 sm:p-5">
@@ -3344,6 +3364,9 @@ return (
         {renderCommandCenterRows(attentionRequiredMetadataRows, "No secondary attention metadata is available yet.")}
       </div>
       <ConclusionEvidenceSection evidence={attentionRequiredEvidence} />
+      <ConclusionChangeExplanationSection
+        explanation={conclusionChangeExplanations.attention_required}
+      />
     </article>
 
     <article className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 lg:col-span-2 sm:p-5">
@@ -3383,6 +3406,9 @@ return (
         </p>
       )}
       <ConclusionEvidenceSection evidence={nextActionEvidence} />
+      <ConclusionChangeExplanationSection
+        explanation={conclusionChangeExplanations.next_action}
+      />
     </article>
 
     {clinicalImpactSummary ? (
