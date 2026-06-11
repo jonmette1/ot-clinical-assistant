@@ -961,7 +961,7 @@ console.log("INSERT ERROR:", error);
 
  if (error) {
   setSaveMessage(
-    `Case generated, but save failed: ${error.message || "Unknown error"}`
+    `Patient record generated, but save failed: ${error.message || "Unknown error"}`
   );
 } else {
   const insertedCaseId = insertedCases?.id;
@@ -980,7 +980,7 @@ if (insertedCaseId) {
   return;
 }
 
-setSaveMessage("Case generated with AI and saved successfully.");
+setSaveMessage("Patient record generated with AI and saved successfully.");
 }
 
   setIsSaving(false);
@@ -994,7 +994,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10 pb-40">
       <div className="mx-auto max-w-4xl">
         <h1 className="mb-2 text-3xl font-bold">
-  New {isPT ? "PT" : "OT"} Case
+  Add {isPT ? "PT" : "OT"} Patient
 </h1>
         <p className="mb-8 text-gray-400">
 {isPT
@@ -1023,7 +1023,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
           Patient Context
         </p>
-        <h2 className="mb-1 text-xl font-semibold">Who is this mobility case?</h2>
+        <h2 className="mb-1 text-xl font-semibold">Who is this mobility patient?</h2>
         <p className="mb-5 text-sm text-gray-400">
           Capture only the high-signal information needed for PT visit orientation.
         </p>
@@ -2180,7 +2180,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
               Administrative Details
             </p>
-            <h2 className="mb-5 text-xl font-semibold">Contact and case details</h2>
+            <h2 className="mb-5 text-xl font-semibold">Contact and patient details</h2>
 
             <div className="grid gap-4 md:grid-cols-2">
               <input
@@ -2301,7 +2301,7 @@ setSaveMessage("Case generated with AI and saved successfully.");
         {saveMessage && <p className="mt-4 text-sm text-gray-300">{saveMessage}</p>}
 
         <section className="mt-10 rounded-xl border border-gray-800 bg-gray-900 p-6">
-          <h2 className="mb-4 text-xl font-semibold">Live Case Preview</h2>
+          <h2 className="mb-4 text-xl font-semibold">Live Patient Preview</h2>
 
           <div className="space-y-2 text-sm text-gray-300">
             <p>

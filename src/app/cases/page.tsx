@@ -42,7 +42,7 @@ export default function CasesPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        setErrorMessage(error.message || "Failed to load cases.");
+        setErrorMessage(error.message || "Failed to load patients.");
       } else {
         setCases((data as CaseRow[]) || []);
       }
@@ -140,7 +140,7 @@ export default function CasesPage() {
       .in("id", selectedCaseIds);
 
     if (error) {
-      setErrorMessage(error.message || "Failed to delete selected cases.");
+      setErrorMessage(error.message || "Failed to delete selected patient records.");
       setIsDeleting(false);
       return;
     }

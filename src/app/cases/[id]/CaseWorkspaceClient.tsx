@@ -915,7 +915,7 @@ const [recentLongitudinalEvents, setRecentLongitudinalEvents] = useState<Longitu
         .single();
 
 if (error) {
-  setErrorMessage(error.message || "Failed to load case.");
+  setErrorMessage(error.message || "Failed to load patient record.");
 } else {
   const typedCase = data as CaseDetail;
   setCaseData(typedCase);
@@ -1202,7 +1202,7 @@ function handleClinicalImpactCtaClick() {
 
   async function handleDeleteCase() {
   const confirmed = window.confirm(
-    "Are you sure you want to delete this case? This cannot be undone."
+    "Are you sure you want to delete this patient record? This cannot be undone."
   );
 
   if (!confirmed) return;
@@ -1450,7 +1450,7 @@ Read-only historical reference; may not reflect current progression updates.`
 
   return `
 ==============================
-CASE: ${displayCase.title || "Untitled Case"}
+CASE: ${displayCase.title || "Unnamed Patient Record"}
 VIEWED STATE: ${stateLabel}
 ==============================
 
@@ -2084,7 +2084,7 @@ if (loading) {
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-5xl mx-auto">
-        <p className="text-gray-400">Loading case...</p>
+        <p className="text-gray-400">Loading patient record...</p>
       </div>
     </main>
   );
@@ -2105,7 +2105,7 @@ if (loading) {
     return (
       <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
         <div className="max-w-5xl mx-auto">
-          <p className="text-gray-400">Case not found.</p>
+          <p className="text-gray-400">Patient record not found.</p>
         </div>
       </main>
     );
@@ -2733,10 +2733,10 @@ const clinicalStatus =
 
 const clinicalStatusExplanation =
   clinicalStatus === "Needs Reassessment"
-    ? "Current case signals suggest the plan should be reviewed before relying on it."
+    ? "Current patient signals suggest the plan should be reviewed before relying on it."
     : clinicalStatus === "Monitor Closely"
     ? "The plan remains usable, but active pressures should be watched during the visit."
-    : "The current plan appears appropriate for the available case information.";
+    : "The current plan appears appropriate for the available patient information.";
 
 const clinicalStatusSignalText = [
   sinceLastVisitProgressionStatus,
@@ -3000,7 +3000,7 @@ const getCostBadgeClass = (value?: string) => {
 };
 
 const selectedPlanForExport = {
-  title: displayCase.title || "Untitled Case",
+  title: displayCase.title || "Unnamed Patient Record",
   patientSnapshot: generated?.patientSnapshot || "",
   currentOperationalEmphasis,
   immediateActions: structuredPlanDetails?.immediateActions || [],
@@ -3638,7 +3638,7 @@ return (
     <details className="group rounded-2xl border border-gray-800 bg-gray-950/70">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 marker:content-none">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">
-          Case Status
+          Patient Status
         </p>
         <span className="text-xs font-semibold text-gray-400 group-open:hidden">Show</span>
         <span className="hidden text-xs font-semibold text-gray-400 group-open:inline">Hide</span>
@@ -3866,13 +3866,13 @@ return (
       Quick patient status update
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Record today’s patient status and confirm whether the current treatment focus still matches the case.
+      Record today’s patient status and confirm whether the current treatment focus still matches the patient picture.
     </p>
   </div>
 
   {isViewingHistoricalVersion ? (
     <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-300">
-      <p className="font-semibold text-white">Return to Live Case to record patient status updates.</p>
+      <p className="font-semibold text-white">Return to Current Patient to record patient status updates.</p>
       <p className="mt-2 text-xs leading-relaxed text-gray-500">
         Historical visit records are read-only references and may not reflect current patient status updates.
       </p>
@@ -3881,7 +3881,7 @@ return (
         onClick={returnToLiveCase}
         className="mt-4 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-100 transition hover:border-blue-500 hover:bg-gray-900"
       >
-        Return to Live Case
+        Return to Current Patient
       </button>
     </div>
   ) : (
@@ -4134,7 +4134,7 @@ return (
       Collapsed supporting information
     </h2>
     <p className="mt-1 text-sm text-gray-400">
-      Open these sections when you need case details, generated report content, modules, or deeper history.
+      Open these sections when you need patient details, generated report content, modules, or deeper history.
     </p>
   </div>
 
@@ -4266,7 +4266,7 @@ return (
   <summary className="flex cursor-pointer items-center justify-between gap-4">
     <div>
       <h2 className="text-xl font-semibold text-white">Case Details</h2>
-      <p className="mt-1 text-sm text-gray-400">Entered case information and editable structured fields.</p>
+      <p className="mt-1 text-sm text-gray-400">Entered patient information and editable structured fields.</p>
     </div>
     <span className="text-xs tracking-wide text-gray-300">Show</span>
   </summary>
@@ -4282,11 +4282,11 @@ return (
       value={editableTitle}
       onChange={(e) => setEditableTitle(e.target.value)}
       className="mb-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-3xl font-bold text-white"
-      placeholder="Untitled Case"
+      placeholder="Unnamed Patient Record"
     />
   ) : (
     <h1 className="text-3xl font-bold mb-2">
-      {displayCase.title || "Untitled Case"}
+      {displayCase.title || "Unnamed Patient Record"}
     </h1>
   )}
 
@@ -4505,7 +4505,7 @@ return (
 
   <div className="mb-4 flex items-center justify-between">
     <h3 className="text-sm font-semibold text-gray-200">
-      Operational Case Inputs
+      Operational Patient Inputs
     </h3>
 
     <span className="text-xs text-gray-500">
