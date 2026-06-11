@@ -1,126 +1,122 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { PatientEntryCard } from "./PatientEntryCard";
 import {
-  PatientEntryCard,
-  type PatientEntryCase,
-  type PatientEntryPreviewState,
-} from "./PatientEntryCard";
-import {
-  derivePatientEntryPreviewSignals,
-  type PatientEntryPreviewCaseData,
-  type PatientEntryPreviewEventData,
-} from "./patientEntryPreview";
-
-type CaseRow = PatientEntryCase;
-
-type PreviewStateMap = Record<string, PatientEntryPreviewState>;
+  CASELOAD_SORT_OPTIONS,
+  CASELOAD_SYSTEM_VIEWS,
+  derivePatientCaseloadSummary,
+  filterAndSortCaseload,
+  type CaseloadCaseData,
+  type CaseloadEventData,
+  type CaseloadSortId,
+  type CaseloadViewId,
+} from "./patientCaseload";
 
 export default function CasesPage() {
-  const [cases, setCases] = useState<CaseRow[]>([]);
+  const [cases, setCases] = useState<CaseloadCaseData[]>([]);
+  const [latestEventByCaseId, setLatestEventByCaseId] = useState<
+    Record<string, CaseloadEventData>
+  >({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCaseType, setSelectedCaseType] = useState("all");
-  const [sortOrder, setSortOrder] = useState("newest");
+  const [selectedView, setSelectedView] = useState<CaseloadViewId>("all");
+  const [sortOrder, setSortOrder] = useState<CaseloadSortId>("clinical-priority");
   const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [openPreviewCaseId, setOpenPreviewCaseId] = useState<string | null>(
-    null
-  );
-  const [previewStateByCaseId, setPreviewStateByCaseId] =
-    useState<PreviewStateMap>({});
 
   useEffect(() => {
     async function loadCases() {
       const { data, error } = await supabase
         .from("cases")
         .select(
-          "id, title, created_at, patient_profile, client_info, case_classification, functional_status, goals_preferences, environment"
-        )
-        .order("created_at", { ascending: false });
+          "id, title, created_at, patient_profile, client_info, case_classification, functional_status, goals_preferences, environment, target_activities, generated_output, current_longitudinal_state, clinical_attention_state, reasoning_stale, plan_stale, modules_stale"
+        );
 
       if (error) {
         setErrorMessage(error.message || "Failed to load patients.");
-      } else {
-        setCases((data as CaseRow[]) || []);
+        setLoading(false);
+        return;
+      }
+
+      const loadedCases = (data as CaseloadCaseData[]) || [];
+      setCases(loadedCases);
+
+      if (loadedCases.length > 0) {
+        const { data: eventData, error: eventError } = await supabase
+          .from("longitudinal_events")
+          .select(
+            "id, case_id, created_at, event_payload, current_state_snapshot, clinical_attention_snapshot"
+          )
+          .in(
+            "case_id",
+            loadedCases.map((caseRow) => caseRow.id)
+          )
+          .order("created_at", { ascending: false });
+
+        if (eventError) {
+          setErrorMessage(eventError.message || "Failed to load current caseload signals.");
+          setLoading(false);
+          return;
+        }
+
+        const latestEvents = ((eventData as CaseloadEventData[]) || []).reduce<
+          Record<string, CaseloadEventData>
+        >((eventsByCaseId, event) => {
+          if (!eventsByCaseId[event.case_id]) eventsByCaseId[event.case_id] = event;
+          return eventsByCaseId;
+        }, {});
+        setLatestEventByCaseId(latestEvents);
       }
 
       setLoading(false);
     }
 
-    loadCases();
+    void loadCases();
   }, []);
 
-  async function loadPreview(caseId: string) {
-    setPreviewStateByCaseId((prev) => ({
-      ...prev,
-      [caseId]: { status: "loading" },
-    }));
+  const caseload = useMemo(
+    () =>
+      cases.map((caseRow) =>
+        derivePatientCaseloadSummary({
+          caseRow,
+          latestEvent: latestEventByCaseId[caseRow.id],
+        })
+      ),
+    [cases, latestEventByCaseId]
+  );
 
-    const [casePreviewResult, longitudinalEventsResult] = await Promise.all([
-      supabase
-        .from("cases")
-        .select(
-          "id, target_activities, generated_output, current_longitudinal_state, clinical_attention_state, reasoning_stale, plan_stale, modules_stale"
-        )
-        .eq("id", caseId)
-        .single(),
-      supabase
-        .from("longitudinal_events")
-        .select(
-          "id, created_at, event_payload, current_state_snapshot, clinical_attention_snapshot"
-        )
-        .eq("case_id", caseId)
-        .order("created_at", { ascending: false })
-        .limit(2),
-    ]);
+  const visiblePatients = useMemo(
+    () =>
+      filterAndSortCaseload({
+        patients: caseload,
+        view: selectedView,
+        searchTerm,
+        caseType: selectedCaseType,
+        sort: sortOrder,
+      }),
+    [caseload, searchTerm, selectedCaseType, selectedView, sortOrder]
+  );
 
-    if (casePreviewResult.error || longitudinalEventsResult.error) {
-      setPreviewStateByCaseId((prev) => ({
-        ...prev,
-        [caseId]: {
-          status: "error",
-          message:
-            casePreviewResult.error?.message ||
-            longitudinalEventsResult.error?.message ||
-            "Preview could not be loaded.",
-        },
-      }));
-      return;
-    }
-
-    const previewSignals = derivePatientEntryPreviewSignals({
-      caseData:
-        (casePreviewResult.data as PatientEntryPreviewCaseData | null) || null,
-      recentEvents:
-        (longitudinalEventsResult.data as PatientEntryPreviewEventData[]) || [],
-    });
-
-    setPreviewStateByCaseId((prev) => ({
-      ...prev,
-      [caseId]: {
-        status: "loaded",
-        signals: previewSignals,
-      },
-    }));
-  }
-
-  function toggleQuickPreview(caseId: string) {
-    const isCurrentlyOpen = openPreviewCaseId === caseId;
-
-    if (isCurrentlyOpen) {
-      setOpenPreviewCaseId(null);
-      return;
-    }
-
-    setOpenPreviewCaseId(caseId);
-
-    if (!previewStateByCaseId[caseId]) {
-      void loadPreview(caseId);
-    }
-  }
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        CASELOAD_SYSTEM_VIEWS.map((view) => [
+          view.id,
+          filterAndSortCaseload({
+            patients: caseload,
+            view: view.id,
+            searchTerm: "",
+            caseType: "all",
+            sort: "clinical-priority",
+          }).length,
+        ])
+      ) as Record<CaseloadViewId, number>,
+    [caseload]
+  );
 
   async function deleteSelectedCases() {
     if (selectedCaseIds.length === 0) return;
@@ -128,16 +124,12 @@ export default function CasesPage() {
     const confirmed = window.confirm(
       `Delete ${selectedCaseIds.length} selected patient record(s)? This cannot be undone.`
     );
-
     if (!confirmed) return;
 
     setIsDeleting(true);
     setErrorMessage("");
 
-    const { error } = await supabase
-      .from("cases")
-      .delete()
-      .in("id", selectedCaseIds);
+    const { error } = await supabase.from("cases").delete().in("id", selectedCaseIds);
 
     if (error) {
       setErrorMessage(error.message || "Failed to delete selected patient records.");
@@ -145,162 +137,156 @@ export default function CasesPage() {
       return;
     }
 
-    setCases((prev) => prev.filter((c) => !selectedCaseIds.includes(c.id)));
+    setCases((currentCases) =>
+      currentCases.filter((caseRow) => !selectedCaseIds.includes(caseRow.id))
+    );
     setSelectedCaseIds([]);
     setIsDeleting(false);
   }
 
-  const filteredCases = [...cases]
-    .filter((c) => {
-      const search = searchTerm.trim().toLowerCase();
-
-      const matchesSearch =
-        !search ||
-        c.client_info?.client_name?.toLowerCase().includes(search) ||
-        c.patient_profile?.primary_diagnosis?.toLowerCase().includes(search) ||
-        c.case_classification?.case_type?.toLowerCase().includes(search) ||
-        c.functional_status?.other_key_barriers
-          ?.toLowerCase()
-          .includes(search) ||
-        c.goals_preferences?.other_target_activity
-          ?.toLowerCase()
-          .includes(search) ||
-        c.environment?.other_safety_hazards?.toLowerCase().includes(search) ||
-        c.environment?.other_equipment_present?.toLowerCase().includes(search);
-
-      const matchesCaseType =
-        selectedCaseType === "all" ||
-        c.case_classification?.case_type === selectedCaseType;
-
-      return matchesSearch && matchesCaseType;
-    })
-    .sort((a, b) => {
-      if (sortOrder === "oldest") {
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-      }
-
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    });
-
-  const filteredCaseIds = filteredCases.map((c) => c.id);
-  const allFilteredSelected =
-    filteredCaseIds.length > 0 &&
-    filteredCaseIds.every((id) => selectedCaseIds.includes(id));
+  const visibleCaseIds = visiblePatients.map((patient) => patient.caseRow.id);
+  const allVisibleSelected =
+    visibleCaseIds.length > 0 &&
+    visibleCaseIds.every((caseId) => selectedCaseIds.includes(caseId));
 
   return (
-    <main className="min-h-screen bg-gray-950 px-6 py-10 text-white">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-            Patient Entry
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Patients</h1>
+    <main className="min-h-screen bg-gray-950 px-4 py-8 text-white sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Patients</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400">
-            Orient around patient identity, treatment frame, clinical context,
-            and recency before opening the Visit Briefing.
+            Prioritize the caseload by current clinical attention, meaningful change,
+            and reassessment needs.
           </p>
-        </div>
+        </header>
 
-        <div className="mb-6 grid gap-3 md:grid-cols-4">
-          <input
-            type="text"
-            placeholder="Search patient, diagnosis, or context"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
-          />
+        <nav aria-label="Caseload views" className="mb-6 border-b border-gray-800">
+          <div className="flex gap-1 overflow-x-auto pb-px">
+            {CASELOAD_SYSTEM_VIEWS.map((view) => {
+              const isActive = selectedView === view.id;
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setSelectedView(view.id)}
+                  className={`whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition ${
+                    isActive
+                      ? "border-blue-400 text-white"
+                      : "border-transparent text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {view.label}
+                  <span className="ml-2 text-xs text-gray-500">{viewCounts[view.id]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
-          <select
-            value={selectedCaseType}
-            onChange={(e) => setSelectedCaseType(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
-          >
-            <option value="all">All patient contexts</option>
-            <option value="geriatric">Geriatric</option>
-            <option value="neurological">Neurological</option>
-            <option value="physical_rehabilitation">Physical Rehab</option>
-            <option value="pediatric">Pediatric</option>
-          </select>
+        <section aria-label="Caseload controls" className="mb-6 grid gap-3 md:grid-cols-3">
+          <label className="md:col-span-1">
+            <span className="sr-only">Search patients</span>
+            <input
+              type="search"
+              placeholder="Search patient, diagnosis, or context"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm outline-none transition placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </label>
 
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
-          >
-            <option value="newest">Most recent first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        </div>
+          <label>
+            <span className="sr-only">Filter by clinical context</span>
+            <select
+              value={selectedCaseType}
+              onChange={(event) => setSelectedCaseType(event.target.value)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm"
+            >
+              <option value="all">All clinical contexts</option>
+              <option value="geriatric">Geriatric</option>
+              <option value="neurological">Neurological</option>
+              <option value="physical_rehabilitation">Physical Rehab</option>
+              <option value="pediatric">Pediatric</option>
+            </select>
+          </label>
 
-        {loading && <p className="text-gray-400">Loading patients...</p>}
+          <label>
+            <span className="sr-only">Sort patients</span>
+            <select
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value as CaseloadSortId)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm"
+            >
+              {CASELOAD_SORT_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
+
+        {loading && <p className="text-gray-400">Loading caseload...</p>}
 
         {!loading && errorMessage && (
-          <p className="text-red-400">Error loading patients: {errorMessage}</p>
+          <p className="text-red-300">Error loading patients: {errorMessage}</p>
         )}
 
-        {!loading && !errorMessage && filteredCases.length === 0 && (
-          <p className="text-gray-400">No patients yet.</p>
+        {!loading && !errorMessage && visiblePatients.length === 0 && (
+          <div className="rounded-xl border border-gray-800 bg-gray-900/50 px-5 py-8 text-center">
+            <p className="text-gray-300">No patients match this caseload view.</p>
+            <p className="mt-2 text-sm text-gray-500">
+              Try another system view or adjust the search and context filters.
+            </p>
+          </div>
         )}
 
-        {!loading && !errorMessage && filteredCases.length > 0 && (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Patient list controls
-              </p>
-              <p className="mt-1 text-sm text-gray-300">
-                {selectedCaseIds.length} selected
-              </p>
-            </div>
+        {!loading && !errorMessage && visiblePatients.length > 0 && (
+          <div className="mb-4 flex items-center justify-between gap-4 text-sm text-gray-400">
+            <p>
+              {visiblePatients.length} patient{visiblePatients.length === 1 ? "" : "s"}
+            </p>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (allFilteredSelected) {
-                    setSelectedCaseIds([]);
-                  } else {
-                    setSelectedCaseIds(filteredCaseIds);
+            <details className="relative">
+              <summary className="cursor-pointer list-none rounded-lg border border-gray-800 px-3 py-2 text-gray-400 transition hover:border-gray-700 hover:text-gray-200">
+                Manage records{selectedCaseIds.length ? ` (${selectedCaseIds.length})` : ""}
+              </summary>
+              <div className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-gray-700 bg-gray-900 p-3 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedCaseIds(allVisibleSelected ? [] : visibleCaseIds)
                   }
-                }}
-                className="rounded-lg bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700"
-              >
-                {allFilteredSelected ? "Clear All" : "Select All"}
-              </button>
-
-              <button
-                type="button"
-                onClick={deleteSelectedCases}
-                disabled={selectedCaseIds.length === 0 || isDeleting}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:bg-red-900"
-              >
-                {isDeleting ? "Deleting..." : "Delete Selected"}
-              </button>
-            </div>
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-800"
+                >
+                  {allVisibleSelected ? "Clear selection" : "Select visible patients"}
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedCases}
+                  disabled={selectedCaseIds.length === 0 || isDeleting}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:text-gray-600"
+                >
+                  {isDeleting ? "Deleting..." : "Delete selected records"}
+                </button>
+              </div>
+            </details>
           </div>
         )}
 
         <div className="space-y-4">
-          {filteredCases.map((c) => (
+          {visiblePatients.map((patient) => (
             <PatientEntryCard
-              key={c.id}
-              caseRow={c}
-              isSelected={selectedCaseIds.includes(c.id)}
-              previewState={previewStateByCaseId[c.id] || { status: "idle" }}
-              isPreviewOpen={openPreviewCaseId === c.id}
-              onQuickPreviewToggle={() => toggleQuickPreview(c.id)}
+              key={patient.caseRow.id}
+              patient={patient}
+              isSelected={selectedCaseIds.includes(patient.caseRow.id)}
               onSelectionChange={(checked) => {
-                if (checked) {
-                  setSelectedCaseIds((prev) => [...prev, c.id]);
-                } else {
-                  setSelectedCaseIds((prev) =>
-                    prev.filter((id) => id !== c.id)
-                  );
-                }
+                setSelectedCaseIds((currentIds) =>
+                  checked
+                    ? Array.from(new Set([...currentIds, patient.caseRow.id]))
+                    : currentIds.filter((caseId) => caseId !== patient.caseRow.id)
+                );
               }}
             />
           ))}
