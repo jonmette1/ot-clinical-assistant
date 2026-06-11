@@ -39,7 +39,7 @@ const getSnapshotTypeLabel = (promptVersion?: string | null) => {
   }
 
   if (promptVersion.includes("continuity-save")) {
-    return "Saved After Case Edit";
+    return "Saved After Patient Edit";
   }
 
   if (promptVersion.includes("regenerated")) {
@@ -462,7 +462,7 @@ export function HistoricalSnapshotsSection({
                 disabled={isRestoringVersion}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
               >
-                {isRestoringVersion ? "Restoring..." : "Restore as Live Case"}
+                {isRestoringVersion ? "Restoring..." : "Restore as Current Patient"}
               </button>
 
               <button
@@ -476,7 +476,7 @@ export function HistoricalSnapshotsSection({
           </div>
 
           <p className="text-xs text-gray-500">
-            Restoring this snapshot will replace the live case with this saved version.
+            Restoring this snapshot will replace the current patient record with this saved version.
           </p>
         </div>
       </div>

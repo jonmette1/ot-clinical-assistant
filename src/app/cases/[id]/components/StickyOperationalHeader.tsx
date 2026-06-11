@@ -36,7 +36,7 @@ export function StickyOperationalHeader({
         <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
-              {title || "Untitled Case"}
+              {title || "Unnamed Patient Record"}
             </p>
 
             <p className="truncate text-xs text-gray-400">
@@ -81,7 +81,7 @@ export function StickyOperationalHeader({
                 onClick={onReturnToLiveCase}
                 className="shrink-0 rounded-lg border border-amber-300/60 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-900/50"
               >
-                Return to Live Case
+                Return to Current Patient
               </button>
             ) : null}
           </div>

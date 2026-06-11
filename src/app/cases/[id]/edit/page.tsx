@@ -740,7 +740,7 @@ await supabase.from("generations").insert([
 
 
 
-setSaveMessage("Case updated with AI-regenerated plan successfully.");
+setSaveMessage("Patient record updated with AI-regenerated plan successfully.");
 
 router.push(`/cases/${caseId}`);
 }
@@ -886,7 +886,7 @@ if (error) {
     },
   ]);
 
-  setSaveMessage("Case updated (no regeneration).");
+  setSaveMessage("Patient record updated (no regeneration).");
 }
 
   setIsSaving(false);
@@ -905,7 +905,7 @@ const { data, error } = await supabase
   .single();
 
       if (error) {
-        setErrorMessage(error.message || "Failed to load case.");
+        setErrorMessage(error.message || "Failed to load patient record.");
       } else {
         const caseData = data as CaseDetail;
         alert(
@@ -1118,23 +1118,23 @@ setGeneralMobility({
     <main className="min-h-screen bg-gray-950 text-white px-6 py-10">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Edit Case</h1>
+          <h1 className="text-3xl font-bold">Edit Patient</h1>
 
           <Link href="/cases" className="text-blue-400 underline">
-            Back to Cases
+            Back to Patients
           </Link>
         </div>
 
-        {loading && <p className="text-gray-400">Loading case...</p>}
+        {loading && <p className="text-gray-400">Loading patient record...</p>}
 
         {!loading && errorMessage && (
-          <p className="text-red-400">Error loading case: {errorMessage}</p>
+          <p className="text-red-400">Error loading patient record: {errorMessage}</p>
         )}
 
         {!loading && !errorMessage && (
           <form className="space-y-6">
             <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-6">
-              <h2 className="text-xl font-semibold mb-4">Client / Case Basics</h2>
+              <h2 className="text-xl font-semibold mb-4">Patient Basics</h2>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <input
@@ -2430,7 +2430,7 @@ setGeneralMobility({
   disabled={isSaving}
   className="bg-green-600 hover:bg-green-700 disabled:bg-green-900 px-6 py-3 rounded-lg text-lg mr-4"
 >
-  {isSaving ? "Saving..." : "Update Case Only"}
+  {isSaving ? "Saving..." : "Update Patient Only"}
 </button>
 
 <button
@@ -2439,11 +2439,11 @@ setGeneralMobility({
   disabled={isSaving}
   className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 px-6 py-3 rounded-lg text-lg"
 >
-  {isSaving ? "Saving..." : "Regenerate + Update Case"}
+  {isSaving ? "Saving..." : "Regenerate + Update Patient"}
 </button>
 
             <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 text-sm text-gray-300">
-              <p><strong>Loaded Case ID:</strong> {caseId || "—"}</p>
+              <p><strong>Loaded Patient Record ID:</strong> {caseId || "—"}</p>
               <p><strong>Client:</strong> {clientName || "—"}</p>
               <p><strong>Diagnosis:</strong> {primaryDiagnosis || "—"}</p>
               <p><strong>Goal:</strong> {primaryGoal || "—"}</p>

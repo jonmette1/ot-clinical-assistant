@@ -62,7 +62,7 @@ function resolvePatientIdentity(caseRow: PatientEntryCase) {
   const documentedPatientName = getDocumentedText(
     caseRow.client_info?.client_name
   );
-  const caseTitle = getDocumentedText(caseRow.title) || "Untitled case";
+  const caseTitle = getDocumentedText(caseRow.title) || "Unnamed Patient Record";
 
   if (documentedPatientName) {
     return {
