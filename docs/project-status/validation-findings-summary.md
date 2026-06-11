@@ -1,133 +1,190 @@
 # Validation Findings Summary
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Evidence Boundary
 
-The repository supports three evidence types:
+Current findings are based primarily on implementation review, persona-based simulation, comparative workflow simulation, synthetic cases, an 80-patient caseload simulation, and internal UX review.
 
-1. **Implemented behavior and deterministic tests** for progression, reconciliation, recommendation evolution, and preview consistency.
-2. **Internal workflow and visual review** represented by UX revisions, lifecycle screenshots, and repeated hierarchy/compression changes.
-3. **Persona-style simulation findings** supplied as project learning, but without a populated experiment corpus in `docs/persona-simulation/`.
+They support product direction and identify high-value hypotheses. They do **not** establish:
 
-No finding below should be interpreted as proof of clinical accuracy, real-world adoption, measured time savings, or willingness to pay. The empty persona-simulation templates are themselves an evidence-management gap: future studies should preserve scenarios, observations, failures, and decisions in the repository.
+- real-clinician usability or preference;
+- clinical accuracy;
+- clinical outcomes;
+- measured time savings;
+- adoption or willingness to pay;
+- pilot readiness; or
+- production safety.
 
-## Persona Simulation Summary
+## Strongest Product Insight
 
-Persona-oriented review shifted the product from generated-plan inspection toward task-based orientation: choose the patient, recover the current clinical reality, identify what changed, determine what needs attention, and decide what to do next.
+Clinicians do not primarily struggle to understand evidence. They struggle to understand:
 
-The strongest simulation-supported observations are:
+- constraints;
+- progression;
+- what remains limiting;
+- what should be validated today; and
+- how to translate the same maintained understanding for different people.
 
-- clinicians do not want to inspect the continuity architecture to understand the patient;
-- pre-visit orientation is time-constrained and often mobile;
-- Case Preview can begin orientation earlier than expected;
-- Visit Briefing becomes harder to use when supporting context competes with current reality;
-- Current Reality, Attention Required, and Next Action are more retainable than a broad set of equally weighted outputs;
-- a recommendation that evolves coherently with a Patient Status update feels more trustworthy than a fluent but unexplained generated recommendation; and
-- clinicians are likely to verify a focused conclusion against a few sources rather than accept it without checking.
+Evidence matters, but its highest value is supporting a concise clinical explanation rather than increasing information volume.
 
-These findings are directionally useful but remain simulation-supported because participant identities, protocols, observations, and quantitative results are not stored in the current persona-simulation files.
+## Trust Finding
 
-## Workflow Usability Findings
+The strongest simulated trust pattern was:
 
-- **Orientation should begin before the full workspace.** Case Preview can surface enough decision-relevant context to support patient selection and initial mental setup.
-- **Visit Briefing must be a briefing, not a report.** Current Reality, Attention Required, and Next Action need stronger authority than history, controls, and supporting modules.
-- **Since Last Visit is essential continuity compression.** Clinicians need a meaningful delta, not a replay of the entire case.
-- **Patient Status is the longitudinal update event.** The workflow is strongest when an update visibly changes or confirms the maintained clinical conclusion.
-- **Visit History should tell a clinical story.** Visit-oriented snapshots are better than software-version language, but usefulness depends on visible evolution and consistent snapshot content.
-- **Patient History should remain subordinate.** Context is available for review without competing with immediate orientation.
-- **Consistency across surfaces matters.** Case Preview, Visit Briefing, Clinical Impact, and Visit History should not express different current conclusions.
+```text
+Improvement
+→ unresolved constraint
+→ recommendation remains appropriate
+```
 
-## Mobile Findings
+Progression Constraint was especially valuable because it explained why observed improvement did not automatically invalidate the current recommendation. Supporting Evidence and Why This Changed strengthened verification, but the constraint narrative made the recommendation evolution clinically coherent.
 
-- Mobile pre-visit orientation is a primary use case, not a reduced desktop afterthought.
-- A compact Case Preview is particularly valuable on mobile because it reduces unnecessary workspace entry.
-- Visit Briefing requires aggressive hierarchy, short sentences, limited action competition, and progressive disclosure.
-- Current Reality / Attention Required / Next Action survive narrow-screen compression better than multi-card dashboards.
-- Sticky navigation and action crowding require real-device review; screenshots cannot establish touch ergonomics, viewport behavior, outdoor readability, accessibility, or network performance.
-- Mobile readiness remains a strongly supported hypothesis rather than a validated field result.
+**Status:** strongly supported in simulation; not yet validated with real clinicians.
 
-## Trust Findings
+## Workflow Reuse Finding
 
-- **Coherent state transition is the primary trust mechanism.** Clinicians need to understand why a recommendation changed, remained stable, or moved to monitoring.
-- **Determinism supports but does not complete trust.** Internal authority boundaries reduce hidden behavior, but clinicians still need visible provenance.
-- **Historical immutability protects orientation trust.** Prior snapshots should remain true to their time while the live case evolves.
-- **Targeted verification is the desired behavior.** The product should make it easy to verify the key conclusion against its evidence, not encourage blind acceptance.
-- **Correction is a prerequisite for reliance.** A clinician must be able to challenge stale evidence or a wrong conclusion without creating ambiguous authority.
-- **Trust thresholds are likely context-dependent.** Safety-sensitive recommendations may require more evidence and verification than workflow summaries; this has not been measured.
+Maintained Understanding plus Progress Evidence appears sufficient to support, with substantially less reconstruction:
 
-## Recommendation Evolution Findings
+- reassessment;
+- physician update; and
+- care conference.
 
-Implemented scenarios show that Next Action can evolve in clinically coherent ways:
+The strongest simulated reuse workflows were:
 
-- regression, unsafe performance, falls, or near-falls retain priority over positive progression;
-- positive transfer progression can demote a safety barrier to monitoring and promote evaluation of progression readiness;
-- a clinician-selected current limiting factor can remain active when treatment direction changes;
-- explicit caregiver-capacity loss can promote caregiver reassessment;
-- generic improvement alone does not prove that a barrier no longer constrains an activity; and
-- patient preview can match the Visit Briefing recommendation after transition logic is applied.
+1. Care Conference
+2. Physician Update
+3. Reassessment
 
-This is implementation validation, not clinical validation. The ordering rules still require representative clinician review and broader scenario coverage.
+QA remains partially reusable because QA requires source verification and cannot safely rely on a compressed maintained conclusion alone.
 
-## Continuity Reconciliation Findings
+Progress Evidence improved reassessment reuse by adding objective improvement, milestones, remaining limits, safety effects, and timeframe. Maintained understanding alone was less complete for this purpose.
 
-Progression improvements exposed a continuity problem: prior triggers and barriers could remain technically present and continue influencing recommendations after current evidence changed.
+**Status:** simulated comparative workflow finding; no measured real-world reduction in reconstruction has been established.
 
-The implemented reconciliation sequence supports several findings:
+## Visit Briefing Findings
 
-- historical truth and current relevance are different;
-- absence of a repeated concern should not automatically clear it;
-- current urgent or safety evidence should preserve active authority;
-- positive progression plus readiness can move a concern to monitoring or resolution when deterministic evidence supports it;
-- reconciliation should update the live runtime projection without mutating historical snapshots; and
-- downstream Current Focus and Next Action must consume reconciled state or stale recommendations will persist despite correct reconciliation.
+### Session Focus
 
-## Clinical Conclusion Reuse Findings
+Session Focus was strongly preferred in simulation for visit preparation and treatment execution because it converts context into an active visit objective.
 
-The same maintained conclusion appears useful across multiple tasks:
+> **Attention Required tells me what to worry about. Session Focus tells me what to do.**
 
-- pre-visit orientation;
-- treatment planning and next-visit focus;
-- reassessment preparation;
-- physician communication;
-- care conference preparation;
-- documentation support;
-- QA review; and
-- longitudinal history review.
+Session Focus should answer what the clinician should validate, observe, train, reassess, or address during today's visit.
 
-The opportunity is not to copy one sentence everywhere. It is to reuse a governed conclusion with workflow-appropriate compression, evidence, and clinician review. Reuse could eliminate repeated reconstruction, but it could also amplify a wrong conclusion; provenance and correction must precede broad reuse.
+### Attention Required
 
-## Key Metrics Identified
+Attention Required is most useful as review guidance:
 
-| Metric | Definition | Suggested measurement |
-| --- | --- | --- |
-| Clinical Reconstruction Events Eliminated | Number of occasions where the clinician can use a maintained conclusion instead of rebuilding it from source facts. | Compare baseline and assisted workflows across orientation, planning, reassessment, communication, and QA tasks. |
-| Time to Clinical Orientation | Time required to correctly state current status, meaningful change, attention need, and next action. | Timed task from patient selection to an accurate verbal or written orientation. |
-| Clinical Sources Consulted | Number and type of records opened before the clinician feels oriented or completes a task. | Interaction logging plus participant explanation of why each source was used. |
-| Mental Effort Score | Perceived cognitive effort required to orient, verify, or produce an output. | Short post-task scale, used consistently rather than as a standalone success claim. |
-| Retained Clinical Reality | Whether the clinician accurately remembers the current state, attention need, and next action after a short delay or task switch. | Structured recall questions scored against the case truth. |
-| Verification Behavior | What clinicians check, how often, and whether verification is targeted or reconstructive. | Screen/task observation and source-click sequence analysis. |
-| Trust Threshold | Evidence and explanation required before a clinician is willing to rely on a conclusion for a specified task. | Scenario-based confidence and reliance questions, stratified by risk level. |
-| Workflow Reuse Score | Number and value of workflows in which a maintained conclusion can be reused with minimal correction. | Track conclusion acceptance, edits, and reconstruction avoided across selected outputs. |
+- what could derail progress;
+- what warrants monitoring;
+- what may require reassessment; and
+- what must be reviewed before advancing the plan.
 
-Metrics should distinguish speed from correctness. Faster orientation that produces false confidence is not success.
+It should not duplicate Session Focus or function as milestone reporting.
+
+### Orientation content
+
+Sprint 9's Orientation Brief was implemented on a branch/PR but was not merged into the current repository history. It was largely duplicative of Quick Orientation Summary.
+
+The finding is not that more orientation content is needed. The remaining opportunity is how clinicians access and consume existing maintained understanding—for example through future read-aloud or personal-agent exploration.
+
+### Hierarchy
+
+The most coherent Visit Briefing hierarchy keeps:
+
+- Quick Orientation Summary collapsed or optional;
+- Current Focus compressed;
+- Supporting Evidence and Why This Changed local to each conclusion;
+- Session Focus distinct from Attention Required; and
+- progression and progress evidence available without overwhelming the first read.
+
+**Status:** implemented and supported by internal/simulated review; real orientation speed and comprehension remain unmeasured.
+
+## Patients Page Finding
+
+An 80-patient simulation exposed that patient organization and retrieval must precede patient-level orientation.
+
+The Patients page should be:
+
+```text
+Caseload Management
++
+Rapid Orientation
+```
+
+It should not be a single long patient list. System Views, clinical-priority sorting, status, current focus, and recent change help answer who deserves attention and why.
+
+Patient cards should not become mini Visit Briefings. The page should not become a scheduler, route planner, Today's Patients workflow, or folder system.
+
+Remaining validation needs include:
+
+- whether status labels are immediately understandable;
+- whether recent-change summaries are consistently meaningful;
+- whether System Views match clinician triage behavior;
+- whether the legacy clinical context filter should be removed or replaced; and
+- whether Personal Groups add value after core triage is validated.
+
+**Status:** implemented and exercised in synthetic caseload simulation; not validated with real caseload management.
+
+## Clinical Translation Workspace Finding
+
+The Reference Workspace's highest value is not additional orientation. Its highest value is:
+
+> **helping the clinician explain the patient to everyone else.**
+
+The current Case Details hierarchy appropriately prioritizes:
+
+1. Caregiver Guidance
+2. Home & Equipment Guidance
+3. Patient Guidance
+4. Family / Supporter Guidance
+5. Clinical Communication
+6. Documentation / QA Support
+7. Clinical Reference / Patient Context
+
+The strategic distinction is:
+
+- **Visit Briefing:** What should I do?
+- **Clinical Translation Workspace:** How do I explain it?
+
+The next validation question is whether clinicians can quickly produce concise, audience-appropriate communication without navigating raw or duplicative content.
+
+**Status:** current organization is implemented; cognitive compression and reusable outputs remain future work.
+
+## Explainability and Provenance Findings
+
+Supporting Evidence and Why This Changed improve the platform's ability to answer:
+
+- What is this based on?
+- Where did it come from?
+- Why does it matter?
+- What changed?
+- Why did the conclusion evolve or remain stable?
+
+The preferred pattern is local explanation under the relevant maintained conclusion, not a separate transparency destination that clinicians must reconstruct.
+
+The remaining gap is correction and governance: clinicians need a clear way to inspect sources, correct evidence, reject a maintained conclusion, and understand what changed afterward without rewriting immutable history.
+
+**Status:** explanation capability is implemented; end-to-end provenance correction is incomplete.
 
 ## Findings Confidence
 
-| Finding | Confidence | Evidence Type | Caveat |
-| ------- | ---------- | ------------- | ------ |
-| Deterministic reasoning can remain authoritative while AI is constrained to synthesis. | High | Architecture and implementation inspection | Does not establish clinical correctness of the deterministic rules. |
-| Progression readiness can support review without autonomous advancement. | High | Implemented builder and tests | Readiness criteria have not been clinically validated across case diversity. |
-| Reassessment triggers and barriers can be reconciled without rewriting history. | High | Implemented reconciliation logic and snapshot governance | Not every lifecycle-bearing conclusion has been audited. |
-| Barrier existence differs from whether it constrains a target activity. | High | Architecture analysis, implementation, and scenario tests | Free-text and incomplete activity evidence limit generalizability. |
-| Safety/regression should override positive progression in recommendation ordering. | High | Deterministic scenario tests | Requires clinician confirmation of coverage and edge cases. |
-| Case Preview and Visit Briefing can express the same clinical story. | High | Shared implementation and consistency tests | Comprehension by real users is untested. |
-| Case Preview is stronger than expected as an orientation surface. | Medium | Internal workflow/visual review | No measured patient-selection or orientation study. |
-| Visit Briefing benefits from Current Reality / Attention Required / Next Action hierarchy. | Medium | UX iteration and simulation-supported findings | No comparative usability test is stored. |
-| Mobile pre-visit orientation is a primary use case. | Medium | Product learning, responsive implementation, and screenshots | No real-device field observation. |
-| Coherent state transitions increase clinician trust. | Medium | Architecture rationale and simulation-supported findings | Trust and reliance behavior have not been measured. |
-| Targeted verification is less burdensome than full reconstruction. | Medium | Product thesis and simulation-supported workflow analysis | Requires observed baseline-versus-assisted study. |
-| Maintained conclusions can be reused across multiple workflows. | Medium | Cross-workflow analysis | Reuse quality, correction burden, and governance are untested. |
-| Clinical conclusion reuse is the larger commercial/product opportunity. | Low–Medium | Strategic inference | Requires workflow-value and buyer validation. |
-| The product saves clinician time in practice. | Low | Hypothesis only | No real-world time study. |
-| Clinicians will adopt or pay for the product. | Low | Hypothesis only | No adoption or willingness-to-pay evidence. |
+| Finding | Confidence | Basis |
+| --- | --- | --- |
+| Constraint explanation is a major trust driver | Medium | Repeated simulated/persona response and coherent implementation behavior |
+| Session Focus is more actionable than Attention Required for visit execution | Medium | Strong comparative simulation preference |
+| Maintained Understanding + Progress Evidence supports reassessment, physician update, and care conference reuse | Medium | Comparative workflow simulation; no field measurement |
+| QA requires explicit source verification | Medium-high | Workflow requirement and simulation behavior |
+| Caseload retrieval must precede orientation at scale | Medium | 80-patient simulation |
+| Translation is the highest-value purpose of Case Details | Medium | Content/use-case review and product-model fit |
+| Real clinicians will trust, adopt, or save time with the platform | Low / unknown | Real-clinician evidence has not yet been collected |
+
+## Next Validation Priorities
+
+1. Test Patients page triage with representative clinicians and realistic caseloads.
+2. Measure Visit Briefing orientation, comprehension, disagreement, and retained clinical reality.
+3. Test whether Session Focus changes visit preparation and treatment execution.
+4. Test audience-specific translation tasks for caregivers, patients, families, physicians, care conferences, and QA/documentation.
+5. Observe source verification, correction, and rejection behavior.
+6. Test mobile use under field conditions, interruptions, and limited attention.
