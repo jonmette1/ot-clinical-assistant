@@ -1,3 +1,12 @@
+# Reference Status
+
+- Architectural layer: Clinical Continuity application layer; contains candidate shared-continuity concepts requiring validation before extraction.
+- Implementation status: targeted Clinical Continuity implementation exists for portions of this reference; this document preserves architectural rationale and boundary definition.
+- Authority: subordinate to [`../system-architecture.md`](../system-architecture.md).
+- Boundary: does not define the full Continuity Platform and does not prove a universal shared architecture.
+
+---
+
 # Continuity Reconciliation Architecture
 
 > Status note: see `docs/project-status/project-state-of-the-union.md` for current project status. The targeted runtime reconciliation described here has since received an initial implementation; this document remains the architectural rationale and boundary definition.

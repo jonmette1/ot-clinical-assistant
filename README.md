@@ -1,50 +1,57 @@
-# OT Clinical Assistant
+# Clinical Continuity Platform
 
-The OT Clinical Assistant is a continuity-aware clinical cognition and workflow support system for adult rehabilitation and home health occupational therapy.
+This repository contains the **Clinical Continuity Platform** implementation within the broader **Continuity Platform** direction.
 
-## Project Status and Handoff
+The current implemented application is **Clinical Continuity** with an **OT configuration**. The repository includes substantial OT-focused clinical reasoning, continuity, progression, prioritization, visit preparation, and translation workflow support.
 
-- [Project State of the Union](docs/project-status/project-state-of-the-union.md)
-- [Next-Agent Handoff](docs/project-status/next-agent-handoff.md)
-- [Product Maturity Assessment](docs/project-status/product-maturity-assessment.md)
-- [Validation Findings Summary](docs/project-status/validation-findings-summary.md)
-- [Opportunity Map](docs/project-status/opportunity-map.md)
+**Care Continuity** is a future application concept under validation. It is not implemented in this repository.
 
----
+## Repository authority
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Git is the durable source of truth for this project. Conversations, prompts, consultant exchanges, and handoffs are temporary working context unless approved direction is written back to the repository.
 
-## Getting Started
+## Active authority stack
 
-First, run the development server:
+Read active authority documents in this order before material work:
+
+1. [Platform Foundation](docs/foundation/platform-foundation.md)
+2. [System Architecture](docs/architecture/system-architecture.md)
+3. [Program State](docs/governance/program-state.md)
+4. [Current Focus](docs/governance/current-focus.md)
+5. [Active Roadmap](docs/governance/active-roadmap.md)
+6. [Decision Continuity Log](docs/governance/decision-continuity-log.md)
+7. [Operating Model](docs/governance/operating-model.md)
+8. Relevant subordinate technical references, including [Continuity Reconciliation Architecture](docs/architecture/references/continuity_reconciliation_architecture.md) and [Activity Constraint Reconciliation Architecture](docs/architecture/references/activity_constraint_reconciliation_architecture.md)
+
+Historical documents are preserved in the [2026 Continuity Platform Reboot archive](docs/archive/2026-continuity-platform-reboot/) for reference, not as active authority.
+
+## Application documentation
+
+- [Clinical Continuity](docs/applications/clinical/README.md)
+- [Care Continuity](docs/applications/care/README.md)
+
+## Developer setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run repository checks:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+npm run lint
+npm run build
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use the validation command appropriate to the change. Documentation-only work should also validate Markdown links and governance constraints.
