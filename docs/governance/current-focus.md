@@ -2,31 +2,51 @@
 
 ## Single active work boundary
 
-# Continuity Foundation Definition and Dual-Experience Validation
+# Continuity Platform Foundation Definition
 
 ## Objective
 
-Determine which existing capabilities belong to:
-
-- the candidate Shared Continuity Foundation;
-- Clinical Continuity;
-- OT configuration;
-- delivery infrastructure;
-
-while designing and scenario-testing distinct Clinician and Caregiver experiences.
+Define the minimum candidate Continuity Platform foundation by classifying current repository capabilities, modeling Clinician and Caregiver experiences together, and pressure-testing shared versus application-specific continuity concepts before any technical extraction begins.
 
 ## Included scope
 
-- repository capability classification;
-- existing engine mapping;
-- Clinician experience flow;
-- Caregiver experience flow;
-- shared-state hypothesis;
-- authority comparison;
-- terminology comparison;
-- representative scenario testing;
-- identification of ownership conflicts;
-- definition of the minimum candidate shared foundation.
+### Repository Classification
+
+- classify existing engine capabilities;
+- separate candidate Shared Continuity Foundation responsibilities from Clinical Continuity responsibilities;
+- separate OT configuration responsibilities from reusable clinical application responsibilities;
+- separate delivery infrastructure from platform architecture;
+- identify ownership conflicts created by current implementation reality.
+
+### Experience Definition
+
+Develop both conceptual experiences together.
+
+Model:
+
+- Clinician;
+- Caregiver.
+
+Identify:
+
+- language;
+- authority;
+- responsibilities;
+- workflows;
+- information needs;
+- interaction differences.
+
+### Shared Foundation Validation
+
+Pressure-test the proposed Shared Continuity Foundation against both experiences.
+
+Identify:
+
+- ownership;
+- authority;
+- shared concepts;
+- application-specific concepts;
+- unresolved conflicts.
 
 ## Excluded scope
 
@@ -46,15 +66,15 @@ while designing and scenario-testing distinct Clinician and Caregiver experience
 
 The boundary is complete when:
 
-- every major engine component has a justified layer assignment;
-- Clinician and Caregiver experience flows are documented end to end;
-- shared versus distinct state, authority, language, and actions are identified;
-- unresolved ownership conflicts are explicitly recorded;
-- the minimum candidate Shared Continuity Foundation is defined;
-- no technical extraction has been performed prematurely.
+- every major repository capability has a justified ownership layer;
+- clinician and caregiver experience models exist;
+- the candidate Shared Continuity Foundation has been pressure-tested against both applications;
+- ownership conflicts are documented;
+- shared versus application-specific concepts are explicitly identified;
+- no technical extraction has begun.
 
 ## Stopping condition
 
-Stop before implementation or refactoring.
+Stop before implementation, refactoring, or technical extraction.
 
 This boundary produces an approved foundation and validation model, not application code.

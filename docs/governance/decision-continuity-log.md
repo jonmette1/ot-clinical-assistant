@@ -139,3 +139,220 @@ Each entry includes ID, date, decision, owner, rationale, supporting evidence, r
 - Superseded decision: None.
 - Reopening condition: Repository retention policy changes.
 - Status: active.
+
+### DCL-011 — Cognitive compression over narrative richness
+
+- Date: 2026-06-04
+- Decision: The platform prioritizes cognitive compression and workflow clarity over narrative richness.
+- Owner: Founder / Product Design
+- Rationale: Primary workflows occur under time pressure, documentation fatigue, and cognitive overload; operational usability is more important than expansive narrative generation.
+- Supporting evidence: Archived `DECISION 002` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active documentation should continue to favor concise orientation, maintained understanding, and workflow clarity.
+- Implementation impact: Generated and displayed information should be compressed around current meaning, change, attention, and action rather than narrative breadth.
+- Superseded decision: None.
+- Reopening condition: Real-clinician validation demonstrates that richer narrative materially improves safe workflow use without increasing cognitive load.
+- Status: Active.
+
+### DCL-012 — Environmental realism and caregiver feasibility remain core reasoning priorities
+
+- Date: 2026-06-04
+- Decision: Environmental realism and caregiver feasibility are core reasoning priorities.
+- Owner: Founder / Architecture
+- Rationale: Adult rehabilitation and home-health workflows depend on real residential environments, caregiver limitations, and practical feasibility.
+- Supporting evidence: Archived `DECISION 003` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Program State and architecture references should continue to classify environment and caregiver feasibility as material Clinical Continuity and OT configuration concerns.
+- Implementation impact: Reasoning and workflow surfaces must not reduce Clinical Continuity to diagnosis-only or impairment-only interpretation.
+- Superseded decision: None.
+- Reopening condition: Validated application-specific evidence supports a different feasibility model for a non-OT configuration or Care Continuity.
+- Status: Active.
+
+### DCL-013 — Operational prioritization replaces pathway semantics as treatment-direction authority
+
+- Date: 2026-06-04
+- Decision: The product transitioned from multi-pathway recommendation architecture toward continuity-aware operational prioritization; current operational emphasis replaces selected-pathway semantics as the primary treatment-direction authority.
+- Owner: Founder / Architecture
+- Rationale: Historical pathways functioned as operational emphasis states, continuity-sensitive priorities, and progression-adjacent weighting states rather than true competing treatment plans.
+- Supporting evidence: Archived `DECISION 004`, `DECISION 006`, and `DECISION 011` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active documents should refer to operational prioritization and current operational state rather than pathway selection as the governing model.
+- Implementation impact: Implementations should derive what dominates treatment attention now through deterministic operational prioritization, not clinician selection among competing AI-generated plans.
+- Superseded decision: Multi-pathway recommendation semantics as primary treatment direction.
+- Reopening condition: Founder-approved architecture change supported by real-clinician validation and migration plan.
+- Status: Active.
+
+### DCL-014 — Pathway-era compatibility remains transitional debt
+
+- Date: 2026-06-04
+- Decision: Pathway-era structures such as `selectedPathwayIndex` may remain temporarily for backward compatibility but should not regain semantic authority.
+- Owner: Architecture / Codex
+- Rationale: Existing case rendering, historical generations, copy/export workflows, and guidance structures may depend on pathway-indexed data; immediate removal could destabilize stored cases or continuity workflows.
+- Supporting evidence: Archived `DECISION 007` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active governance should preserve compatibility as transitional, not as current product direction.
+- Implementation impact: Do not remove compatibility fields without explicit migration approval; do not use those fields to reintroduce pathway selection as current authority.
+- Superseded decision: Immediate removal of pathway-era fields.
+- Reopening condition: Migration audit proves stored cases, exports, and historical snapshots no longer depend on pathway-era structures.
+- Status: Transitional.
+
+### DCL-015 — Adjacent operational priorities replace alternative treatment approaches
+
+- Date: 2026-06-04
+- Decision: “Alternative Treatment Approaches” should be understood as adjacent operational priorities rather than true alternatives.
+- Owner: Founder / Product Design / Architecture
+- Rationale: The historical alternatives represented nearby emphasis areas, secondary concerns, emerging readiness areas, and possible next emphasis candidates; calling them alternatives created a false option-selection model.
+- Supporting evidence: Archived `DECISION 008` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active documentation should avoid restoring alternative-treatment-pathway framing as current authority.
+- Implementation impact: Workflow language should support continuity-aware priority movement without implying competing treatment philosophies.
+- Superseded decision: Alternative Treatment Approaches as true competing plans.
+- Reopening condition: Product Design and Founder approve a validated language model that safely reintroduces alternatives without pathway authority conflicts.
+- Status: Active.
+
+### DCL-016 — Progression state and operational emphasis remain distinct
+
+- Date: 2026-06-04
+- Decision: Progression state and operational emphasis are related but distinct authorities.
+- Owner: Architecture
+- Rationale: Progression state describes the patient’s operational continuity condition; operational emphasis describes the dominant intervention priority right now. One-to-one mapping would recreate pathway-era authority conflicts.
+- Supporting evidence: Archived `DECISION 009` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Architecture and governance documents should not collapse progression, attention, and operational prioritization into one concept.
+- Implementation impact: Deterministic derivation and UI language must preserve the distinction between state classification and current treatment emphasis.
+- Superseded decision: One-to-one pathway/progression mapping.
+- Reopening condition: Representative clinical validation proves a simpler authority model without loss of correctness or workflow clarity.
+- Status: Active.
+
+### DCL-017 — Reassessment updates operational emphasis through deterministic continuity logic
+
+- Date: 2026-06-04
+- Decision: Reassessment workflows update operational emphasis through deterministic continuity logic, not through pathway reselection.
+- Owner: Architecture
+- Rationale: Reassessment should identify what changed, what remains limiting, what dominates treatment attention, and what requires review before continuing.
+- Supporting evidence: Archived `DECISION 010` and continuity mutation governance decisions in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Reassessment remains a Clinical Continuity capability governed by deterministic authority.
+- Implementation impact: Reassessment-related changes must not be treated as a new AI plan-selection event.
+- Superseded decision: Reassessment as pathway reselection.
+- Reopening condition: Founder-approved architecture change with safety, validation, and migration evidence.
+- Status: Active.
+
+### DCL-018 — Continuity mutations require deterministic governance
+
+- Date: 2026-06-04
+- Decision: Any live case change that may affect progression state, operational prioritization, reassessment pressure, stale-state validity, caregiver feasibility, environmental limitation, or detail-module usefulness must be treated as a continuity mutation governed by deterministic authority rules.
+- Owner: Architecture
+- Rationale: Meaningful changes can otherwise create competing sources of truth across live case state, generated output, deterministic interpretation, AI synthesis, stale flags, detail modules, and historical generations.
+- Supporting evidence: Archived continuity mutation `DECISION 012` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active architecture and program-state docs should preserve deterministic mutation governance as still-binding Clinical Continuity authority.
+- Implementation impact: Meaningful current-state changes require governed regeneration/recalculation consequences; AI may synthesize but must not decide continuity authority.
+- Superseded decision: Treating meaningful case changes as isolated UI edits or standalone regeneration events.
+- Reopening condition: Approved architecture introduces an equally deterministic correction/mutation model.
+- Status: Active.
+
+### DCL-019 — Historical snapshots are immutable; live operational state owns current truth
+
+- Date: 2026-06-04
+- Decision: Live operational case state is the authoritative source of current truth; historical generations remain immutable continuity snapshots.
+- Owner: Founder / Architecture
+- Rationale: Reassessment and follow-up workflows require a clear authority boundary between current structured data/output/progression/operational emphasis and reviewable historical references.
+- Supporting evidence: Archived `DECISION 005` and mutation governance rules in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active documents must continue to distinguish current truth from historical truth.
+- Implementation impact: Historical generations and snapshots must not become active editing environments or independently evolving current clinical authorities.
+- Superseded decision: Historical generations as active current-state authorities.
+- Reopening condition: Founder-approved persistence and auditability model replaces current snapshot authority rules.
+- Status: Active.
+
+### DCL-020 — Occupational performance evolution is the primary longitudinal progress unit for the OT configuration
+
+- Date: 2026-06-04
+- Decision: For the current OT configuration, the primary longitudinal unit of progress is occupational performance evolution rather than visit history.
+- Owner: Founder / Architecture
+- Rationale: OT progression is best represented through occupational performance, assistance-level change, milestone attainment, barrier evolution, and operational priority transitions, not visit count or narrative treatment history alone.
+- Supporting evidence: Archived longitudinal progress `DECISION 012` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: This decision is preserved as OT-configuration governance within Clinical Continuity, not as a universal Care Continuity rule.
+- Implementation impact: OT progression workflows should prioritize structured follow-up data and performance evolution over narrative visit chronology alone.
+- Superseded decision: Visit history as the primary progress unit.
+- Reopening condition: Cross-application validation identifies a different shared progress abstraction or discipline-specific model.
+- Status: Narrowed.
+
+### DCL-021 — Command Center remains the primary clinician workflow surface for Clinical Continuity
+
+- Date: 2026-06-04
+- Decision: The Command Center is the primary clinician workflow surface for Clinical Continuity orientation and clinical navigation.
+- Owner: Founder / Product Design
+- Rationale: Clinicians need rapid answers about whether the patient is improving, stable, or declining; what changed; what attention is required; and what should happen next.
+- Supporting evidence: Archived `DECISION 013` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: This remains a Clinical Continuity UX/workflow decision, subordinate to current foundation and architecture documents.
+- Implementation impact: Patient-level workflow surfaces should prioritize orientation value over historical completeness when serving clinician visit preparation.
+- Superseded decision: Case open as primarily evaluation review, documentation review, or treatment-plan review.
+- Reopening condition: Product Design and Founder approve a new validated Clinical Continuity information architecture.
+- Status: Narrowed.
+
+### DCL-022 — Deterministic continuity interpretation remains approved Clinical Continuity architecture
+
+- Date: 2026-06-04
+- Decision: The platform introduced a deterministic continuity interpretation layer between progression interpretation, operational prioritization, and longitudinal reassessment workflows.
+- Owner: Architecture
+- Rationale: Continuity interpretation formalized operational continuity condition interpretation, reassessment pressure classification, operational instability surfacing, and continuity-sensitive workflow interpretation without predictive analytics or autonomous AI reasoning.
+- Supporting evidence: Archived “Decision — Deterministic Continuity Interpretation Layer” in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active architecture should treat continuity interpretation as an implemented Clinical Continuity capability and a possible candidate shared primitive only after validation.
+- Implementation impact: Continuity interpretation must remain deterministic, explainable, operationally compressed, and non-predictive.
+- Superseded decision: Multi-pathway architecture as the organizing continuity model.
+- Reopening condition: Foundation validation proves a different ownership boundary for continuity interpretation.
+- Status: Active.
+
+### DCL-023 — Pause deeper continuity architecture expansion unless operationally justified
+
+- Date: 2026-06-04
+- Decision: Deeper continuity architecture expansion should pause after foundational continuity consolidation and prioritize UX compression, operational clarity, and clinician usability stabilization unless further architecture work is operationally justified.
+- Owner: Founder / Architecture / Product Design
+- Rationale: The primary product risk shifted from insufficient continuity infrastructure to clinician cognitive overload, workflow clarity, and architectural complexity leaking into UX.
+- Supporting evidence: Archived `DECISION 014` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: The active boundary now defines foundation ownership before extraction; it does not authorize speculative architecture expansion.
+- Implementation impact: New architecture work should be incremental, implementation-driven, operationally necessary, and explicitly approved.
+- Superseded decision: Recursively expanding continuity architecture as the default next step.
+- Reopening condition: Current Focus changes or validated implementation need requires additional architecture authority.
+- Status: Active.
+
+### DCL-024 — New-case progression assembly and related continuity attachment remain transitional areas
+
+- Date: 2026-06-04
+- Decision: New-case progression assembly, API-owned continuity interpretation attachment, and detail-module continuity dependency standardization remain intentionally transitional until operationally necessary, UX-validated, or reassessment workflows mature further.
+- Owner: Architecture / Codex
+- Rationale: These areas were identified as acceptable transitional debt during the pause on deeper continuity expansion.
+- Supporting evidence: Archived `DECISION 014` deferred transitional areas in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
+- Repository impact: Active governance preserves the debt as known transitional state rather than silently deleting it into the archive.
+- Implementation impact: Do not resolve these transitional areas through opportunistic refactor; require explicit approved boundary.
+- Superseded decision: Treating transitional continuity attachment debt as completed or irrelevant.
+- Reopening condition: Current Focus or roadmap explicitly activates correction/provenance hardening, technical extraction, or related implementation work.
+- Status: Transitional.
+
+### DCL-025 — Historical pathway-oriented product identity is superseded
+
+- Date: 2026-07-15
+- Decision: Historical pathway-oriented recommendation identity is superseded by Clinical Continuity and continuity-aware operational prioritization governance.
+- Owner: Founder
+- Rationale: The reboot established Clinical Continuity Platform as current implemented identity and Continuity Platform as future organizing direction.
+- Supporting evidence: Reboot instruction and archived decision log.
+- Repository impact: Archived decisions remain evidence, but active docs must not restore pathway-era identity as current product strategy.
+- Implementation impact: No runtime change; prevents agents from treating archived pathway language as current authority.
+- Superseded decision: Pathway-oriented recommendation synthesis as product identity.
+- Reopening condition: Founder approves a new product strategy and records it in Git.
+- Status: Superseded.
+
+## Historical decision status review
+
+| Archived decision | Active disposition | Active log entry |
+| --- | --- | --- |
+| DECISION 001 — deterministic reasoning authority | Active | DCL-001 |
+| DECISION 002 — cognitive compression over narrative richness | Active | DCL-011 |
+| DECISION 003 — environmental realism and caregiver feasibility | Active | DCL-012 |
+| DECISION 004 — transition away from multi-pathway recommendation architecture | Active | DCL-013 |
+| DECISION 005 — live operational state versus immutable snapshots | Active | DCL-019 |
+| DECISION 006 — operational emphasis replaces selected pathway semantics | Active | DCL-013 |
+| DECISION 007 — `selectedPathwayIndex` deprecation | Transitional | DCL-014 |
+| DECISION 008 — adjacent operational priorities | Active | DCL-015 |
+| DECISION 009 — progression state distinct from operational emphasis | Active | DCL-016 |
+| DECISION 010 — reassessment through deterministic continuity logic | Active | DCL-017 |
+| DECISION 011 — operational-state interpretation architecture | Active | DCL-013 |
+| DECISION 012 — continuity mutation governance | Active | DCL-018 |
+| DECISION 014 — pause deeper continuity architecture expansion | Active / Transitional | DCL-023 / DCL-024 |
+| Duplicate DECISION 012 — occupational performance evolution | Narrowed to OT configuration | DCL-020 |
+| DECISION 013 — Command Center primary workflow surface | Narrowed to Clinical Continuity UX | DCL-021 |
+| Deterministic Continuity Interpretation Layer | Active | DCL-022 |
+| Historical pathway-oriented product identity | Superseded | DCL-025 |
