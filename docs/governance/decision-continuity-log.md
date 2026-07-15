@@ -270,18 +270,19 @@ Each entry includes ID, date, decision, owner, rationale, supporting evidence, r
 - Reopening condition: Cross-application validation identifies a different shared progress abstraction or discipline-specific model.
 - Status: Narrowed.
 
-### DCL-021 — Command Center remains the primary clinician workflow surface for Clinical Continuity
+### DCL-021 — Visit Briefing is the primary clinician patient-level workflow surface
 
-- Date: 2026-06-04
-- Decision: The Command Center is the primary clinician workflow surface for Clinical Continuity orientation and clinical navigation.
+- Date: 2026-06-11
+- Decision: Visit Briefing is the primary patient-level workflow surface for Clinical Continuity. The earlier Command Center concept is retained only as historical design lineage.
 - Owner: Founder / Product Design
-- Rationale: Clinicians need rapid answers about whether the patient is improving, stable, or declining; what changed; what attention is required; and what should happen next.
-- Supporting evidence: Archived `DECISION 013` in `docs/archive/2026-continuity-platform-reboot/foundations/decision_log.md`.
-- Repository impact: This remains a Clinical Continuity UX/workflow decision, subordinate to current foundation and architecture documents.
-- Implementation impact: Patient-level workflow surfaces should prioritize orientation value over historical completeness when serving clinician visit preparation.
-- Superseded decision: Case open as primarily evaluation review, documentation review, or treatment-plan review.
+- Rationale: Visit Briefing provides rapid orientation around current focus, session focus, attention required, supporting evidence, progression constraints, and next action without exposing unnecessary system complexity.
+- Supporting evidence: Archived project-status and workflow documentation.
+- Repository impact: Active documentation and future workflow specifications should use Visit Briefing terminology.
+- Implementation impact: Patient-level workflow surfaces should prioritize rapid clinical orientation over historical completeness.
+- Superseded decision: Command Center as the current workflow name and product surface.
 - Reopening condition: Product Design and Founder approve a new validated Clinical Continuity information architecture.
-- Status: Narrowed.
+- Status: Active.
+
 
 ### DCL-022 — Deterministic continuity interpretation remains approved Clinical Continuity architecture
 
@@ -353,6 +354,6 @@ Each entry includes ID, date, decision, owner, rationale, supporting evidence, r
 | DECISION 012 — continuity mutation governance | Active | DCL-018 |
 | DECISION 014 — pause deeper continuity architecture expansion | Active / Transitional | DCL-023 / DCL-024 |
 | Duplicate DECISION 012 — occupational performance evolution | Narrowed to OT configuration | DCL-020 |
-| DECISION 013 — Command Center primary workflow surface | Narrowed to Clinical Continuity UX | DCL-021 |
+| DECISION 013 — Command Center primary workflow surface | Superseded by Visit Briefing terminology and workflow model | DCL-021 |
 | Deterministic Continuity Interpretation Layer | Active | DCL-022 |
 | Historical pathway-oriented product identity | Superseded | DCL-025 |
