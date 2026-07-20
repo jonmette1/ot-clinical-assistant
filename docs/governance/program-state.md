@@ -2,11 +2,15 @@
 
 ## Purpose
 
-This document records what is actually true in the repository today. It separates implemented capability, candidate shared primitives, Clinical Continuity-specific capability, OT-specific configuration, delivery infrastructure, validation status, and current limitations.
+This document records what is true in the repository today and what newly approved direction has been accepted for documentation consolidation. It is a state-transfer document, not a product vision, roadmap, or implementation plan.
 
-## Implemented
+## Current platform identity
 
-The repository contains substantial Clinical Continuity implementation, including:
+The repository is the **Clinical Continuity Platform** implementation inside the broader **Continuity Platform** direction. The broader platform direction is approved, but the current codebase should not be described as a proven universal continuity platform.
+
+## Current implemented product state
+
+The repository contains substantial **Clinical Continuity** implementation with an **OT configuration**, including:
 
 - deterministic clinical reasoning and operational prioritization;
 - longitudinal state and progression logic;
@@ -19,10 +23,34 @@ The repository contains substantial Clinical Continuity implementation, includin
 - Progress Evidence;
 - Reassessment Summary;
 - Session Focus;
-- Patients caseload prioritization;
+- patient caseload prioritization;
 - Visit Briefing;
 - Clinical Translation Workspace concepts in current documentation and UI direction;
-- current versus historical state handling.
+- current-versus-historical state handling.
+
+## Newly approved product direction
+
+The consolidated approved direction now includes:
+
+- [`../foundation/platform-foundation.md`](../foundation/platform-foundation.md) as the enduring platform foundation;
+- [`../foundation/product-vision.md`](../foundation/product-vision.md) as product vision direction;
+- [`../architecture/continuity-model-working-draft-v0.1.md`](../architecture/continuity-model-working-draft-v0.1.md) as the working continuity model;
+- [`../applications/clinical/clinical-continuity-v0.1.md`](../applications/clinical/clinical-continuity-v0.1.md) as Clinical Continuity application direction;
+- [`../applications/patient-management.md`](../applications/patient-management.md) as Patient Management product direction.
+
+These documents are approved direction. They do not, by themselves, change runtime behavior or declare unimplemented scope complete.
+
+## Applications currently defined
+
+| Application or product area | Current status |
+| --- | --- |
+| Continuity Platform | Approved broader direction; not yet proven as a universal shared implementation layer. |
+| Shared Continuity Foundation | Candidate shared architecture; requires validation across applications before technical extraction. |
+| Clinical Continuity | Implemented application layer in this repository. |
+| OT configuration | Current implemented Clinical Continuity configuration. |
+| Patient Management | Approved product direction; currently represented only through existing Clinical Continuity patient-oriented surfaces, not a new implemented application. |
+| Care Continuity | Future application concept; not implemented in this repository. |
+| PT, SLP, and other discipline expansion | Not implemented and not active without explicit approval. |
 
 ## Candidate shared continuity primitives
 
@@ -33,15 +61,15 @@ The following may plausibly contribute to a candidate Shared Continuity Foundati
 - meaningful-change handling;
 - evidence-linked maintained conclusions;
 - relevance reconciliation;
-- current versus historical truth separation;
+- current-versus-historical truth separation;
 - attention orientation;
 - correction and provenance implications.
 
 These should be classified during the active work boundary before technical extraction.
 
-## Clinical Continuity-specific
+## Clinical Continuity-specific concerns
 
-The following are Clinical Continuity concepts unless explicitly validated elsewhere:
+The following remain Clinical Continuity concepts unless explicitly validated elsewhere:
 
 - clinical significance;
 - progression;
@@ -53,9 +81,9 @@ The following are Clinical Continuity concepts unless explicitly validated elsew
 - clinical attention;
 - clinical evidence interpretation.
 
-## OT-specific
+## OT-specific concerns
 
-The following are OT configuration concerns:
+The following remain OT configuration concerns:
 
 - ADLs;
 - transfers;
@@ -100,14 +128,23 @@ Evidence boundary:
 - pilot and production readiness are not established;
 - simulated validation must not be described as clinician proof.
 
-## Current limitations and debt
+## Known gaps
 
-Known limitations include:
+Known documentation or implementation gaps include:
 
-- candidate shared foundation ownership is not yet classified component by component;
+- the candidate shared foundation has not been classified component by component;
+- Patient Management direction is approved but not converted into implementation scope;
 - Care Continuity is not implemented;
 - real-clinician validation remains required;
 - correction and provenance hardening remain important;
 - mobile and field-context readiness require further validation;
 - OT-specific logic may not transfer to other domains;
 - universal architecture reuse remains an unproven assumption.
+
+## Current active implementation boundary
+
+The active boundary remains Continuity Platform Foundation Definition. No product functionality, schemas, APIs, persistence, deterministic reasoning, continuity logic, progression logic, clinical authority, AI generation behavior, or runtime behavior changes are authorized by this handoff PR.
+
+## Next implementation boundary
+
+The next implementation boundary awaits Founder or Chief of Staff confirmation through the active governance process. This program-state handoff does not convert approved product direction into implementation scope and does not advance the roadmap by itself.
