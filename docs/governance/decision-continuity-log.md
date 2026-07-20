@@ -357,3 +357,16 @@ Each entry includes ID, date, decision, owner, rationale, supporting evidence, r
 | DECISION 013 — Command Center primary workflow surface | Superseded by Visit Briefing terminology and workflow model | DCL-021 |
 | Deterministic Continuity Interpretation Layer | Active | DCL-022 |
 | Historical pathway-oriented product identity | Superseded | DCL-025 |
+
+### DCL-026 — Approved product documents are consolidated as direction, not implementation
+
+- Date: 2026-07-20
+- Decision: The approved platform foundation, product vision, continuity model working draft, Clinical Continuity v0.1, and Patient Management direction are integrated into the active documentation hierarchy while preserving the distinction between current implementation truth and future direction.
+- Owner: Founder / Chief of Staff
+- Rationale: A new Chief of Staff needs a durable repository handoff that reflects approved direction without converting unimplemented concepts into runtime claims or roadmap commitments.
+- Supporting evidence: Documentation consolidation and CoS handoff PR.
+- Repository impact: Adds a documentation index, product vision, continuity model working draft, Clinical Continuity direction, Patient Management direction, and an updated program-state handoff.
+- Implementation impact: Documentation-only; no application code, schemas, APIs, persistence, deterministic reasoning, continuity logic, progression logic, clinical authority, AI behavior, or runtime behavior changes.
+- Superseded decision: Handoff-only treatment of newly approved product direction.
+- Reopening condition: Founder-approved change to product authority hierarchy or implementation scope.
+- Status: active.
