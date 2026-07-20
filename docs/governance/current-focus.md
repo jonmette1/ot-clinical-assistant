@@ -2,20 +2,13 @@
 
 ## Single active work boundary
 
-# Continuity Platform Foundation Definition and Documentation Handoff
+# Continuity Platform Foundation Definition
 
 ## Objective
 
-Define and consolidate the minimum candidate Continuity Platform foundation by classifying current repository capabilities, integrating newly approved product-direction documents, modeling Clinician and Caregiver experiences together where explicitly approved, and pressure-testing shared versus application-specific continuity concepts before any technical extraction begins.
+Define the minimum candidate Continuity Platform foundation by classifying current repository capabilities, modeling Clinician and Caregiver experiences together where explicitly approved, and pressure-testing shared versus application-specific continuity concepts before any technical extraction begins.
 
 ## Included scope
-
-### Documentation consolidation
-
-- add the approved product-direction documents into the repository hierarchy;
-- separate current implementation truth from approved future direction;
-- create a concise documentation index for Chief of Staff and implementation-agent onboarding;
-- update program state where needed to prevent materially conflicting repository truth.
 
 ### Repository classification
 
@@ -80,7 +73,6 @@ Identify:
 
 The boundary is complete when:
 
-- the approved documents are integrated into the repository hierarchy;
 - every major repository capability has a justified ownership layer;
 - clinician and caregiver experience models exist where approved;
 - the candidate Shared Continuity Foundation has been pressure-tested against both applications;
@@ -93,4 +85,4 @@ The boundary is complete when:
 
 Stop before implementation, refactoring, technical extraction, or product runtime changes.
 
-This boundary produces an approved foundation, documentation handoff, and validation model, not application code.
+This boundary produces an approved foundation and validation model, not application code.

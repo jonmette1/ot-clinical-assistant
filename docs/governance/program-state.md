@@ -143,8 +143,8 @@ Known documentation or implementation gaps include:
 
 ## Current active implementation boundary
 
-The active boundary remains foundation definition and documentation consolidation. No product functionality, schemas, APIs, persistence, deterministic reasoning, continuity logic, progression logic, clinical authority, AI generation behavior, or runtime behavior changes are authorized by this handoff PR.
+The active boundary remains Continuity Platform Foundation Definition. No product functionality, schemas, APIs, persistence, deterministic reasoning, continuity logic, progression logic, clinical authority, AI generation behavior, or runtime behavior changes are authorized by this handoff PR.
 
-## Next milestone
+## Next implementation boundary
 
-After this PR is reviewed, the smallest complete next action is for the Chief of Staff to confirm the documentation authority hierarchy and decide whether the active foundation-definition boundary is complete enough to move toward real-clinician validation planning.
+The next implementation boundary awaits Founder or Chief of Staff confirmation through the active governance process. This program-state handoff does not convert approved product direction into implementation scope and does not advance the roadmap by itself.

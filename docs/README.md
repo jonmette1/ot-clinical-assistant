@@ -2,37 +2,44 @@
 
 ## Purpose
 
-This index gives a new Chief of Staff or implementation agent the shortest reliable path through the repository documentation. It separates current implementation truth, approved product direction, roadmap sequencing, finalized decisions, and archive material.
+This index gives a new Chief of Staff or implementation agent the shortest reliable path through repository documentation. It separates finalized governance, active execution authority, approved enduring product direction, current implementation truth, and archive material.
 
-## Authority hierarchy
+## Governance precedence
 
-1. [`foundation/platform-foundation.md`](foundation/platform-foundation.md) — enduring Continuity Platform identity, principles, application boundaries, and non-goals.
-2. [`architecture/system-architecture.md`](architecture/system-architecture.md) — permanent ownership layers and architecture contracts.
-3. [`governance/program-state.md`](governance/program-state.md) — current repository truth, implemented versus conceptual scope, gaps, and handoff state.
-4. [`governance/current-focus.md`](governance/current-focus.md) — the single active work boundary.
-5. [`governance/active-roadmap.md`](governance/active-roadmap.md) — dependency-driven sequencing after the active boundary.
-6. [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md) — finalized decisions and reopening conditions.
-7. [`governance/operating-model.md`](governance/operating-model.md) — role boundaries and coordination workflow.
-8. Subordinate references under `docs/architecture/`, `docs/clinical_model/`, `docs/UX/`, `docs/implementation/`, and `docs/applications/` — scoped technical, clinical-model, UX, and application detail.
+Do not treat this index as a new authority hierarchy. Repository governance precedence remains the hierarchy established by `AGENTS.md` and active governance practice:
 
-When these documents conflict, follow the same order unless a higher-authority document explicitly delegates a scoped decision to a lower-level reference.
+1. [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md) — finalized decisions, rationale, supersession, and reopening conditions.
+2. [`governance/active-roadmap.md`](governance/active-roadmap.md) — approved sequencing and active/deferred execution boundaries.
+3. [`architecture/system-architecture.md`](architecture/system-architecture.md) — system ownership layers and architecture contracts.
+4. UX documents under [`UX/`](UX/) — approved workflow, interaction, and information-architecture direction within their scoped areas.
+5. Project-state and handoff documents, especially [`governance/program-state.md`](governance/program-state.md) and [`governance/current-focus.md`](governance/current-focus.md) — current repository truth, active work boundary, and transfer context.
+
+## Enduring approved product direction
+
+The following documents define approved product direction and should be read early, but they do not silently override finalized decisions, the active roadmap, architecture contracts, or implementation reality:
+
+- [`foundation/platform-foundation.md`](foundation/platform-foundation.md) — enduring Continuity Platform identity, principles, application boundaries, and non-goals.
+- [`foundation/product-vision.md`](foundation/product-vision.md) — approved product vision and north-star direction.
+- [`architecture/continuity-model-working-draft-v0.1.md`](architecture/continuity-model-working-draft-v0.1.md) — approved working continuity model used for classification and alignment.
+- [`applications/clinical/clinical-continuity-v0.1.md`](applications/clinical/clinical-continuity-v0.1.md) — approved Clinical Continuity product direction.
+- [`applications/patient-management.md`](applications/patient-management.md) — approved Patient Management product direction.
+
+If an enduring direction document appears to conflict with a finalized decision or active execution boundary, escalate through the Chief of Staff rather than reordering authority by documentation interpretation.
 
 ## Major documents by question
 
 | Question | Primary document |
 | --- | --- |
-| What is the platform and what is not the platform? | [`foundation/platform-foundation.md`](foundation/platform-foundation.md) |
-| What product direction has been approved beyond the current implementation? | [`foundation/product-vision.md`](foundation/product-vision.md) |
-| What continuity model is being used as the shared working model? | [`architecture/continuity-model-working-draft-v0.1.md`](architecture/continuity-model-working-draft-v0.1.md) |
+| What finalized decisions govern this repository? | [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md) |
+| What work is active, next, deferred, or complete? | [`governance/active-roadmap.md`](governance/active-roadmap.md) |
 | What architecture boundaries must implementation preserve? | [`architecture/system-architecture.md`](architecture/system-architecture.md) |
 | What is implemented today? | [`governance/program-state.md`](governance/program-state.md) |
-| What work is active now? | [`governance/current-focus.md`](governance/current-focus.md) |
-| What comes next, and in what order? | [`governance/active-roadmap.md`](governance/active-roadmap.md) |
-| What decisions are finalized? | [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md) |
-| How should Founder, CoS, Design, Architecture, and Codex coordinate? | [`governance/operating-model.md`](governance/operating-model.md) |
+| What product direction has been approved beyond the current implementation? | [`foundation/product-vision.md`](foundation/product-vision.md) |
+| What continuity model is being used as the shared working model? | [`architecture/continuity-model-working-draft-v0.1.md`](architecture/continuity-model-working-draft-v0.1.md) |
 | What is the implemented Clinical Continuity application? | [`applications/clinical/README.md`](applications/clinical/README.md) and [`applications/clinical/clinical-continuity-v0.1.md`](applications/clinical/clinical-continuity-v0.1.md) |
-| What is the approved Patient Management direction? | [`applications/patient-management.md`](applications/patient-management.md) |
+| What is the approved Patient Management application direction? | [`applications/patient-management.md`](applications/patient-management.md) |
 | What is Care Continuity status? | [`applications/care/README.md`](applications/care/README.md) |
+| How should Founder, CoS, Design, Architecture, and Codex coordinate? | [`governance/operating-model.md`](governance/operating-model.md) |
 
 ## Current implementation versus approved direction
 
@@ -44,12 +51,12 @@ When these documents conflict, follow the same order unless a higher-authority d
 
 ## Recommended reading order
 
-1. [`foundation/platform-foundation.md`](foundation/platform-foundation.md)
-2. [`foundation/product-vision.md`](foundation/product-vision.md)
+1. [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md)
+2. [`governance/active-roadmap.md`](governance/active-roadmap.md)
 3. [`architecture/system-architecture.md`](architecture/system-architecture.md)
-4. [`governance/program-state.md`](governance/program-state.md)
-5. [`governance/current-focus.md`](governance/current-focus.md)
-6. [`governance/active-roadmap.md`](governance/active-roadmap.md)
-7. [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md)
-8. [`governance/operating-model.md`](governance/operating-model.md)
-9. Relevant application, architecture, UX, clinical-model, or implementation references for the assigned boundary.
+4. Relevant UX documents under [`UX/`](UX/), if the work touches workflow or interaction behavior.
+5. [`governance/program-state.md`](governance/program-state.md)
+6. [`governance/current-focus.md`](governance/current-focus.md)
+7. [`foundation/platform-foundation.md`](foundation/platform-foundation.md)
+8. [`foundation/product-vision.md`](foundation/product-vision.md)
+9. Relevant application, architecture, clinical-model, implementation, or archive references for the assigned boundary.
