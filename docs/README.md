@@ -19,6 +19,7 @@ Do not treat this index as a new authority hierarchy. Repository governance prec
 The following documents define approved product direction and should be read early, but they do not silently override finalized decisions, the active roadmap, architecture contracts, or implementation reality:
 
 - [`foundation/platform-foundation.md`](foundation/platform-foundation.md) — enduring Continuity Platform identity, principles, application boundaries, and non-goals.
+- [`foundation/candidate-shared-continuity-foundation.md`](foundation/candidate-shared-continuity-foundation.md) — candidate Shared Continuity Foundation definition from assessment evidence; documentation-only, not shared implementation approval.
 - [`foundation/product-vision.md`](foundation/product-vision.md) — approved product vision and north-star direction.
 - [`architecture/continuity-model-working-draft-v0.1.md`](architecture/continuity-model-working-draft-v0.1.md) — approved working continuity model used for classification and alignment.
 - [`applications/clinical/clinical-continuity-v0.1.md`](applications/clinical/clinical-continuity-v0.1.md) — approved Clinical Continuity product direction.
@@ -33,6 +34,7 @@ If an enduring direction document appears to conflict with a finalized decision 
 | What finalized decisions govern this repository? | [`governance/decision-continuity-log.md`](governance/decision-continuity-log.md) |
 | What work is active, next, deferred, or complete? | [`governance/active-roadmap.md`](governance/active-roadmap.md) |
 | What architecture boundaries must implementation preserve? | [`architecture/system-architecture.md`](architecture/system-architecture.md) |
+| What is the smallest candidate Shared Continuity Foundation defined from evidence? | [`foundation/candidate-shared-continuity-foundation.md`](foundation/candidate-shared-continuity-foundation.md) |
 | What is implemented today? | [`governance/program-state.md`](governance/program-state.md) |
 | What product direction has been approved beyond the current implementation? | [`foundation/product-vision.md`](foundation/product-vision.md) |
 | What continuity model is being used as the shared working model? | [`architecture/continuity-model-working-draft-v0.1.md`](architecture/continuity-model-working-draft-v0.1.md) |
