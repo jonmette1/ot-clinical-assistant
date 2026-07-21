@@ -2,7 +2,9 @@
 
 ## Status and purpose
 
-This document defines the smallest candidate Shared Continuity Foundation that can be described today from repository-backed evidence. It is a documentation and architecture-definition artifact only.
+This document is retained as the candidate evidence record used by the Shared Continuity Foundation validation boundary. The canonical approved foundation is now [`shared-continuity-foundation.md`](shared-continuity-foundation.md), and the candidate disposition table is [`shared-continuity-foundation-disposition-record.md`](shared-continuity-foundation-disposition-record.md). Where this candidate record differs from those approved documents, the approved documents govern.
+
+This document defined the smallest candidate Shared Continuity Foundation that could be described from repository-backed evidence before promotion. It is a documentation and architecture-definition artifact only.
 
 This document does not approve shared architecture, extract implementation, create implementation contracts, or change runtime behavior. The current repository remains the Clinical Continuity Platform implementation with an OT configuration; Care Continuity remains a future application concept and is not implemented here.
 
