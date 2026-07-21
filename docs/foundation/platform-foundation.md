@@ -70,13 +70,11 @@ Deterministic systems own authoritative reasoning, state transitions, and curren
 
 AI may assist with synthesis, organization, explanation, and communication of supported conclusions. AI must not become the authority for clinical reasoning, care authority, state truth, or unsupported recommendations.
 
-## Candidate shared continuity foundation
+## Shared Continuity Foundation
 
-Candidate shared continuity foundation; requires validation across Clinical Continuity and Care Continuity.
+The approved Shared Continuity Foundation owns the smallest application-neutral continuity responsibilities validated conceptually across Clinical Continuity and Care Continuity: state identity and current-state projection, temporal comparison, event/current-state separation, maintained conclusions, evidence lineage, meaningful-change representation, present relevance, attention-state abstraction, reconciliation lifecycle, current-versus-historical authority, and freshness/correction consequences.
 
-Potential shared concerns include state identity, temporal comparison, maintained conclusions, meaningful-change representation, evidence lineage, present relevance, reconciliation, current-versus-historical authority, attention state, and correction consequences.
-
-These concerns are not yet proven as a universal implementation layer.
+This approval is conceptual only. It does not prove a universal implementation layer, authorize shared runtime extraction, or move Clinical Continuity code, schemas, APIs, persistence, UI, prompts, or workflows into a shared engine. The canonical definition is [`shared-continuity-foundation.md`](shared-continuity-foundation.md), and candidate dispositions are recorded in [`shared-continuity-foundation-disposition-record.md`](shared-continuity-foundation-disposition-record.md).
 
 ## Platform non-goals
 

@@ -8,30 +8,31 @@ This document defines ownership layers and permanent contracts that implementati
 
 ```text
 Continuity Platform
-├── Shared Continuity Foundation — candidate shared architecture
+├── Shared Continuity Foundation — approved conceptual responsibility layer
 ├── Clinical Continuity — implemented application layer
 │   └── OT configuration — current domain configuration
 └── Care Continuity — future application layer
 ```
 
-## Shared Continuity Foundation — candidate layer
+## Shared Continuity Foundation — approved conceptual layer
 
-**Status:** candidate shared architecture. The repository contains continuity primitives that may support a shared foundation, but cross-application reuse is not yet proven.
+**Status:** approved conceptual platform responsibility layer. Cross-application conceptual evidence supports a smallest shared foundation, but cross-application implementation reuse is not proven.
 
-Potential responsibilities:
+Approved responsibilities:
 
-- state identity;
+- state identity and current-state projection;
 - temporal comparison;
+- event versus current-state separation;
 - maintained conclusions;
-- meaningful-change representation;
 - evidence lineage;
+- meaningful-change representation;
 - present relevance;
-- reconciliation;
-- current versus historical authority;
-- attention state;
-- correction consequences.
+- attention-state abstraction;
+- reconciliation lifecycle;
+- current-versus-historical authority;
+- freshness and correction consequences.
 
-Permanent boundary: this layer may only be declared shared after validation across Clinical Continuity and Care Continuity. Existing Clinical Continuity implementation must not be renamed into a universal engine by documentation alone.
+Permanent boundary: this layer owns neutral continuity responsibilities only. It does not own clinical reasoning, OT vocabulary, caregiver-specific meaning, delivery mechanics, schemas, APIs, persistence, UI, AI provider implementation, runtime extraction, or a universal shared engine. Existing Clinical Continuity implementation remains application-owned evidence unless a future approved boundary validates and authorizes technical extraction.
 
 ## Clinical Continuity — implemented application layer
 
@@ -80,7 +81,7 @@ Expected architectural category may include:
 - communication;
 - caregiver attention.
 
-Permanent boundary: Care Continuity may pressure-test the candidate shared foundation, but this document does not define detailed Care Continuity implementation contracts.
+Permanent boundary: Care Continuity pressure-tested the approved conceptual Shared Continuity Foundation, but this document does not define detailed Care Continuity implementation contracts or authorize Care Continuity implementation.
 
 ## Current technical references
 

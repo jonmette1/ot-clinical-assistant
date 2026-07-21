@@ -357,3 +357,17 @@ Each entry includes ID, date, decision, owner, rationale, supporting evidence, r
 | DECISION 013 — Command Center primary workflow surface | Superseded by Visit Briefing terminology and workflow model | DCL-021 |
 | Deterministic Continuity Interpretation Layer | Active | DCL-022 |
 | Historical pathway-oriented product identity | Superseded | DCL-025 |
+
+### DCL-026 — Shared Continuity Foundation approved as conceptual platform responsibility only
+
+- Date: 2026-07-21
+- Decision: The Shared Continuity Foundation is approved as a conceptual platform responsibility layer for state identity and current-state projection, temporal comparison, event versus current-state separation, maintained conclusions, evidence lineage, meaningful-change representation, present relevance, attention-state abstraction, reconciliation lifecycle, current-versus-historical authority, and freshness/correction consequences.
+- Owner: Founder / Architecture / Chief of Staff
+- Rationale: Repository evidence from Clinical Continuity and the Care Continuity pressure test supports these responsibilities in application-neutral vocabulary, while preserving clinical, OT, care-specific, and delivery boundaries.
+- Supporting evidence: `docs/foundation/shared-continuity-foundation.md`, `docs/foundation/shared-continuity-foundation-disposition-record.md`, `docs/foundation/candidate-shared-continuity-foundation.md`, `docs/assessment/capability-ownership-assessment.md`, Clinical Continuity and Care Continuity application definitions.
+- Repository impact: Active governance should refer to the approved Shared Continuity Foundation for conceptual responsibility ownership and to the disposition record for deferred and application-specific concepts.
+- Implementation impact: No shared implementation, engine, package, extraction, schema, API, persistence, UI, route, AI behavior, clinical logic, progression logic, reassessment logic, operational prioritization logic, continuity behavior, or Care Continuity implementation is authorized.
+- Deferred concepts: Responsibility continuity, routine continuity and disruption, care-context identity, care-specific evidence identity, non-clinical care authority, and care-to-clinical escalation remain deferred or Care Continuity-owned until validated and approved.
+- Next boundary: Clinical Continuity Product Design Readiness.
+- Reopening condition: Cross-application validation, Founder approval, and Architecture decision establish new evidence for technical extraction, additional shared responsibilities, or revised authority boundaries.
+- Status: Active.
