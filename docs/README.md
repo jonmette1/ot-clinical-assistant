@@ -46,6 +46,18 @@ If an enduring direction document appears to conflict with a finalized decision 
 | What is Care Continuity status? | [`applications/care/README.md`](applications/care/README.md) |
 | How should Founder, CoS, Design, Architecture, and Codex coordinate? | [`governance/operating-model.md`](governance/operating-model.md) |
 
+## Architecture audit and continuity set
+
+These implementation-oriented references synthesize the active authority stack; they do not replace its precedence:
+
+1. [`architecture/architecture-knowledge-map.md`](architecture/architecture-knowledge-map.md) — inventory of major subsystems, interfaces, dependencies, lifecycle, stability, confidence, and evidence.
+2. [`architecture/architecture-guide.md`](architecture/architecture-guide.md) — concept-first explanation of the architectural engine for the Founder and contributors.
+3. [`architecture/agent-orientation.md`](architecture/agent-orientation.md) — rapid, safety-oriented onboarding for future AI agents and engineers.
+4. [`architecture/architecture-reference.md`](architecture/architecture-reference.md) — comprehensive implementation reference for modules, flows, interfaces, state ownership, and extension points.
+5. [`architecture/architecture-alignment.md`](architecture/architecture-alignment.md) — intent-versus-implementation ratings and divergence assessments.
+6. [`architecture/repository-health-assessment.md`](architecture/repository-health-assessment.md) — evidence-based health observations, separately labeled recommendations, and a future audit baseline.
+7. [`architecture/documentation-strategy.md`](architecture/documentation-strategy.md) — permanent placement, roles, maintenance triggers, and review cadence for the set.
+
 ## Current implementation versus approved direction
 
 - Current implementation truth belongs in [`governance/program-state.md`](governance/program-state.md) and implementation-specific subordinate references.
