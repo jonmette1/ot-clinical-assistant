@@ -26,6 +26,7 @@ import { ConclusionChangeExplanationSection } from "./components/ConclusionChang
 import { ConstraintProgressionNarrativeSection } from "./components/ConstraintProgressionNarrativeSection";
 import { ProgressEvidenceSection } from "./components/ProgressEvidenceSection";
 import { ReassessmentSummarySection } from "./components/ReassessmentSummarySection";
+import { OrientationBriefSection } from "./components/OrientationBriefSection";
 import {
   buildClinicalImpactSummary,
   type ClinicalImpactSummary,
@@ -42,6 +43,7 @@ import { buildConclusionChangeExplanationSet } from "@/lib/buildConclusionChange
 import { buildConstraintProgressionNarrative } from "@/lib/buildConstraintProgressionNarrative";
 import { buildProgressEvidence } from "@/lib/buildProgressEvidence";
 import { buildReassessmentSummary } from "@/lib/buildReassessmentSummary";
+import { buildOrientationBrief } from "@/lib/buildOrientationBrief";
 import { buildSessionFocus } from "@/lib/buildSessionFocus";
 import { buildCurrentFocusHeadline } from "@/lib/clinicalDisplayHeadline";
 import { buildAttentionRequiredHeadline } from "@/lib/longitudinal/buildAttentionRequiredHeadline";
@@ -2922,6 +2924,14 @@ const reassessmentSummary = buildReassessmentSummary({
   progressEvidence,
 });
 
+const orientationBrief = buildOrientationBrief({
+  quickOrientationSummary: reassessmentSummary.sections.currentStatus,
+  currentFocus: commandCenterCurrentOperationalEmphasis,
+  sessionFocus,
+  attentionRequired: commandCenterAttentionStatement,
+  progressionConstraint: constraintProgressionNarrative,
+});
+
 const renderCommandCenterRows = (rows: SummaryRow[], fallback: string) => (
   <dl className="mt-4 space-y-3 text-sm">
     {hasAnySummaryValue(rows) ? (
@@ -3428,6 +3438,7 @@ return (
 
   <div className="space-y-5">
     <ReassessmentSummarySection reassessment={reassessmentSummary} />
+    <OrientationBriefSection brief={orientationBrief} />
 
     <div className="grid gap-3 border-t border-gray-800 pt-5 lg:grid-cols-2">
       <article className="rounded-2xl border border-gray-700/80 bg-gray-950/75 p-4 shadow-sm shadow-black/10 ring-1 ring-emerald-500/10 lg:col-span-2 sm:p-5">
